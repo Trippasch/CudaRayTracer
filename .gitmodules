@@ -1,0 +1,6 @@
+[submodule "vendor/GLFW"]
+	path = vendor/GLFW
+	url = git@github.com:Trippasch/glfw.git
+[submodule "vendor/spdlog"]
+	path = vendor/spdlog
+	url = git@github.com:gabime/spdlog.git
