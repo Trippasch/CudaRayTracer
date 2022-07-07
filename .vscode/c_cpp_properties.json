@@ -5,7 +5,8 @@
             "includePath": [
                 "${workspaceFolder}/CudaRayTracer/src",
                 "${workspaceFolder}/vendor/GLFW/include",
-                "${workspaceFolder}/vendor/spdlog/include"
+                "${workspaceFolder}/vendor/spdlog/include",
+                "${workspaceFolder}/vendor/glm"
             ],
             "defines": [
                 "RT_DEBUG",
@@ -23,7 +24,8 @@
             "includePath": [
                 "${workspaceFolder}/CudaRayTracer/src",
                 "${workspaceFolder}/vendor/GLFW/include",
-                "${workspaceFolder}/vendor/spdlog/include"
+                "${workspaceFolder}/vendor/spdlog/include",
+                "${workspaceFolder}/vendor/glm"
             ],
             "defines": [
                 "RT_DEBUG",

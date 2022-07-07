@@ -1,7 +1,7 @@
 -- CudaRayTracerExternal.lua
 
 IncludeDir = {}
-IncludeDir["glm"] = "vendor/glm"
+IncludeDir["glm"] = "..vendor/glm"
 
 group "Dependencies"
     -- include "vendor/imgui"

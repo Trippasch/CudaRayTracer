@@ -8,9 +8,11 @@ project "CudaRayTracer"
     files { "src/**.h", "src/**.cpp" }
 
     includedirs {
+        "src/**",
         "../vendor/imgui",
         "../vendor/spdlog/include",
-        "../vendor/GLFW/include"
+        "../vendor/GLFW/include",
+        "%{IncludeDir.glm}"
     }
 
     -- Add necessary build customization using standard Premake5
