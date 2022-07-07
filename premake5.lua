@@ -1,3 +1,6 @@
+-- Include the premake5 CUDA module
+require('premake5-cuda')
+
 -- premake5.lua
 workspace "CudaRayTracer"
     architecture "x64"
