@@ -4,7 +4,6 @@
 
 int main(int argc, char** argv)
 {
-    int a = 5;
     Log::Init();
     RT_INFO("Log Initialized!");
 
