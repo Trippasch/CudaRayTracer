@@ -1,6 +1,6 @@
-#include "Application.h"
+#include "Core/Application.h"
 
-#include "Log.h"
+#include "Core/Log.h"
 
 int main(int argc, char** argv)
 {

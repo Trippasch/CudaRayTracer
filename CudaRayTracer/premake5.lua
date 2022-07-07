@@ -21,7 +21,7 @@ project "CudaRayTracer"
 
     -- CUDA specific properties
     cudaFiles {                                 -- Files compiled by NVCC
-        "CudaRayTracer/src/*.cu"
+        "CudaRayTracer/src/Cuda/*.cu"
     }
 
     cudaMaxRegCount "32"
