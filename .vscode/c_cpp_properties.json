@@ -11,7 +11,7 @@
             "defines": [
                 "RT_DEBUG",
                 "UNICODE",
-                "_UNICODE",
+                "_UNICODE"
             ],
             "compilerPath": "/usr/bin/clang",
             "cStandard": "c17",
@@ -30,7 +30,7 @@
                 "RT_DEBUG",
                 "_DEBUG",
                 "UNICODE",
-                "_UNICODE",
+                "_UNICODE"
             ],
             "windowsSdkVersion": "10.0.18362.0",
             "compilerPath": "C:\\Program Files\\LLVM\\bin\\clang.exe",
