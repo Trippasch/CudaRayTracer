@@ -2,6 +2,7 @@
 
 #include <glad/glad.h>
 #include "Log.h"
+#include "Core.h"
 
 static bool s_GLFWInitialized = false;
 
@@ -37,7 +38,7 @@ void Window::Init(const WindowProps& props)
     {
         // TODO: glfwTerminate on system shutdown
         int success = glfwInit();
-        // HZ_CORE_ASSERT(success, "Could not initialize GLFW!");
+        RT_ASSERT(success, "Could not initialize GLFW!");
         glfwSetErrorCallback(GLFWErrorCallback);
         s_GLFWInitialized = true;
     }
@@ -47,8 +48,7 @@ void Window::Init(const WindowProps& props)
     /* Make the window's context curren */
     glfwMakeContextCurrent(m_Window);
     int status = gladLoadGLLoader((GLADloadproc)glfwGetProcAddress);
-    // m_Context = new OpenGLContext(m_Window);
-    // m_Context->Init();
+    RT_ASSERT(status, "Could not initialize Glad.");
 
     glfwSetWindowUserPointer(m_Window, &m_Data);
     SetVSync(true);
