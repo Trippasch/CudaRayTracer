@@ -9,10 +9,15 @@ project "CudaRayTracer"
 
     includedirs {
         "src/**",
-        "../vendor/imgui",
+        -- "../vendor/imgui",
         "../vendor/spdlog/include",
         "../vendor/GLFW/include",
+        "../vendor/GLEW/include",
         "%{IncludeDir.glm}"
+    }
+
+    defines {
+        "GLFW_INCLUDE_NONE"
     }
 
     -- Add necessary build customization using standard Premake5
