@@ -1,5 +1,6 @@
 #include "Window.h"
 
+#include <glad/glad.h>
 #include "Log.h"
 
 static bool s_GLFWInitialized = false;
@@ -45,6 +46,7 @@ void Window::Init(const WindowProps& props)
 
     /* Make the window's context curren */
     glfwMakeContextCurrent(m_Window);
+    int status = gladLoadGLLoader((GLADloadproc)glfwGetProcAddress);
     // m_Context = new OpenGLContext(m_Window);
     // m_Context->Init();
 

@@ -5,6 +5,7 @@
             "includePath": [
                 "${workspaceFolder}/CudaRayTracer/src",
                 "${workspaceFolder}/vendor/GLFW/include",
+                "${workspaceFolder}/vendor/Glad/include",
                 "${workspaceFolder}/vendor/spdlog/include",
                 "${workspaceFolder}/vendor/glm"
             ],
@@ -23,6 +24,7 @@
             "includePath": [
                 "${workspaceFolder}/CudaRayTracer/src",
                 "${workspaceFolder}/vendor/GLFW/include",
+                "${workspaceFolder}/vendor/Glad/include",
                 "${workspaceFolder}/vendor/spdlog/include",
                 "${workspaceFolder}/vendor/glm"
             ],
