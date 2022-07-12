@@ -32,7 +32,7 @@ public:
     void SetVSync(bool enabled);
     bool IsVSync() const;
 
-    inline virtual void* GetNativeWindow() const { return m_Window; }
+    inline virtual GLFWwindow* GetNativeWindow() const { return m_Window; }
 
     static Window* Create(const WindowProps& props = WindowProps());
 private:

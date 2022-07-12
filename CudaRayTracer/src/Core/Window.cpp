@@ -43,7 +43,19 @@ void Window::Init(const WindowProps& props)
         s_GLFWInitialized = true;
     }
 
+    // These hints switch the OpenGL profile to core
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
+    glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
+    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+
     m_Window = glfwCreateWindow((int)props.Width, (int)props.Height, m_Data.Title.c_str(), nullptr, nullptr);
+    RT_ASSERT(m_Window, "Could not create GLFW window");
+
+    /* Set the window's position */
+    GLFWmonitor *monitor = glfwGetPrimaryMonitor();
+    const GLFWvidmode *mode = glfwGetVideoMode(monitor);
+    glfwSetWindowPos(m_Window, (mode->width - m_Data.Width) / 2, (mode->height - m_Data.Height) / 2);
 
     /* Make the window's context curren */
     glfwMakeContextCurrent(m_Window);
@@ -54,6 +66,22 @@ void Window::Init(const WindowProps& props)
     SetVSync(true);
 
     // Set GLFW callbacks
+    glfwSetKeyCallback(m_Window, [](GLFWwindow* window, int key, int scancode, int action, int mods)
+    {
+        if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
+        {
+            glfwSetWindowShouldClose(window, true);
+        }
+    });
+
+    glfwSetFramebufferSizeCallback(m_Window, [](GLFWwindow* window, int width, int height)
+    {
+        // make sure the viewport matches the new window dimensions; note that width and
+        // height will be significantly larger than specified on retina displays.
+        RT_TRACE("Resizing window to {0}x{1}", width, height);
+        glViewport(0, 0, width, height);
+    });
+
     // glfwSetWindowSizeCallback(m_Window, [](GLFWwindow* window, int width, int height)
     //     {
     //         WindowData& data = *(WindowData*)glfwGetWindowUserPointer(window);
