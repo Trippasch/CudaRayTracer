@@ -4,8 +4,12 @@ echo "Cleaning projects..."
 
 echo "find . -name 'Makefile' -delete"
 find . -name 'Makefile' -delete
-echo "rm -rf bin bin-int"
-rm -rf bin bin-int
+
+echo "rm -rf ./**/bin"
+rm -rf ./**/bin 
+
+echo "rm -rf ./**/bin-int"
+rm -rf ./**/bin-int
 
 ERRORLEVEL=$?
 if [ $ERRORLEVEL -ne 0 ]

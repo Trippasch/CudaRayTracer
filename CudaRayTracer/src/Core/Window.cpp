@@ -1,6 +1,11 @@
 #include "Window.h"
 
 #include <glad/glad.h>
+
+#include <imgui.h>
+#include <backends/imgui_impl_glfw.h>
+#include <backends/imgui_impl_opengl3.h>
+
 #include "Log.h"
 #include "Core.h"
 
@@ -183,6 +188,32 @@ void Window::OnUpdate()
     /* Render here */
     glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT);
+
+    /***************** ImGui *****************/
+    ImGui_ImplOpenGL3_NewFrame();
+    ImGui_ImplGlfw_NewFrame();
+
+    ImGui::NewFrame();
+    {
+        ImGui::ShowDemoWindow();
+        ImGui::Begin("Hello, world!"); // Create a window called "Hello, world!" and append into it.
+
+        ImGui::Text("%.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
+        ImGui::End();
+    }
+
+    // Rendering
+    ImGui::Render();
+    ImGuiIO &io = ImGui::GetIO();
+    if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
+    {
+        GLFWwindow *backup_current_context = glfwGetCurrentContext();
+        ImGui::UpdatePlatformWindows();
+        ImGui::RenderPlatformWindowsDefault();
+        glfwMakeContextCurrent(backup_current_context);
+    }
+    ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+    /******************************************/
 
     /* Swap front and back buffers */
     glfwSwapBuffers(m_Window);
