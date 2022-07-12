@@ -9,7 +9,7 @@ project "CudaRayTracer"
 
     includedirs {
         "src",
-        -- "../vendor/imgui",
+        "../vendor/ImGui",
         "../vendor/spdlog/include",
         "../vendor/GLFW/include",
         "%{IncludeDir.Glad}",
@@ -54,7 +54,7 @@ project "CudaRayTracer"
 
 
         links {
-            -- "ImGui",
+            "ImGui",
             "GLFW",
             "Glad",
             "opengl32.lib"
@@ -64,7 +64,7 @@ project "CudaRayTracer"
         systemversion "latest"
 
         links {
-            -- "ImGui",
+            "ImGui",
             "GLFW",
             "Glad",
             "GL",
