@@ -21,9 +21,9 @@ private:
 #   define RT_ERROR(...)   ::Log::GetLogger()->error(__VA_ARGS__);
 #   define RT_FATAL(...)   ::Log::GetLogger()->critical(__VA_ARGS__);
 #elif defined(RT_DIST)
-#   define RT_TRACE
-#   define RT_INFO
-#   define RT_WARN
-#   define RT_ERROR
-#   define RT_FATAL
+#   define RT_TRACE(...)
+#   define RT_INFO(...)
+#   define RT_WARN(...)
+#   define RT_ERROR(...)
+#   define RT_FATAL(...)
 #endif // RT_DEBUG || RT_RELEASE
