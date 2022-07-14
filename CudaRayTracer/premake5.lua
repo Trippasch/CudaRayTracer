@@ -5,7 +5,13 @@ project "CudaRayTracer"
     targetdir "bin/%{cfg.buildcfg}"
     staticruntime "on"
 
-    files {"src/Main.cpp", "src/Core/**.h", "src/Core/**.cpp" }
+    files {
+        "src/Main.cpp",
+        "src/Core/**.h",
+        "src/Core/**.cpp",
+        "src/ImGui/**.h",
+        "src/ImGui/**.cpp",
+    }
 
     includedirs {
         "src",
