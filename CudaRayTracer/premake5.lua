@@ -6,14 +6,12 @@ project "CudaRayTracer"
     staticruntime "on"
 
     files {
-        "src/Main.cpp",
-        "src/Core/**.h",
-        "src/Core/**.cpp",
-        "src/ImGui/**.h",
-        "src/ImGui/**.cpp",
+        "src/**.h",
+        "src/**.cpp"
     }
 
     includedirs {
+        "/usr/local/cuda-11.7/targets/x86_64-linux/include/",
         "src",
         "../vendor/ImGui",
         "../vendor/spdlog/include",

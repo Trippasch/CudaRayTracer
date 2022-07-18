@@ -6,9 +6,9 @@
 
 #include "Core/Application.h"
 #include "Core/Core.h"
+#include "Core/Log.h"
 
-#include "Utils/glfw_tools.h"
-#include "Utils/gl_tools.h"
+#include "Renderer/VertexArray.h"
 
 Application* Application::s_Instance = nullptr;
 
@@ -18,11 +18,10 @@ Application::Application()
     s_Instance = this;
 
     m_Window = std::unique_ptr<Window>(Window::Create());
-    printGLFWInfo(m_Window->GetNativeWindow());
-    printGLInfo();
 
     m_ImGuiLayer = new ImGuiLayer();
     PushOverlay(m_ImGuiLayer);
+
 }
 
 Application::~Application()

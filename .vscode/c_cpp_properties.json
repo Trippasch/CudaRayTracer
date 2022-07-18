@@ -8,7 +8,8 @@
                 "${workspaceFolder}/vendor/Glad/include",
                 "${workspaceFolder}/vendor/spdlog/include",
                 "${workspaceFolder}/vendor/ImGui",
-                "${workspaceFolder}/vendor/glm"
+                "${workspaceFolder}/vendor/glm",
+                "/usr/local/cuda-11.7/targets/x86_64-linux/include/"
             ],
             "defines": [
                 "RT_DEBUG",
@@ -28,7 +29,8 @@
                 "${workspaceFolder}/vendor/Glad/include",
                 "${workspaceFolder}/vendor/spdlog/include",
                 "${workspaceFolder}/vendor/ImGui",
-                "${workspaceFolder}/vendor/glm"
+                "${workspaceFolder}/vendor/glm",
+                "/usr/local/cuda-11.7/targets/x86_64-linux/include/"
             ],
             "defines": [
                 "RT_DEBUG",
