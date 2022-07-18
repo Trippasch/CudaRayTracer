@@ -5,10 +5,10 @@
 #include <float.h>
 #include <algorithm>
 
-#include "Hittables/HittableList.h"
-#include "Hittables/Sphere.h"
-#include "Hittables/Material.h"
-#include "Utils/SharedStructs.h"
+#include "../Hittables/HittableList.h"
+#include "../Hittables/Sphere.h"
+#include "../Hittables/Material.h"
+#include "../Utils/SharedStructs.h"
 
 // clamp x to range [a, b]
 inline __device__ float clamp(float x, float a, float b)

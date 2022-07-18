@@ -14,7 +14,7 @@ Application* Application::s_Instance = nullptr;
 
 Application::Application()
 {
-    RT_ASSERT(s_Instance, "Application already exists!");
+    RT_ASSERT(!s_Instance, "Application already exists!");
     s_Instance = this;
 
     m_Window = std::unique_ptr<Window>(Window::Create());

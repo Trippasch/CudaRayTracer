@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Hittables/Hittable.h"
+#include "Hittable.h"
 
 struct hit_record;
 

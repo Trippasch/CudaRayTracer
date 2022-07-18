@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Hittables/Hittable.h"
+#include "Hittable.h"
 
 class sphere : public hittable
 {
