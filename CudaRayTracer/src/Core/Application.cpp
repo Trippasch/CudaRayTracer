@@ -1,10 +1,11 @@
+#include "Core/Application.h"
+
 #include <GLFW/glfw3.h>
 
 #include <imgui.h>
 #include <backends/imgui_impl_glfw.h>
 #include <backends/imgui_impl_opengl3.h>
 
-#include "Core/Application.h"
 #include "Core/Core.h"
 #include "Core/Log.h"
 
@@ -22,6 +23,8 @@ Application::Application()
     m_ImGuiLayer = new ImGuiLayer();
     PushOverlay(m_ImGuiLayer);
 
+    m_CudaLayer = new CudaLayer();
+    PushOverlay(m_CudaLayer);
 }
 
 Application::~Application()
@@ -44,6 +47,18 @@ void Application::Run()
 {
     while (!glfwWindowShouldClose(m_Window->GetNativeWindow()))
     {
+        /* Render here */
+        glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
+        glClear(GL_COLOR_BUFFER_BIT);
+
+        for (Layer* layer : m_LayerStack)
+            layer->OnUpdate();
+
+        m_ImGuiLayer->Begin();
+        for (Layer* layer : m_LayerStack)
+            layer->OnImGuiRender();
+        m_ImGuiLayer->End();
+
         m_Window->OnUpdate();
     }
 }

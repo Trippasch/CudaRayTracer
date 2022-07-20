@@ -4,6 +4,7 @@
 
 #include "Core/Window.h"
 #include "ImGui/ImGuiLayer.h"
+#include "Cuda/CudaLayer.h"
 #include "Core/LayerStack.h"
 
 class Application
@@ -25,6 +26,7 @@ public:
 private:
     std::unique_ptr<Window> m_Window;
     ImGuiLayer *m_ImGuiLayer;
+    CudaLayer *m_CudaLayer;
     LayerStack m_LayerStack;
     bool m_Running = true;
     static Application* s_Instance;
