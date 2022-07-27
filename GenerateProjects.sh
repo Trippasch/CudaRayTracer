@@ -1,9 +1,8 @@
 #!/bin/sh
 
+echo "premake5 gmake2 --cc=gcc"
 echo "Generating projects..."
-
-echo "premake5 gmake2 --cc=clang"
-vendor/premake/linux/premake5 gmake2 --cc=clang
+vendor/premake/linux/premake5 gmake2 --cc=gcc
 
 ERRORLEVEL=$?
 if [ $ERRORLEVEL -ne 0 ]

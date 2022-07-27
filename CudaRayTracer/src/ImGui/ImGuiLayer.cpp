@@ -17,8 +17,6 @@ ImGuiLayer::ImGuiLayer()
 
 void ImGuiLayer::OnAttach()
 {
-    // HZ_PROFILE_FUNCTION();
-
     // Setup Dear ImGui context
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
@@ -31,13 +29,12 @@ void ImGuiLayer::OnAttach()
     // io.ConfigFlags |= ImGuiConfigFlags_ViewportsNoTaskBarIcons;
     // io.ConfigFlags |= ImGuiConfigFlags_ViewportsNoMerge;
 
-    float fontSize = 18.0f; // *2.0f;
+    float fontSize = 16.0f; // *2.0f;
     io.Fonts->AddFontFromFileTTF("assets/fonts/Roboto Mono Nerd Font Complete.ttf", fontSize);
     io.FontDefault = io.Fonts->AddFontFromFileTTF("assets/fonts/Roboto Mono Nerd Font Complete.ttf", fontSize);
 
     // Setup Dear ImGui style
     ImGui::StyleColorsDark();
-    // ImGui::StyleColorsClassic();
 
     // When viewports are enabled we tweak WindowRounding/WindowBg so platform windows can look identical to regular ones.
     ImGuiStyle &style = ImGui::GetStyle();
@@ -64,16 +61,6 @@ void ImGuiLayer::OnDetach()
     ImGui::DestroyContext();
 }
 
-// void ImGuiLayer::OnEvent(Event &e)
-// {
-//     if (m_BlockEvents)
-//     {
-//         ImGuiIO &io = ImGui::GetIO();
-//         e.Handled |= e.IsInCategory(EventCategoryMouse) & io.WantCaptureMouse;
-//         e.Handled |= e.IsInCategory(EventCategoryKeyboard) & io.WantCaptureKeyboard;
-//     }
-// }
-
 void ImGuiLayer::Begin()
 {
     ImGui_ImplOpenGL3_NewFrame();
@@ -88,8 +75,6 @@ void ImGuiLayer::OnImGuiRender()
     // We are using the ImGuiWindowFlags_NoDocking flag to make the parent window not dockable into,
     // because it would be confusing to have two docking targets within each others.
     ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoDocking;
-    // if (m_MenubarCallback)
-    //     window_flags |= ImGuiWindowFlags_MenuBar;
 
     const ImGuiViewport *viewport = ImGui::GetMainViewport();
     ImGui::SetNextWindowPos(viewport->WorkPos);
@@ -125,9 +110,6 @@ void ImGuiLayer::OnImGuiRender()
     }
 
     ImGui::ShowDemoWindow();
-
-    ImGui::Begin("Viewport");
-    ImGui::End();
 
     ImGui::End();
 }

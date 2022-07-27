@@ -187,6 +187,7 @@ void Window::Init(const WindowProps& props)
 void Window::Shutdown()
 {
     glfwDestroyWindow(m_Window);
+    glfwTerminate();
 }
 
 void Window::OnUpdate()
