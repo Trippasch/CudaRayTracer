@@ -27,7 +27,8 @@ inline __device__ int rgbToInt(float r, float g, float b)
     r = clamp(r, 0.0f, 255.0f);
     g = clamp(g, 0.0f, 255.0f);
     b = clamp(b, 0.0f, 255.0f);
-    return (int(b) << 16) | (int(g) << 8) | int(r);
+    float a = 255.0f;
+    return (int(a) << 24) | (int(b) << 16) | (int(g) << 8) | int(r);
 }
 
 // the reverse
@@ -251,21 +252,23 @@ inline __device__ void getXYZCoords(int& x, int& y, int& z)
 __global__ void
 cudaRender(unsigned int *g_odata, int imgw)
 {
-	extern __shared__ uchar4 sdata[];
+    extern __shared__ uchar4 sdata[];
 
-	int tx = threadIdx.x;
-	int ty = threadIdx.y;
-	int bw = blockDim.x;
-	int bh = blockDim.y;
-	int x = blockIdx.x*bw + tx;
-	int y = blockIdx.y*bh + ty;
+    int tx = threadIdx.x;
+    int ty = threadIdx.y;
+    int bw = blockDim.x;
+    int bh = blockDim.y;
+    int x = blockIdx.x * bw + tx;
+    int y = blockIdx.y * bh + ty;
 
-	uchar4 c4 = make_uchar4((x & 0x20) ? 100 : 0, 0, (y & 0x20) ? 100 : 0, 0);
-	g_odata[y*imgw + x] = rgbToInt(c4.z, c4.y, c4.x);
+    unsigned int pixel_index = (y * imgw + x);
+
+    uchar4 c4 = make_uchar4((x & 0x20) ? 100 : 0, 0, (y & 0x20) ? 100 : 0, 0);
+    g_odata[pixel_index] = rgbToInt(c4.z, c4.y, c4.x);
 }
 
 extern "C" void
 launch_cudaRender(dim3 grid, dim3 block, int sbytes, unsigned int *g_odata, int imgw)
 {
-	cudaRender << < grid, block, sbytes >> >(g_odata, imgw);
+    cudaRender<<<grid, block, sbytes>>>(g_odata, imgw);
 }

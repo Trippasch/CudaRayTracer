@@ -109,7 +109,7 @@ void ImGuiLayer::OnImGuiRender()
         ImGui::DockSpace(dockspace_id, ImVec2(0.0f, 0.0f), dockspace_flags);
     }
 
-    ImGui::ShowDemoWindow();
+    ImGui::ShowMetricsWindow();
 
     ImGui::End();
 }

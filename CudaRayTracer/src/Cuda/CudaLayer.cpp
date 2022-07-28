@@ -53,8 +53,17 @@ void CudaLayer::OnUpdate()
 
 void CudaLayer::OnImGuiRender()
 {
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
     ImGui::Begin("Generated Image");
-    ImGui::Image((ImTextureID)m_OpenGLTexCuda, {static_cast<float>(m_ImageWidth), static_cast<float>(m_ImageHeight)}, ImVec2(0, 1), ImVec2(1, 0));
+
+    // float viewport_width = ImGui::GetContentRegionAvail().x;
+    // float viewport_height = ImGui::GetContentRegionAvail().y;
+
+    // m_ImageWidth = static_cast<int>(viewport_width);
+    // m_ImageHeight = static_cast<int>(viewport_height);
+
+    ImGui::Image((void*)(intptr_t)m_Texture, ImVec2(m_ImageWidth, m_ImageHeight));
+    ImGui::PopStyleVar();
     ImGui::End();
 }
 
@@ -73,16 +82,16 @@ void CudaLayer::InitCudaBuffers()
 void CudaLayer::InitGLBuffers()
 {
     // create an OpenGL texture
-    glGenTextures(1, &m_OpenGLTexCuda);              // generate 1 texture
-    glBindTexture(GL_TEXTURE_2D, m_OpenGLTexCuda); // set it as current target
+    glGenTextures(1, &m_Texture);              // generate 1 texture
+    glBindTexture(GL_TEXTURE_2D, m_Texture); // set it as current target
     // set basic texture parameters
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE); // clamp s coordinate
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE); // clamp t coordinate
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     // Specify 2D texture
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32UI, m_ImageWidth, m_ImageHeight, 0, GL_RGB_INTEGER, GL_UNSIGNED_BYTE, NULL);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, m_ImageWidth, m_ImageHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
     // Register this texture with CUDA
-    checkCudaErrors(cudaGraphicsGLRegisterImage(&m_CudaTexResource, m_OpenGLTexCuda, GL_TEXTURE_2D, cudaGraphicsRegisterFlagsWriteDiscard));
+    checkCudaErrors(cudaGraphicsGLRegisterImage(&m_CudaTexResource, m_Texture, GL_TEXTURE_2D, cudaGraphicsRegisterFlagsWriteDiscard));
     // SDK_CHECK_ERROR_GL();
 }

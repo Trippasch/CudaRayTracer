@@ -9,8 +9,6 @@
 #include "Core/Core.h"
 #include "Core/Log.h"
 
-#include "Renderer/VertexArray.h"
-
 Application* Application::s_Instance = nullptr;
 
 Application::Application()

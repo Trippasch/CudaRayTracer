@@ -1,6 +1,7 @@
 {
     "files.associations": {
         "cmath": "cpp",
-        "cstdlib": "cpp"
+        "cstdlib": "cpp",
+        "memory": "cpp"
     }
 }

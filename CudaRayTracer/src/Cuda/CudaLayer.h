@@ -31,12 +31,14 @@ private:
     // Cuda Image
     unsigned int m_NumTexels = m_ImageWidth * m_ImageHeight;
     unsigned int m_NumValues = m_NumTexels * 4;
-    size_t m_SizeTexData = sizeof(GLuint) * m_NumValues;
+    size_t m_SizeTexData = sizeof(GLubyte) * m_NumValues;
 
     // Cuda-OpenGL interops
     struct cudaGraphicsResource *m_CudaTexResource;
-    GLuint m_OpenGLTexCuda;
     void *m_CudaDevRenderBuffer;
+    GLuint m_Texture;
+    GLuint m_FrameBuffer;
+    GLuint m_RenderBuffer;
     // curandState *m_DrandState;    // allocate random state
     // curandState *m_DrandState2;
 };
