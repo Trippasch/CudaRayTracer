@@ -1,8 +1,18 @@
 #pragma once
 
 #include "Core/Layer.h"
+#include "Hittables/Hittable.h"
+#include "Utils/SharedStructs.h"
+#include "Utils/helper_cuda.h"
+
+#include "Renderer/Camera.h"
 
 #include <glad/glad.h>
+
+// Cuda
+#include <cuda_runtime.h>
+#include <curand_kernel.h> 
+#include <cuda_gl_interop.h>
 
 class CudaLayer : public Layer
 {
@@ -21,6 +31,8 @@ public:
 private:
     void InitCudaBuffers();
     void InitGLBuffers();
+    void RunCudaInit();
+    void RunCudaUpdate();
 
 private:
     // Image
@@ -39,6 +51,18 @@ private:
     GLuint m_Texture;
     GLuint m_FrameBuffer;
     GLuint m_RenderBuffer;
-    // curandState *m_DrandState;    // allocate random state
-    // curandState *m_DrandState2;
+    curandState *m_DrandState;    // allocate random state
+    curandState *m_DrandState2;
+
+    // Hittables
+    hittable **m_HittableList;
+    const int m_NumHittables = 5;
+    hittable **m_World;
+
+    // RayTracing
+    int m_SamplesPerPixel = 1;
+    int m_MaxDepth = 10;
+
+    InputStruct m_Inputs;
+    std::unique_ptr<Camera> m_Camera;
 };
