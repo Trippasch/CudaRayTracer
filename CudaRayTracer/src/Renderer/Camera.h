@@ -8,6 +8,12 @@ class Camera
 public:
     Camera(int width, int height, glm::vec3 position);
 
+    float GetWidth() { return this->m_Width; }
+    void SetWidth(float width) { this->m_Width = width; }
+
+    float GetHeight() { return this->m_Height; }
+    void SetHeight(float height) { this->m_Height = height; }
+
     glm::mat4 Matrix(float fovDeg, float nearPlane, float farPlane);
 
     // Handles camera inputs
@@ -23,10 +29,10 @@ private:
     bool m_FirstClick = true;
 
     // Stores the width and height of the window
-    int m_Width;
-    int m_Height;
+    float m_Width;
+    float m_Height;
 
     // Adjust the speed of the camera and it's sensitivity when looking around
-    float m_Speed = 0.1f;
+    float m_Speed = 0.01f;
     float m_Sensitivity = 100.0f;
 };

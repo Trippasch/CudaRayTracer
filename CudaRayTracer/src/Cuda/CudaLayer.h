@@ -49,8 +49,6 @@ private:
     struct cudaGraphicsResource *m_CudaTexResource;
     void *m_CudaDevRenderBuffer;
     GLuint m_Texture;
-    GLuint m_FrameBuffer;
-    GLuint m_RenderBuffer;
     curandState *m_DrandState;    // allocate random state
     curandState *m_DrandState2;
 
@@ -60,9 +58,10 @@ private:
     hittable **m_World;
 
     // RayTracing
-    int m_SamplesPerPixel = 1;
-    int m_MaxDepth = 10;
+    unsigned int m_SamplesPerPixel = 1;
+    unsigned int m_MaxDepth = 10;
 
     InputStruct m_Inputs;
+
     std::unique_ptr<Camera> m_Camera;
 };

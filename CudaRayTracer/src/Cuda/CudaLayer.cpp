@@ -2,10 +2,6 @@
 
 #include <imgui.h>
 
-// Forward declaration of CUDA render
-// extern "C"
-// void launch_cudaRender(dim3 grid, dim3 block, int sbytes, unsigned int *g_odata, int imgw);
-
 extern "C"
 void launch_kernel(dim3 grid, dim3 block, int sbytes, unsigned int *pos, unsigned int window_width, unsigned int window_height, const unsigned int samples_per_pixel, const unsigned int max_depth, hittable **d_world, curandState *d_rand_state, InputStruct inputs);
 
@@ -33,7 +29,19 @@ void CudaLayer::OnAttach()
     InitGLBuffers();
 
     RunCudaInit();
+
     m_Camera = std::make_unique<Camera>(m_ImageWidth, m_ImageHeight, glm::vec3(0.0f, 0.0f, 2.0f));
+    m_Inputs.origin_x = m_Camera->m_Position.x;
+    m_Inputs.origin_y = m_Camera->m_Position.y;
+    m_Inputs.origin_z = m_Camera->m_Position.z;
+
+    m_Inputs.orientation_x = m_Camera->m_Orientation.x;
+    m_Inputs.orientation_y = m_Camera->m_Orientation.y;
+    m_Inputs.orientation_z = m_Camera->m_Orientation.z;
+
+    m_Inputs.up_x = m_Camera->m_Up.x;
+    m_Inputs.up_y = m_Camera->m_Up.y;
+    m_Inputs.up_z = m_Camera->m_Up.z;
 }
 
 void CudaLayer::OnDetach()
@@ -52,20 +60,6 @@ void CudaLayer::OnDetach()
 
 void CudaLayer::OnUpdate()
 {
-    // m_Camera->Inputs(m_Window);
-
-    m_Inputs.origin_x = m_Camera->m_Position.x;
-    m_Inputs.origin_y = m_Camera->m_Position.y;
-    m_Inputs.origin_z = m_Camera->m_Position.z;
-
-    m_Inputs.orientation_x = m_Camera->m_Orientation.x;
-    m_Inputs.orientation_y = m_Camera->m_Orientation.y;
-    m_Inputs.orientation_z = m_Camera->m_Orientation.z;
-
-    m_Inputs.up_x = m_Camera->m_Up.x;
-    m_Inputs.up_y = m_Camera->m_Up.y;
-    m_Inputs.up_z = m_Camera->m_Up.z;
-
     RunCudaUpdate();
 }
 
@@ -77,8 +71,29 @@ void CudaLayer::OnImGuiRender()
     float viewport_width = ImGui::GetContentRegionAvail().x;
     float viewport_height = ImGui::GetContentRegionAvail().y;
 
-    ImGui::Image((void*)(intptr_t)m_Texture, ImVec2(viewport_width, viewport_height));
+    ImGui::Image((void*)(intptr_t)m_Texture, ImVec2(viewport_width, viewport_height), ImVec2(0, 1), ImVec2(1, 0));
     ImGui::PopStyleVar();
+
+    // IsWindowFocused() has a minor bug -- it centers the mouse when losing focus
+    if (ImGui::IsWindowHovered()) {
+        m_Camera->SetWidth(viewport_width);
+        m_Camera->SetHeight(viewport_height);
+
+        m_Camera->Inputs((GLFWwindow *)ImGui::GetMainViewport()->PlatformHandle);
+
+        m_Inputs.origin_x = m_Camera->m_Position.x;
+        m_Inputs.origin_y = m_Camera->m_Position.y;
+        m_Inputs.origin_z = m_Camera->m_Position.z;
+
+        m_Inputs.orientation_x = m_Camera->m_Orientation.x;
+        m_Inputs.orientation_y = m_Camera->m_Orientation.y;
+        m_Inputs.orientation_z = m_Camera->m_Orientation.z;
+
+        m_Inputs.up_x = m_Camera->m_Up.x;
+        m_Inputs.up_y = m_Camera->m_Up.y;
+        m_Inputs.up_z = m_Camera->m_Up.z;
+    }
+
     ImGui::End();
 }
 
@@ -127,8 +142,6 @@ void CudaLayer::RunCudaUpdate()
 {
     dim3 block(16, 16, 1);
     dim3 grid(m_ImageWidth / block.x, m_ImageHeight / block.y, 1);
-
-    // launch_cudaRender(grid, block, 0, static_cast<unsigned int *>(m_CudaDevRenderBuffer), m_ImageWidth);
 
     launch_kernel(grid, block, 0, static_cast<unsigned int *>(m_CudaDevRenderBuffer), m_ImageWidth, m_ImageHeight, m_SamplesPerPixel, m_MaxDepth, m_World, m_DrandState, m_Inputs);
 

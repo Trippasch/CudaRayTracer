@@ -117,7 +117,7 @@ __global__ void kernel(unsigned int* pos, unsigned int width, unsigned int heigh
     float distFirstPlane = distFarPlane * 0.1f;
 
     float3 center = make_float3(width / 2.0, height / 2.0, 0.0f);
-    float3 distFromCenter = ((x - center.x) / width) * rightV + ((center.y - y) / width) * upV;
+    float3 distFromCenter = ((center.x - x) / width) * rightV + ((y - center.y) / width) * upV;
     float3 startPos = (sizeNearPlane * distFromCenter) + origin + (distFirstPlane * forwardV);
     float3 secondPlanePos = (sizeFarPlane * distFromCenter) + origin + (distFarPlane * forwardV) + origin;
 
@@ -246,27 +246,3 @@ void launch_free_world(hittable * *d_list, hittable * *d_world, const unsigned i
     free_world << < 1, 1 >> > (d_list, d_world, num_hittables);
     cudaDeviceSynchronize();
 }
-
-// __global__ void
-// cudaRender(unsigned int *g_odata, int imgw)
-// {
-//     extern __shared__ uchar4 sdata[];
-
-//     int tx = threadIdx.x;
-//     int ty = threadIdx.y;
-//     int bw = blockDim.x;
-//     int bh = blockDim.y;
-//     int x = blockIdx.x * bw + tx;
-//     int y = blockIdx.y * bh + ty;
-
-//     unsigned int pixel_index = (y * imgw + x);
-
-//     uchar4 c4 = make_uchar4((x & 0x20) ? 100 : 0, 0, (y & 0x20) ? 100 : 0, 0);
-//     g_odata[pixel_index] = rgbToInt(c4.z, c4.y, c4.x);
-// }
-
-// extern "C" void
-// launch_cudaRender(dim3 grid, dim3 block, int sbytes, unsigned int *g_odata, int imgw)
-// {
-//     cudaRender<<<grid, block, sbytes>>>(g_odata, imgw);
-// }
