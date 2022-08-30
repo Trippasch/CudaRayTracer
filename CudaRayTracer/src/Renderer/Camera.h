@@ -8,11 +8,11 @@ class Camera
 public:
     Camera(int width, int height, glm::vec3 position);
 
-    float GetWidth() { return this->m_Width; }
-    void SetWidth(float width) { this->m_Width = width; }
+    inline float GetWidth() { return this->m_Width; }
+    inline void SetWidth(float width) { this->m_Width = width; }
 
-    float GetHeight() { return this->m_Height; }
-    void SetHeight(float height) { this->m_Height = height; }
+    inline float GetHeight() { return this->m_Height; }
+    inline void SetHeight(float height) { this->m_Height = height; }
 
     glm::mat4 Matrix(float fovDeg, float nearPlane, float farPlane);
 
