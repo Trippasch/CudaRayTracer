@@ -9,7 +9,7 @@
                 "${workspaceFolder}/vendor/spdlog/include",
                 "${workspaceFolder}/vendor/ImGui",
                 "${workspaceFolder}/vendor/glm",
-                "/usr/local/cuda-11.7/targets/x86_64-linux/include/"
+                "/opt/cuda/include/"
             ],
             "defines": [
                 "RT_DEBUG",
@@ -29,8 +29,7 @@
                 "${workspaceFolder}/vendor/Glad/include",
                 "${workspaceFolder}/vendor/spdlog/include",
                 "${workspaceFolder}/vendor/ImGui",
-                "${workspaceFolder}/vendor/glm",
-                "/usr/local/cuda-11.7/targets/x86_64-linux/include/"
+                "${workspaceFolder}/vendor/glm"
             ],
             "defines": [
                 "RT_DEBUG",

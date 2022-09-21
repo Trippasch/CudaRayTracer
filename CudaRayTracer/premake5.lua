@@ -11,7 +11,7 @@ project "CudaRayTracer"
     }
 
     includedirs {
-        "/usr/local/cuda-11.7/targets/x86_64-linux/include/",
+        "/opt/cuda/include/",
         "src",
         "../vendor/ImGui",
         "../vendor/spdlog/include",
@@ -28,7 +28,7 @@ project "CudaRayTracer"
     -- This assumes we have installed Visual Studio integration for CUDA
     -- Here we set it to 11.6
     buildcustomizations "BuildCustomizations/CUDA 11.6"
-    cudaPath "/usr/local/cuda-11.7"
+    cudaPath "/opt/cuda"
 
     -- CUDA specific properties
     cudaFiles {                                 -- Files compiled by NVCC
@@ -46,7 +46,7 @@ project "CudaRayTracer"
     }
 
     if os.target() == "linux" then
-        linkoptions {"-L/usr/local/cuda-11.7/lib64 -lcudart"}
+        linkoptions {"-L/opt/cuda/lib64 -lcudart"}
     end
 
     targetdir ("../bin/" .. outputdir .. "/%{prj.name}")
