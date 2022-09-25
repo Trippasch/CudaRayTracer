@@ -151,7 +151,7 @@ void CudaLayer::RunCudaUpdate()
     checkCudaErrors(cudaGraphicsMapResources(1, &m_CudaTexResource, 0));
     checkCudaErrors(cudaGraphicsSubResourceGetMappedArray(&texture_ptr, m_CudaTexResource, 0, 0));
 
-    checkCudaErrors(cudaMemcpyToArray(texture_ptr, 0, 0, m_CudaDevRenderBuffer, m_SizeTexData, cudaMemcpyDeviceToDevice));
+    checkCudaErrors(cudaMemcpy2DToArray(texture_ptr, 0, 0, m_CudaDevRenderBuffer, m_ImageWidth * sizeof(unsigned int), m_ImageWidth * sizeof(unsigned int), m_ImageHeight, cudaMemcpyDeviceToDevice));
     // unmap buffer object
     checkCudaErrors(cudaGraphicsUnmapResources(1, &m_CudaTexResource, 0));
 }
