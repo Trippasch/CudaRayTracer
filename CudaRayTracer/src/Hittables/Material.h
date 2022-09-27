@@ -2,91 +2,91 @@
 
 #include "Hittable.h"
 
-struct hit_record;
+struct HitRecord;
 
-class material
+class Material
 {
 public:
-    __device__ virtual bool scatter(const ray& r, const hit_record& rec,
-        float3& attenuation, ray& scattered, curandState* local_rand_state) const = 0;
+    __device__ virtual bool Scatter(const Ray& r, const HitRecord& rec,
+        Vec3& attenuation, Ray& scattered, curandState* local_rand_state) const = 0;
 };
 
-class lambertian : public material
+class Lambertian : public Material
 {
 public:
-    float3 albedo;
+    Vec3 albedo;
 public:
-    __device__ lambertian(const float3& a) : albedo(a) {}
+    __device__ Lambertian(const Vec3& a) : albedo(a) {}
 
-    __device__ bool scatter(const ray& r, const hit_record& rec, float3& attenuation, ray& scattered, curandState* local_rand_state) const override
+    __device__ bool Scatter(const Ray& r, const HitRecord& rec, Vec3& attenuation, Ray& scattered, curandState* local_rand_state) const override
     {
-        float3 target = rec.p + rec.normal + random_in_unit_sphere(local_rand_state);
-        scattered = ray(rec.p, target - rec.p);
+        Vec3 target = rec.p + rec.normal + RandomInUnitSphere(local_rand_state);
+        scattered = Ray(rec.p, target - rec.p);
         attenuation = albedo;
 
         return true;
     }
 };
 
-class metal : public material
+class Metal : public Material
 {
 public:
-    float3 albedo;
+    Vec3 albedo;
     float fuzz;
 
 public:
-    __device__ metal(const float3& a, float f) : albedo(a), fuzz(f < 1 ? f : 1) {}
+    __device__ Metal(const Vec3& a, float f) : albedo(a), fuzz(f < 1 ? f : 1) {}
 
-    __device__ bool scatter(const ray& r_in, const hit_record& rec, float3& attenuation, ray& scattered, curandState* local_rand_state) const override
+    __device__ bool Scatter(const Ray& r_in, const HitRecord& rec, Vec3& attenuation, Ray& scattered, curandState* local_rand_state) const override
     {
-        float3 reflected = reflect(unit_vector(r_in.direction()), rec.normal);
-        scattered = ray(rec.p, reflected + fuzz*random_in_unit_sphere(local_rand_state));
+        Vec3 reflected = Reflect(UnitVector(r_in.Direction()), rec.normal);
+        scattered = Ray(rec.p, reflected + fuzz*RandomInUnitSphere(local_rand_state));
         attenuation = albedo;
-        return (dot(scattered.direction(), rec.normal) > 0);
+        return (Dot(scattered.Direction(), rec.normal) > 0);
     }
 };
 
-class dielectric : public material
+class Dielectric : public Material
 {
 public:
     float ir; // Index of Refraction
 
 public:
-    __device__ dielectric(float index_of_refraction) : ir(index_of_refraction) {}
+    __device__ Dielectric(float index_of_refraction) : ir(index_of_refraction) {}
 
-    __device__ bool scatter(const ray& r_in, const hit_record& rec, float3& attenuation, ray& scattered, curandState* local_rand_state) const override
+    __device__ bool Scatter(const Ray& r_in, const HitRecord& rec, Vec3& attenuation, Ray& scattered, curandState* local_rand_state) const override
     {
-        float3 outward_normal;
-        float3 reflected = reflect(r_in.direction(), rec.normal);
+        Vec3 outward_normal;
+        Vec3 reflected = Reflect(r_in.Direction(), rec.normal);
         float ni_over_nt;
-        attenuation = make_float3(1.0, 1.0, 1.0);
-        float3 refracted;
+        attenuation = Vec3(1.0f, 1.0f, 1.0f);
+        Vec3 refracted;
         float reflect_prob;
         float cosine;
-        if (dot(r_in.direction(), rec.normal) > 0.0f) {
+        if (Dot(r_in.Direction(), rec.normal) > 0.0f) {
             outward_normal = -rec.normal;
             ni_over_nt = ir;
-            cosine = dot(r_in.direction(), rec.normal) / length(r_in.direction());
+            cosine = Dot(r_in.Direction(), rec.normal) / r_in.Direction().Length();
             cosine = sqrt(1.0f - ir*ir*(1-cosine*cosine));
         }
         else {
             outward_normal = rec.normal;
             ni_over_nt = 1.0f / ir;
-            cosine = -dot(r_in.direction(), rec.normal) / length(r_in.direction());
+            cosine = -Dot(r_in.Direction(), rec.normal) / r_in.Direction().Length();
         }
-        if (refract(r_in.direction(), outward_normal, ni_over_nt, refracted))
-            reflect_prob = reflectance(cosine, ir);
+        if (Refract(r_in.Direction(), outward_normal, ni_over_nt, refracted))
+            reflect_prob = Reflectance(cosine, ir);
         else
             reflect_prob = 1.0f;
         if (curand_uniform(local_rand_state) < reflect_prob)
-            scattered = ray(rec.p, reflected);
+            scattered = Ray(rec.p, reflected);
         else
-            scattered = ray(rec.p, refracted);
+            scattered = Ray(rec.p, refracted);
         return true;
     }
 
 private:
-    __device__ static float reflectance(float cosine, float ir)
+    __device__ static float Reflectance(float cosine, float ir)
     {
         // Use Schlick's approximation for reflectance.
         auto r0 = (1.0f - ir) / (1.0f + ir);

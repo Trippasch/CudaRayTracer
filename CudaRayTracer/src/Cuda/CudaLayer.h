@@ -53,9 +53,9 @@ private:
     curandState *m_DrandState2;
 
     // Hittables
-    hittable **m_HittableList;
+    Hittable **m_HittableList;
     const int m_NumHittables = 5;
-    hittable **m_World;
+    Hittable **m_World;
 
     // RayTracing
     unsigned int m_SamplesPerPixel = 1;

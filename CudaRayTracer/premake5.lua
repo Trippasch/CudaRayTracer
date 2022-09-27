@@ -4,6 +4,7 @@ project "CudaRayTracer"
     cppdialect "C++17"
     targetdir "bin/%{cfg.buildcfg}"
     staticruntime "on"
+    debugdir "%{wks.location}"
 
     files {
         "src/**.h",

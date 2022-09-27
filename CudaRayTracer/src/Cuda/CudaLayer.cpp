@@ -3,18 +3,18 @@
 #include <imgui.h>
 
 extern "C"
-void launch_kernel(dim3 grid, dim3 block, int sbytes, unsigned int *pos, unsigned int window_width, unsigned int window_height, const unsigned int samples_per_pixel, const unsigned int max_depth, hittable **d_world, curandState *d_rand_state, InputStruct inputs);
+void LaunchKernel(dim3 grid, dim3 block, int sbytes, unsigned int *pos, unsigned int window_width, unsigned int window_height, const unsigned int samples_per_pixel, const unsigned int max_depth, Hittable **d_world, curandState *d_rand_state, InputStruct inputs);
 
-extern "C" void launch_rand_init(curandState *d_rand_state2);
-
-extern "C"
-void launch_render_init(dim3 grid, dim3 block, unsigned int window_width, unsigned int window_height, curandState *d_rand_state);
+extern "C" void LaunchRandInit(curandState *d_rand_state2);
 
 extern "C"
-void launch_create_world(hittable **d_list, hittable **d_world, const float aspect_ratio, curandState *d_rand_state2);
+void LaunchRenderInit(dim3 grid, dim3 block, unsigned int window_width, unsigned int window_height, curandState *d_rand_state);
 
 extern "C"
-void launch_free_world(hittable **d_list, hittable **d_world, const unsigned int num_hittables);
+void LaunchCreateWorld(Hittable **d_list, Hittable **d_world, const float aspect_ratio, curandState *d_rand_state2);
+
+extern "C"
+void LaunchFreeWorld(Hittable **d_list, Hittable **d_world, const unsigned int num_hittables);
 
 CudaLayer::CudaLayer()
     : Layer("CudaLayer")
@@ -46,7 +46,7 @@ void CudaLayer::OnAttach()
 
 void CudaLayer::OnDetach()
 {
-    launch_free_world(m_HittableList, m_World, m_NumHittables);
+    LaunchFreeWorld(m_HittableList, m_World, m_NumHittables);
     checkCudaErrors(cudaFree(m_CudaDevRenderBuffer));
     checkCudaErrors(cudaFree(m_HittableList));
     checkCudaErrors(cudaFree(m_World));
@@ -104,9 +104,9 @@ void CudaLayer::InitCudaBuffers()
     // Allocate random state
     checkCudaErrors(cudaMalloc((void **)&m_DrandState, m_NumTexels * sizeof(curandState)));
     checkCudaErrors(cudaMalloc((void **)&m_DrandState2, 1 * sizeof(curandState)));
-    // Allocate hittables
-    checkCudaErrors(cudaMalloc((void **)&m_HittableList, m_NumHittables * sizeof(hittable *)));
-    checkCudaErrors(cudaMalloc((void **)&m_World, sizeof(hittable *)));
+    // Allocate Hittables
+    checkCudaErrors(cudaMalloc((void **)&m_HittableList, m_NumHittables * sizeof(Hittable *)));
+    checkCudaErrors(cudaMalloc((void **)&m_World, sizeof(Hittable *)));
 }
 
 void CudaLayer::InitGLBuffers()
@@ -128,14 +128,14 @@ void CudaLayer::InitGLBuffers()
 
 void CudaLayer::RunCudaInit()
 {
-    launch_rand_init(m_DrandState2);
+    LaunchRandInit(m_DrandState2);
 
     dim3 block(16, 16, 1);
     dim3 grid(m_ImageWidth / block.x, m_ImageHeight / block.y, 1);
 
-    launch_render_init(grid, block, m_ImageWidth, m_ImageHeight, m_DrandState);
+    LaunchRenderInit(grid, block, m_ImageWidth, m_ImageHeight, m_DrandState);
 
-    launch_create_world(m_HittableList, m_World, m_AspectRatio, m_DrandState2);
+    LaunchCreateWorld(m_HittableList, m_World, m_AspectRatio, m_DrandState2);
 }
 
 void CudaLayer::RunCudaUpdate()
@@ -143,7 +143,7 @@ void CudaLayer::RunCudaUpdate()
     dim3 block(16, 16, 1);
     dim3 grid(m_ImageWidth / block.x, m_ImageHeight / block.y, 1);
 
-    launch_kernel(grid, block, 0, static_cast<unsigned int *>(m_CudaDevRenderBuffer), m_ImageWidth, m_ImageHeight, m_SamplesPerPixel, m_MaxDepth, m_World, m_DrandState, m_Inputs);
+    LaunchKernel(grid, block, 0, static_cast<unsigned int *>(m_CudaDevRenderBuffer), m_ImageWidth, m_ImageHeight, m_SamplesPerPixel, m_MaxDepth, m_World, m_DrandState, m_Inputs);
 
     // We want to copy cuda_dev_render_buffer data to the texture.
     // Map buffer objects to get CUDA device pointers.

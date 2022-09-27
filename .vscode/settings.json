@@ -2,6 +2,7 @@
     "files.associations": {
         "cmath": "cpp",
         "cstdlib": "cpp",
-        "memory": "cpp"
+        "memory": "cpp",
+        "algorithm": "cpp"
     }
 }

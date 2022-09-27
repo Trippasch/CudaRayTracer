@@ -1,7 +1,7 @@
 #pragma once
 
 #include <cmath>
-#include <cuda_runtime.h>
+#include <iostream>
 #include <curand_kernel.h>
 
 #define PI 3.141592654f
@@ -10,177 +10,180 @@
 
 #define RND (curand_uniform(&local_rand_state))
 
-inline __host__ __device__ float3 operator+(const float3& a, const float3& b) {
-    return make_float3(a.x + b.x, a.y + b.y, a.z + b.z);
-}
-
-inline __host__ __device__ float3 operator+(const float3& a, const float& b) {
-    return make_float3(a.x + b, a.y + b, a.z + b);
-}
-
-inline __host__ __device__ float3 operator*(const float3& a, const float3& b) {
-    return make_float3(a.x * b.x, a.y * b.y, a.z * b.z);
-}
-
-inline __host__ __device__ float3 operator/(const float3& a, const float3& b) {
-    return make_float3(a.x / b.x, a.y / b.y, a.z / b.z);
-}
-
-inline __host__ __device__ float3 operator*(const float& a, const float3& b) {
-    return make_float3(a * b.x, a * b.y, a * b.z);
-}
-
-inline __host__ __device__ float3 operator*(const float3& b, const float& a) {
-    return make_float3(a * b.x, a * b.y, a * b.z);
-}
-
-inline __host__ __device__ float3 operator/(const float3& b, const float& a) {
-    return make_float3(b.x / a, b.y / a, b.z / a);
-}
-
-inline __host__ __device__ float3 operator-(const float3& a, const float3& b) {
-    return make_float3(a.x - b.x, a.y - b.y, a.z - b.z);
-}
-
-inline __host__ __device__ float3 operator-(const float3& v) {
-    return make_float3(-v.x, -v.y, -v.z);
-}
-
-inline __host__ __device__ float3 fromShort(const short3& a) {
-    return make_float3(a.x, a.y, a.z);
-}
-
-
-// shorties
-inline __host__ __device__ short3 operator+(const short3& a, const short3& b) {
-    return make_short3(a.x + b.x, a.y + b.y, a.z + b.z);
-}
-
-inline __host__ __device__ short3 operator+(const short3& a, const short& b) {
-    return make_short3(a.x + b, a.y + b, a.z + b);
-}
-
-inline __host__ __device__ short3 operator*(const short3& a, const short3& b) {
-    return make_short3(a.x * b.x, a.y * b.y, a.z * b.z);
-}
-
-inline __host__ __device__ short3 operator/(const short3& a, const short3& b) {
-    return make_short3(a.x / b.x, a.y / b.y, a.z / b.z);
-}
-
-inline __host__ __device__ short3 operator*(const short& a, const short3& b) {
-    return make_short3(a * b.x, a * b.y, a * b.z);
-}
-
-inline __host__ __device__ short3 operator*(const short3& b, const short& a) {
-    return make_short3(a * b.x, a * b.y, a * b.z);
-}
-
-inline __host__ __device__ short3 operator-(const short3& a, const short3& b) {
-    return make_short3(a.x - b.x, a.y - b.y, a.z - b.z);
-}
-
-inline __host__ __device__ short3 fromLong(const float3& a) {
-    return make_short3(a.x, a.y, a.z);
-}
-
-
-inline __host__ __device__ float3 floor(const float3& a) {
-    return make_float3(floor(a.x), floor(a.y), floor(a.z));
-}
-
-inline __host__ __device__ float2 floor(const float2& a) {
-    return make_float2(floor(a.x), floor(a.y));
-}
-
-inline __host__ __device__ float2 operator*(const float& a, const float2& b) {
-    return make_float2(a * b.x, a * b.y);
-}
-
-inline __host__ __device__ float2 operator+(const float2& a, const float2& b) {
-    return make_float2(a.x + b.x, a.y + b.y);
-}
-
-inline __host__ __device__ float2 operator*(const float2& a, const float2& b) {
-    return make_float2(a.x * b.x, a.y * b.y);
-}
-
-
-inline __host__ __device__  float dot(float3 v1, float3 v2)
+class Vec3
 {
-    return v1.x * v2.x + v1.y * v2.y + v1.z * v2.z;
+public:
+    __host__ __device__ Vec3() {}
+    __host__ __device__ Vec3(const float e0, const float e1, const float e2) { e[0] = e0; e[1] = e1; e[2] = e2; }
+    __host__ __device__ inline float x() const { return e[0]; }
+    __host__ __device__ inline float y() const { return e[1]; }
+    __host__ __device__ inline float z() const { return e[2]; }
+    __host__ __device__ inline float r() const { return e[0]; }
+    __host__ __device__ inline float g() const { return e[1]; }
+    __host__ __device__ inline float b() const { return e[2]; }
+
+    __host__ __device__ inline const Vec3& operator+() const { return *this; }
+    __host__ __device__ inline Vec3 operator-() const { return Vec3(-e[0], -e[1], -e[2]); }
+    __host__ __device__ inline float operator[](int i) const { return e[i]; }
+    __host__ __device__ inline float& operator[](int i) { return e[i]; };
+
+    __host__ __device__ inline Vec3& operator+=(const Vec3 &v2);
+    __host__ __device__ inline Vec3& operator-=(const Vec3 &v2);
+    __host__ __device__ inline Vec3& operator*=(const Vec3 &v2);
+    __host__ __device__ inline Vec3& operator/=(const Vec3 &v2);
+    __host__ __device__ inline Vec3& operator*=(const float t);
+    __host__ __device__ inline Vec3& operator/=(const float t);
+
+    __host__ __device__ inline float Length() const { return sqrt(e[0]*e[0] + e[1]*e[1] + e[2]*e[2]); }
+    __host__ __device__ inline float SquaredLength() const { return e[0]*e[0] + e[1]*e[1] + e[2]*e[2]; }
+    __host__ __device__ inline void MakeUnitVector();
+
+    float e[3];
+};
+
+inline std::istream& operator>>(std::istream &is, Vec3 &t) {
+    is >> t.e[0] >> t.e[1] >> t.e[2];
+    return is;
 }
 
-inline __host__ __device__  float dot(float2 v1, float2 v2)
-{
-    return v1.x * v2.x + v1.y * v2.y;
+inline std::ostream& operator<<(std::ostream &os, const Vec3 &t) {
+    os << t.e[0] << " " << t.e[1] << " " << t.e[2];
+    return os;
 }
 
-inline __host__ __device__  float3 cross(float3 v1, float3 v2)
-{
-    return make_float3(v1.y * v2.z - v1.z * v2.y, v1.z * v2.x - v1.x * v2.z, v1.x * v2.y - v1.y * v2.x);
+__host__ __device__ inline void Vec3::MakeUnitVector() {
+    float k = 1.0 / sqrt(e[0]*e[0] + e[1]*e[1] + e[2]*e[2]);
+    e[0] *= k; e[1] *= k; e[2] *= k;
 }
 
-inline __host__ __device__ float length(float3 v)
-{
-    return sqrtf(v.x * v.x + v.y * v.y + v.z * v.z);
+__host__ __device__ inline Vec3 operator+(const Vec3 &v1, const Vec3 &v2) {
+    return Vec3(v1.e[0] + v2.e[0], v1.e[1] + v2.e[1], v1.e[2] + v2.e[2]);
 }
 
-inline __host__ __device__ float length1(float3 v)
-{
-    return v.x + v.y + v.z;
+__host__ __device__ inline Vec3 operator-(const Vec3 &v1, const Vec3 &v2) {
+    return Vec3(v1.e[0] - v2.e[0], v1.e[1] - v2.e[1], v1.e[2] - v2.e[2]);
 }
 
-inline __host__ __device__ float3 inverse(float3 v)
-{
-    return make_float3(-v.x, -v.y, -v.z);
+__host__ __device__ inline Vec3 operator*(const Vec3 &v1, const Vec3 &v2) {
+    return Vec3(v1.e[0] * v2.e[0], v1.e[1] * v2.e[1], v1.e[2] * v2.e[2]);
 }
 
-inline __host__ __device__ float3 normalize(float3 v)
+__host__ __device__ inline Vec3 operator/(const Vec3 &v1, const Vec3 &v2) {
+    return Vec3(v1.e[0] / v2.e[0], v1.e[1] / v2.e[1], v1.e[2] / v2.e[2]);
+}
+
+__host__ __device__ inline Vec3 operator*(float t, const Vec3 &v) {
+    return Vec3(t*v.e[0], t*v.e[1], t*v.e[2]);
+}
+
+__host__ __device__ inline Vec3 operator/(Vec3 v, float t) {
+    return Vec3(v.e[0]/t, v.e[1]/t, v.e[2]/t);
+}
+
+__host__ __device__ inline Vec3 operator*(const Vec3 &v, float t) {
+    return Vec3(t*v.e[0], t*v.e[1], t*v.e[2]);
+}
+
+__host__ __device__ inline float Dot(const Vec3 &v1, const Vec3 &v2) {
+    return v1.e[0] *v2.e[0] + v1.e[1] *v2.e[1]  + v1.e[2] *v2.e[2];
+}
+
+__host__ __device__ inline Vec3 Cross(const Vec3 &v1, const Vec3 &v2) {
+    return Vec3( (v1.e[1]*v2.e[2] - v1.e[2]*v2.e[1]),
+                (-(v1.e[0]*v2.e[2] - v1.e[2]*v2.e[0])),
+                (v1.e[0]*v2.e[1] - v1.e[1]*v2.e[0]));
+}
+
+
+__host__ __device__ inline Vec3& Vec3::operator+=(const Vec3 &v){
+    e[0]  += v.e[0];
+    e[1]  += v.e[1];
+    e[2]  += v.e[2];
+    return *this;
+}
+
+__host__ __device__ inline Vec3& Vec3::operator*=(const Vec3 &v){
+    e[0]  *= v.e[0];
+    e[1]  *= v.e[1];
+    e[2]  *= v.e[2];
+    return *this;
+}
+
+__host__ __device__ inline Vec3& Vec3::operator/=(const Vec3 &v){
+    e[0]  /= v.e[0];
+    e[1]  /= v.e[1];
+    e[2]  /= v.e[2];
+    return *this;
+}
+
+__host__ __device__ inline Vec3& Vec3::operator-=(const Vec3& v) {
+    e[0]  -= v.e[0];
+    e[1]  -= v.e[1];
+    e[2]  -= v.e[2];
+    return *this;
+}
+
+__host__ __device__ inline Vec3& Vec3::operator*=(const float t) {
+    e[0]  *= t;
+    e[1]  *= t;
+    e[2]  *= t;
+    return *this;
+}
+
+__host__ __device__ inline Vec3& Vec3::operator/=(const float t) {
+    float k = 1.0/t;
+
+    e[0]  *= k;
+    e[1]  *= k;
+    e[2]  *= k;
+    return *this;
+}
+
+__host__ __device__ inline Vec3 UnitVector(Vec3 v) {
+    return v / v.Length();
+}
+
+__host__ __device__ inline Vec3 Normalize(Vec3 v)
 {
-    float invLen = 1 / sqrtf(dot(v, v));
+    float invLen = 1 / sqrtf(Dot(v, v));
     return invLen * v;
 }
 
-inline __host__ __device__ float3 unit_vector(float3 v) {
-    return v / length(v);
+__device__ inline Vec3 Random(curandState* local_rand_state)
+{
+    return Vec3(curand_uniform(local_rand_state), curand_uniform(local_rand_state), curand_uniform(local_rand_state));
 }
 
-inline __device__ float3 random(curandState* local_rand_state)
+__host__ __device__ inline float LengthSquared(Vec3 e)
 {
-    return make_float3(curand_uniform(local_rand_state), curand_uniform(local_rand_state), curand_uniform(local_rand_state));
+    return e.x() * e.x() + e.y() * e.y() + e.z() * e.z();
 }
 
-inline __host__ __device__ float length_squared(float3 e)
+__device__ inline Vec3 RandomInUnitSphere(curandState* local_rand_state)
 {
-    return e.x * e.x + e.y * e.y + e.z * e.z;
-}
-
-inline __device__ float3 random_in_unit_sphere(curandState* local_rand_state)
-{
-    float3 p;
+    Vec3 p;
     do
     {
-        p = 2.0f * random(local_rand_state) - make_float3(1, 1, 1);
-    } while (length_squared(p) >= 1.0f);
+        p = 2.0f * Random(local_rand_state) - Vec3(1.0f, 1.0f, 1.0f);
+    } while (LengthSquared(p) >= 1.0f);
     return p;
 }
 
-inline __device__ float3 random_in_unit_disk(curandState* local_rand_state) {
-    float3 p;
+__device__ inline Vec3 RandomInUnitDisk(curandState* local_rand_state) {
+    Vec3 p;
     do {
-        p = 2.0f * make_float3(curand_uniform(local_rand_state), curand_uniform(local_rand_state), 0) - make_float3(1, 1, 0);
-    } while (dot(p, p) >= 1.0f);
+        p = 2.0f * Vec3(curand_uniform(local_rand_state), curand_uniform(local_rand_state), 0.0f) - Vec3(1.0f, 1.0f, 0.0f);
+    } while (Dot(p, p) >= 1.0f);
     return p;
 }
 
-inline __host__ __device__ float3 reflect(const float3& v, const float3& n) {
-    return v - 2.0f * dot(v, n) * n;
+__host__ __device__ inline Vec3 Reflect(const Vec3& v, const Vec3& n) {
+    return v - 2.0f * Dot(v, n) * n;
 }
 
-inline __host__ __device__ bool refract(const float3& v, const float3& n, float eati_over_etat, float3& refracted) {
-    float3 uv = unit_vector(v);
-    float dt = dot(uv, n);
+__host__ __device__ inline bool Refract(const Vec3& v, const Vec3& n, float eati_over_etat, Vec3& refracted) {
+    Vec3 uv = UnitVector(v);
+    float dt = Dot(uv, n);
     float discriminant = 1.0f - eati_over_etat * eati_over_etat * (1 - dt * dt);
     if (discriminant > 0)
     {
