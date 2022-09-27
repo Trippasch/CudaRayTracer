@@ -76,8 +76,6 @@ void CudaLayer::OnImGuiRender()
 
     // IsWindowFocused() has a minor bug -- it centers the mouse when losing focus
     if (ImGui::IsWindowHovered()) {
-        m_Camera->SetWidth(viewport_width);
-        m_Camera->SetHeight(viewport_height);
 
         m_Camera->Inputs((GLFWwindow *)ImGui::GetMainViewport()->PlatformHandle);
 
