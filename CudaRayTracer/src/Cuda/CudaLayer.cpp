@@ -30,7 +30,11 @@ void CudaLayer::OnAttach()
 
     RunCudaInit();
 
-    m_Camera = std::make_unique<Camera>(m_ImageWidth, m_ImageHeight, glm::vec3(0.0f, 0.0f, 2.0f));
+    m_Camera = std::make_unique<Camera>(m_ImageWidth, m_ImageHeight, glm::vec3(0.0f, 0.0f, 3.0f));
+
+    glm::vec3 rightV = glm::normalize(glm::cross(m_Camera->m_Orientation, m_Camera->m_Up));
+    glm::vec3 upV = glm::normalize(glm::cross(m_Camera->m_Orientation, rightV));
+
     m_Inputs.origin_x = m_Camera->m_Position.x;
     m_Inputs.origin_y = m_Camera->m_Position.y;
     m_Inputs.origin_z = m_Camera->m_Position.z;
@@ -39,9 +43,13 @@ void CudaLayer::OnAttach()
     m_Inputs.orientation_y = m_Camera->m_Orientation.y;
     m_Inputs.orientation_z = m_Camera->m_Orientation.z;
 
-    m_Inputs.up_x = m_Camera->m_Up.x;
-    m_Inputs.up_y = m_Camera->m_Up.y;
-    m_Inputs.up_z = m_Camera->m_Up.z;
+    m_Inputs.up_x = upV.x;
+    m_Inputs.up_y = upV.y;
+    m_Inputs.up_z = upV.z;
+
+    m_Inputs.far = m_Camera->m_FarPlane;
+    m_Inputs.near = m_Camera->m_NearPlane;
+    m_Inputs.fov = m_Camera->m_Fov;
 }
 
 void CudaLayer::OnDetach()
@@ -75,9 +83,12 @@ void CudaLayer::OnImGuiRender()
     ImGui::PopStyleVar();
 
     // IsWindowFocused() has a minor bug -- it centers the mouse when losing focus
-    if (ImGui::IsWindowHovered()) {
+    if (ImGui::IsWindowFocused()) {
 
         m_Camera->Inputs((GLFWwindow *)ImGui::GetMainViewport()->PlatformHandle);
+
+        glm::vec3 rightV = glm::normalize(glm::cross(m_Camera->m_Orientation, m_Camera->m_Up));
+        glm::vec3 upV = glm::normalize(glm::cross(m_Camera->m_Orientation, rightV));
 
         m_Inputs.origin_x = m_Camera->m_Position.x;
         m_Inputs.origin_y = m_Camera->m_Position.y;
@@ -87,9 +98,13 @@ void CudaLayer::OnImGuiRender()
         m_Inputs.orientation_y = m_Camera->m_Orientation.y;
         m_Inputs.orientation_z = m_Camera->m_Orientation.z;
 
-        m_Inputs.up_x = m_Camera->m_Up.x;
-        m_Inputs.up_y = m_Camera->m_Up.y;
-        m_Inputs.up_z = m_Camera->m_Up.z;
+        m_Inputs.up_x = upV.x;
+        m_Inputs.up_y = upV.y;
+        m_Inputs.up_z = upV.z;
+    }
+    else {
+        glfwSetInputMode((GLFWwindow *)ImGui::GetMainViewport()->PlatformHandle, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+        m_Camera->m_FirstClick = true;
     }
 
     ImGui::End();

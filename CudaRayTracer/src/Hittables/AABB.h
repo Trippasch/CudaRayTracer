@@ -3,6 +3,7 @@
 #include "../Utils/Ray.h"
 
 #include <thrust/swap.h>
+#include <thrust/extrema.h>
 
 class AABB {
 public:
@@ -31,16 +32,18 @@ public:
     }
 };
 
-// __device__ AABB SurroundingBox(AABB box0, AABB box1) {
-//     Vec3 small = (
-//     std::min(box0.Min().x(), box1.Min().x()),
-//     std::min(box0.Min().y(), box1.Min().y()),
-//     std::min(box0.Min().z(), box1.Min().z()));
+__forceinline__ __device__ AABB SurroundingBox(AABB box0, AABB box1) {
+    Vec3 small(
+        thrust::min(box0.Min().x(), box1.Min().x()),
+        thrust::min(box0.Min().y(), box1.Min().y()),
+        thrust::min(box0.Min().z(), box1.Min().z())
+    );
 
-//     Vec3 big = (
-//     std::max(box0.Max().x(), box1.Max().x()),
-//     std::max(box0.Max().y(), box1.Max().y()),
-//     std::max(box0.Max().z(), box1.Max().z()));
+    Vec3 big(
+        thrust::max(box0.Max().x(), box1.Max().x()),
+        thrust::max(box0.Max().y(), box1.Max().y()),
+        thrust::max(box0.Max().z(), box1.Max().z())
+    );
 
-//     return AABB(small, big);
-// }
+    return AABB(small, big);
+}

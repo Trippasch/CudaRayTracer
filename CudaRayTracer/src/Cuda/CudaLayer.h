@@ -63,5 +63,6 @@ private:
 
     InputStruct m_Inputs;
 
+    // Camera
     std::unique_ptr<Camera> m_Camera;
 };

@@ -15,7 +15,7 @@ public:
         : center(cen), radius(r), mat_ptr(m) {}
 
     __device__ bool Hit(const Ray& r, float t_min, float t_max, HitRecord& rec) const override;
-    __device__ bool BoundingBox(float time0, float time1, AABB& output_box) const override;
+    __device__ bool BoundingBox(AABB& output_box) const override;
 };
 
 __device__ bool Sphere::Hit(const Ray& r, float t_min, float t_max, HitRecord& rec) const
@@ -48,7 +48,7 @@ __device__ bool Sphere::Hit(const Ray& r, float t_min, float t_max, HitRecord& r
     return false;
 }
 
-__device__ bool Sphere::BoundingBox(float time0, float time1, AABB& output_box) const
+__device__ bool Sphere::BoundingBox(AABB& output_box) const
 {
     output_box = AABB(
         center - Vec3(radius, radius, radius),

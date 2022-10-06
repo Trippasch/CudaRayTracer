@@ -5,6 +5,7 @@
 #include <float.h>
 #include <algorithm>
 
+// #include "../Hittables/BVH.h"
 #include "../Hittables/HittableList.h"
 #include "../Hittables/Sphere.h"
 #include "../Hittables/Material.h"
@@ -111,15 +112,12 @@ __global__ void Kernel(unsigned int* pos, unsigned int width, unsigned int heigh
     Vec3 upV = Vec3(inputs.up_x, inputs.up_y, inputs.up_z);
     Vec3 rightV = Normalize(Cross(upV, forwardV));
 
-    float sizeFarPlane = 10.0f;
-    float sizeNearPlane = sizeFarPlane * 0.1f;
-    float distFarPlane = 10.0f;
-    float distFirstPlane = distFarPlane * 0.1f;
+    float distFirstPlane = inputs.fov * 0.1f;
 
     Vec3 center = Vec3(width / 2.0f, height / 2.0f, 0.0f);
-    Vec3 distFromCenter = ((center.x() - x) / width) * rightV + ((y - center.y()) / width) * upV;
-    Vec3 startPos = (sizeNearPlane * distFromCenter) + origin + (distFirstPlane * forwardV);
-    Vec3 secondPlanePos = (sizeFarPlane * distFromCenter) + origin + (distFarPlane * forwardV) + origin;
+    Vec3 distFromCenter = ((x - center.x()) / width) * rightV + ((center.y() - y) / width) * upV;
+    Vec3 startPos = (inputs.near * distFromCenter) + origin + (distFirstPlane * forwardV);
+    Vec3 secondPlanePos = (inputs.far * distFromCenter) + (inputs.fov * forwardV) + origin;
 
     Vec3 dirVector = Normalize(secondPlanePos - startPos);
 

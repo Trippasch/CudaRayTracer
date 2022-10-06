@@ -24,5 +24,5 @@ class Hittable
 {
 public:
     __device__ virtual bool Hit(const Ray& r, float t_min, float t_max, HitRecord& rec) const = 0;
-    __device__ virtual bool BoundingBox(float time0, float time1, AABB& output_box) const = 0;
+    __device__ virtual bool BoundingBox(AABB& output_box) const = 0;
 };
