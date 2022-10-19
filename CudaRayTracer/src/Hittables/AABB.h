@@ -10,11 +10,11 @@ public:
     Vec3 minimum;
     Vec3 maximum;
 public:
-    __device__ AABB() {}
-    __device__ AABB(const Vec3 &a, const Vec3 &b) { minimum = a; maximum = b; }
+    __host__ AABB() : minimum(Vec3(0.0f, 0.0f ,0.0f)), maximum(Vec3(0.0f, 0.0f ,0.0f)) {}
+    __host__ AABB(const Vec3 &a, const Vec3 &b) { minimum = a; maximum = b; }
 
-    __device__ Vec3 Min() const { return minimum; }
-    __device__ Vec3 Max() const { return maximum; }
+    __host__ __device__ Vec3 Min() const { return minimum; }
+    __host__ __device__ Vec3 Max() const { return maximum; }
 
     __device__ inline bool Hit(const Ray &r, float t_min, float t_max) const {
         for (int a = 0; a < 3; a++) {
@@ -32,7 +32,7 @@ public:
     }
 };
 
-__forceinline__ __device__ AABB SurroundingBox(AABB box0, AABB box1) {
+__forceinline__ __host__ AABB SurroundingBox(AABB box0, AABB box1) {
     Vec3 small(
         thrust::min(box0.Min().x(), box1.Min().x()),
         thrust::min(box0.Min().y(), box1.Min().y()),

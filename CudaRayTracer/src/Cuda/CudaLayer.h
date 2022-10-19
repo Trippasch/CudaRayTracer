@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Core/Layer.h"
-#include "Hittables/Hittable.h"
+#include "Hittables/BVHNode.h"
 #include "Utils/SharedStructs.h"
 #include "Utils/helper_cuda.h"
 
@@ -27,6 +27,8 @@ public:
 
     inline int GetImageWidth() const { return m_ImageWidth; }
     inline int GetImageHeight() const { return m_ImageHeight; }
+    inline void SetImageWidth(int width) { m_ImageWidth = width; }
+    inline void SetImageHeight(int height) { m_ImageHeight = height; }
 
 private:
     void InitCudaBuffers();
@@ -37,8 +39,8 @@ private:
 private:
     // Image
     const float m_AspectRatio = 4.0f / 3.0f;
-    const int m_ImageWidth = 800;
-    const int m_ImageHeight = static_cast<int>(m_ImageWidth / m_AspectRatio);
+    int m_ImageWidth = 800;
+    int m_ImageHeight = static_cast<int>(m_ImageWidth / m_AspectRatio);
 
     // Cuda Image
     unsigned int m_NumTexels = m_ImageWidth * m_ImageHeight;
@@ -46,16 +48,17 @@ private:
     size_t m_SizeTexData = sizeof(GLubyte) * m_NumValues;
 
     // Cuda-OpenGL interops
-    struct cudaGraphicsResource *m_CudaTexResource;
-    void *m_CudaDevRenderBuffer;
+    struct cudaGraphicsResource* m_CudaTexResource;
+    void* m_CudaDevRenderBuffer;
     GLuint m_Texture;
-    curandState *m_DrandState;    // allocate random state
-    curandState *m_DrandState2;
+    curandState* m_DrandState;    // allocate random state
+    curandState* m_DrandState2;
 
     // Hittables
-    Hittable **m_HittableList;
+    Hittable** m_HittableList;
     const int m_NumHittables = 5;
-    Hittable **m_World;
+    Hittable** m_World;
+    Hittable* m_Head;
 
     // RayTracing
     unsigned int m_SamplesPerPixel = 1;

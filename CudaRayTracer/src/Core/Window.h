@@ -4,6 +4,8 @@
 
 #include <GLFW/glfw3.h>
 
+#include "Renderer/Camera.h"
+
 struct WindowProps
 {
     std::string Title;
@@ -24,8 +26,10 @@ public:
 
     void OnUpdate();
 
-    inline uint32_t GetWidth() const { return m_Data.Width; }
-    inline uint32_t GetHeight() const { return m_Data.Height; }
+    inline uint32_t GetWidth() { return m_Data.Width; }
+    inline uint32_t GetHeight() { return m_Data.Height; }
+    inline void SetWidth(uint32_t width) { m_Data.Width = width; }
+    inline void SetHeight(uint32_t height) { m_Data.Height = height; }
 
     // Window attributes
     // inline void SetEventCallback(const EventCallbackFn& callback) override { m_Data.EventCallback = callback; }
@@ -49,6 +53,5 @@ private:
 
         // EventCallbackFn EventCallback;
     };
-
     WindowData m_Data;
 };

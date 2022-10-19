@@ -91,6 +91,14 @@ void Window::Init(const WindowProps& props)
         // height will be significantly larger than specified on retina displays.
         RT_TRACE("Resizing window to {0}x{1}", width, height);
         glViewport(0, 0, width, height);
+
+        Window& w = *(Window*)glfwGetWindowUserPointer(window);
+        w.SetWidth(width);
+        w.SetHeight(height);
+
+        WindowData& data = *(WindowData*)glfwGetWindowUserPointer(window);
+        data.Width = width;
+        data.Height = height;
     });
 
     // glfwSetWindowSizeCallback(m_Window, [](GLFWwindow* window, int width, int height)

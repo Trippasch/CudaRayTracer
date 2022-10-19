@@ -3,7 +3,7 @@
 #include <imgui.h>
 
 extern "C"
-void LaunchKernel(dim3 grid, dim3 block, int sbytes, unsigned int *pos, unsigned int window_width, unsigned int window_height, const unsigned int samples_per_pixel, const unsigned int max_depth, Hittable **d_world, curandState *d_rand_state, InputStruct inputs);
+void LaunchKernel(dim3 grid, dim3 block, int sbytes, unsigned int *pos, unsigned int window_width, unsigned int window_height, const unsigned int samples_per_pixel, const unsigned int max_depth, Hittable **d_world, Hittable *d_head, curandState *d_rand_state, InputStruct inputs);
 
 extern "C" void LaunchRandInit(curandState *d_rand_state2);
 
@@ -118,8 +118,9 @@ void CudaLayer::InitCudaBuffers()
     checkCudaErrors(cudaMalloc((void **)&m_DrandState, m_NumTexels * sizeof(curandState)));
     checkCudaErrors(cudaMalloc((void **)&m_DrandState2, 1 * sizeof(curandState)));
     // Allocate Hittables
-    checkCudaErrors(cudaMalloc((void **)&m_HittableList, m_NumHittables * sizeof(Hittable *)));
-    checkCudaErrors(cudaMalloc((void **)&m_World, sizeof(Hittable *)));
+    checkCudaErrors(cudaMallocManaged((void **)&m_HittableList, m_NumHittables * sizeof(Hittable *)));
+    checkCudaErrors(cudaMallocManaged((void **)&m_World, sizeof(Hittable *)));
+    checkCudaErrors(cudaMallocManaged((void **)&m_Head, sizeof(Hittable )));
 }
 
 void CudaLayer::InitGLBuffers()
@@ -149,6 +150,9 @@ void CudaLayer::RunCudaInit()
     LaunchRenderInit(grid, block, m_ImageWidth, m_ImageHeight, m_DrandState);
 
     LaunchCreateWorld(m_HittableList, m_World, m_AspectRatio, m_DrandState2);
+
+    *m_World = new HittableList(m_HittableList, m_NumHittables);
+    m_Head = new BVHNode((*(HittableList *)m_World));
 }
 
 void CudaLayer::RunCudaUpdate()
@@ -156,7 +160,7 @@ void CudaLayer::RunCudaUpdate()
     dim3 block(16, 16, 1);
     dim3 grid(m_ImageWidth / block.x, m_ImageHeight / block.y, 1);
 
-    LaunchKernel(grid, block, 0, static_cast<unsigned int *>(m_CudaDevRenderBuffer), m_ImageWidth, m_ImageHeight, m_SamplesPerPixel, m_MaxDepth, m_World, m_DrandState, m_Inputs);
+    LaunchKernel(grid, block, 0, static_cast<unsigned int *>(m_CudaDevRenderBuffer), m_ImageWidth, m_ImageHeight, m_SamplesPerPixel, m_MaxDepth, m_World, m_Head, m_DrandState, m_Inputs);
 
     // We want to copy cuda_dev_render_buffer data to the texture.
     // Map buffer objects to get CUDA device pointers.

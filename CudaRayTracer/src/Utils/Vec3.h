@@ -154,6 +154,17 @@ __device__ inline Vec3 Random(curandState* local_rand_state)
     return Vec3(curand_uniform(local_rand_state), curand_uniform(local_rand_state), curand_uniform(local_rand_state));
 }
 
+__device__ inline int RandomAxis(curandState* local_rand_state)
+{
+    return static_cast<int>(3*curand_uniform(local_rand_state));
+}
+
+__host__ inline int RandomIntRange(int min, int max)
+{
+    int range = max - min + 1;
+    return rand() % range + min;
+}
+
 __host__ __device__ inline float LengthSquared(Vec3 e)
 {
     return e.x() * e.x() + e.y() * e.y() + e.z() * e.z();

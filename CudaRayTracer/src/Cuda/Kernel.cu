@@ -5,7 +5,6 @@
 #include <float.h>
 #include <algorithm>
 
-// #include "../Hittables/BVH.h"
 #include "../Hittables/HittableList.h"
 #include "../Hittables/Sphere.h"
 #include "../Hittables/Material.h"
@@ -52,7 +51,7 @@ __device__ inline bool HitSphere(const Vec3& center, float radius, const Ray& r)
     return (discriminant > 0.0f);
 }
 
-__device__ inline Vec3 color(const Ray& r, Hittable** world, const int max_depth, curandState* local_rand_state) {
+__device__ inline Vec3 color(const Ray& r, Hittable** world, Hittable *head, const int max_depth, curandState* local_rand_state) {
     Ray cur_ray = r;
     Vec3 cur_attenuation = Vec3(1.0f, 1.0f, 1.0f);
     for (int i = 0; i < max_depth; i++) {
@@ -91,7 +90,7 @@ __device__ inline void GetXYZCoords(int& x, int& y, int& z)
     z = blockIdx.z + bt * tz;
 }
 
-__global__ void Kernel(unsigned int* pos, unsigned int width, unsigned int height, const unsigned int samples_per_pixel, const unsigned int max_depth, Hittable** world, curandState* rand_state, InputStruct inputs)
+__global__ void Kernel(unsigned int* pos, unsigned int width, unsigned int height, const unsigned int samples_per_pixel, const unsigned int max_depth, Hittable** world, Hittable* head, curandState* rand_state, InputStruct inputs)
 {
     extern __shared__ uchar4 sdata[];
 
@@ -129,7 +128,7 @@ __global__ void Kernel(unsigned int* pos, unsigned int width, unsigned int heigh
         // calculate uv coordinates
     //    float u = (float)(x + curand_uniform(&local_rand_state)) / (float)(width);
     //    float v = (float)(y + curand_uniform(&local_rand_state)) / (float)(height);
-       col = col + color(r, world, max_depth, &local_rand_state);
+       col = col + color(r, world, head, max_depth, &local_rand_state);
     }
     rand_state[pixel_index] = local_rand_state;
 
@@ -198,7 +197,7 @@ __global__ void CreateWorld(Hittable** d_list, Hittable** d_world, const float a
         d_list[i++] = new Sphere(Vec3(-1, 0, -1), -0.45, new Dielectric(1.5f));
 
         *rand_state = local_rand_state;
-        *d_world = new HittableList(d_list, i);
+        // *d_world = new HittableList(d_list, i);
     }
 }
 
@@ -211,35 +210,35 @@ __global__ void FreeWorld(Hittable** d_list, Hittable** d_world, const unsigned 
 }
 
 extern "C"
-void LaunchKernel(dim3 grid, dim3 block, int sbytes, unsigned int* pos, unsigned int window_width, unsigned int window_height, const unsigned int samples_per_pixel, const unsigned int max_depth, Hittable * *d_world, curandState * d_rand_state, InputStruct inputs)
+void LaunchKernel(dim3 grid, dim3 block, int sbytes, unsigned int* pos, unsigned int window_width, unsigned int window_height, const unsigned int samples_per_pixel, const unsigned int max_depth, Hittable** d_world, Hittable* d_head, curandState* d_rand_state, InputStruct inputs)
 {
-    Kernel << < grid, block, sbytes >> > (pos, window_width, window_height, samples_per_pixel, max_depth, d_world, d_rand_state, inputs);
+    Kernel << < grid, block, sbytes >> > (pos, window_width, window_height, samples_per_pixel, max_depth, d_world, d_head, d_rand_state, inputs);
     cudaDeviceSynchronize();
 }
 
 extern "C"
-void LaunchRandInit(curandState * d_rand_state2)
+void LaunchRandInit(curandState* d_rand_state2)
 {
     RandInit << < 1, 1 >> > (d_rand_state2);
     cudaDeviceSynchronize();
 }
 
 extern "C"
-void LaunchRenderInit(dim3 grid, dim3 block, unsigned int window_width, unsigned int window_height, curandState * d_rand_state)
+void LaunchRenderInit(dim3 grid, dim3 block, unsigned int window_width, unsigned int window_height, curandState* d_rand_state)
 {
     RenderInit << < grid, block >> > (window_width, window_height, d_rand_state);
     cudaDeviceSynchronize();
 }
 
 extern "C"
-void LaunchCreateWorld(Hittable * *d_list, Hittable * *d_world, const float aspect_ratio, curandState * d_rand_state2)
+void LaunchCreateWorld(Hittable** d_list, Hittable** d_world, const float aspect_ratio, curandState* d_rand_state2)
 {
     CreateWorld << < 1, 1 >> > (d_list, d_world, aspect_ratio, d_rand_state2);
     cudaDeviceSynchronize();
 }
 
 extern "C"
-void LaunchFreeWorld(Hittable * *d_list, Hittable * *d_world, const unsigned int num_hittables)
+void LaunchFreeWorld(Hittable** d_list, Hittable** d_world, const unsigned int num_hittables)
 {
     FreeWorld << < 1, 1 >> > (d_list, d_world, num_hittables);
     cudaDeviceSynchronize();
