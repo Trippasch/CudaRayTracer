@@ -10,8 +10,8 @@ public:
     float radius;
     Material* mat_ptr;
 public:
-    __device__ Sphere() {}
-    __device__ Sphere(Vec3 cen, float r, Material* m)
+    __host__ Sphere() {}
+    __host__ Sphere(Vec3 cen, float r, Material* m)
         : center(cen), radius(r), mat_ptr(m) {}
 
     __device__ bool Hit(const Ray& r, float t_min, float t_max, HitRecord& rec) const override;

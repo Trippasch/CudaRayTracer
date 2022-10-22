@@ -1,7 +1,10 @@
 #pragma once
 
 #include "Core/Layer.h"
-#include "Hittables/BVHNode.h"
+// #include "Hittables/BVHNode.h"
+#include "Hittables/HittableList.h"
+#include "Hittables/Material.h"
+#include "Hittables/Sphere.h"
 #include "Utils/SharedStructs.h"
 #include "Utils/helper_cuda.h"
 
@@ -34,6 +37,7 @@ private:
     void InitCudaBuffers();
     void InitGLBuffers();
     void RunCudaInit();
+    void GenerateWorld();
     void RunCudaUpdate();
 
 private:
@@ -55,10 +59,7 @@ private:
     curandState* m_DrandState2;
 
     // Hittables
-    Hittable** m_HittableList;
-    const int m_NumHittables = 5;
-    Hittable** m_World;
-    Hittable* m_Head;
+    HittableList* m_World;
 
     // RayTracing
     unsigned int m_SamplesPerPixel = 1;

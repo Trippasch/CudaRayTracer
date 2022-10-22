@@ -16,7 +16,7 @@ class Lambertian : public Material
 public:
     Vec3 albedo;
 public:
-    __device__ Lambertian(const Vec3& a) : albedo(a) {}
+    __host__ Lambertian(const Vec3& a) : albedo(a) {}
 
     __device__ bool Scatter(const Ray& r, const HitRecord& rec, Vec3& attenuation, Ray& scattered, curandState* local_rand_state) const override
     {
@@ -35,7 +35,7 @@ public:
     float fuzz;
 
 public:
-    __device__ Metal(const Vec3& a, float f) : albedo(a), fuzz(f < 1 ? f : 1) {}
+    __host__ Metal(const Vec3& a, float f) : albedo(a), fuzz(f < 1 ? f : 1) {}
 
     __device__ bool Scatter(const Ray& r_in, const HitRecord& rec, Vec3& attenuation, Ray& scattered, curandState* local_rand_state) const override
     {
@@ -52,7 +52,7 @@ public:
     float ir; // Index of Refraction
 
 public:
-    __device__ Dielectric(float index_of_refraction) : ir(index_of_refraction) {}
+    __host__ Dielectric(float index_of_refraction) : ir(index_of_refraction) {}
 
     __device__ bool Scatter(const Ray& r_in, const HitRecord& rec, Vec3& attenuation, Ray& scattered, curandState* local_rand_state) const override
     {
