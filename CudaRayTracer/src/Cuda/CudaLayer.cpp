@@ -3,18 +3,18 @@
 #include <imgui.h>
 
 extern "C"
-void LaunchKernel(dim3 grid, dim3 block, int sbytes, unsigned int *pos, unsigned int image_width, unsigned int image_height, const unsigned int samples_per_pixel, const unsigned int max_depth, Hittable **d_world, Hittable *d_head, curandState *d_rand_state, InputStruct inputs);
+void LaunchKernel(unsigned int *pos, unsigned int image_width, unsigned int image_height, const unsigned int samples_per_pixel, const unsigned int max_depth, HittableList* world, curandState *d_rand_state, InputStruct inputs);
 
 extern "C" void LaunchRandInit(curandState *d_rand_state2);
 
 extern "C"
 void LaunchRenderInit(dim3 grid, dim3 block, unsigned int image_width, unsigned int image_height, curandState *d_rand_state);
 
-extern "C"
-void LaunchCreateWorld(Hittable **d_list, Hittable **d_world, const float aspect_ratio, curandState *d_rand_state2);
+// extern "C"
+// void LaunchCreateWorld(Hittable **d_list, Hittable **d_world, const float aspect_ratio, curandState *d_rand_state2);
 
-extern "C"
-void LaunchFreeWorld(Hittable **d_list, Hittable **d_world, const unsigned int num_hittables);
+// extern "C"
+// void LaunchFreeWorld(Hittable **d_list, Hittable **d_world, const unsigned int num_hittables);
 
 CudaLayer::CudaLayer()
     : Layer("CudaLayer")
@@ -60,6 +60,11 @@ void CudaLayer::OnDetach()
     checkCudaErrors(cudaFree(m_CudaDevRenderBuffer));
     checkCudaErrors(cudaFree(m_DrandState));
     checkCudaErrors(cudaFree(m_DrandState2));
+
+    for (auto obj : m_World->objects) {
+        checkCudaErrors(cudaFree(obj));
+    }
+
     checkCudaErrors(cudaGraphicsUnregisterResource(m_CudaTexResource));
 
     // useful for compute-sanitizer --leak-check full
@@ -148,19 +153,28 @@ void CudaLayer::RunCudaInit()
 
 void CudaLayer::GenerateWorld()
 {
-    Hittable* groundSphere = new Sphere(Vec3(0, -100.5, 0), 100, new Lambertian(Vec3(0.8, 0.8, 0.0)));
+    Sphere* groundSphere;
+    checkCudaErrors(cudaMallocManaged((void **)&groundSphere, sizeof(Sphere)));
+    groundSphere->center = Vec3(0.0f, 100.5f, 0.0f);
+    groundSphere->radius = 100;
+    checkCudaErrors(cudaMallocManaged((void **)&groundSphere->mat_ptr, sizeof(Material)));
+    *(groundSphere->mat_ptr) = Lambertian(Vec3(0.8f, 0.8f, 0.0f));
     m_World->Add(groundSphere);
 
-    Hittable* sphere1 = new Sphere(Vec3(0, 0, -1), 0.5, new Lambertian(Vec3(0.1, 0.2, 0.5)));
-    m_World->Add(sphere1);
+    // Hittable* groundSphere;
+    // checkCudaErrors(cudaMallocManaged((void **)&groundSphere, sizeof(Hittable)));
+    // groundSphere = new Sphere(Vec3(0, -100.5, 0), 100, new Lambertian(Vec3(0.8, 0.8, 0.0)));
+    // m_World->Add(groundSphere);
+
+    // Hittable* sphere1;
+    // checkCudaErrors(cudaMallocManaged((void **)&sphere1, sizeof(Hittable)));
+    // sphere1 = new Sphere(Vec3(0, 0, -1), 0.5, new Lambertian(Vec3(0.1, 0.2, 0.5)));
+    // m_World->Add(sphere1);
 }
 
 void CudaLayer::RunCudaUpdate()
 {
-    dim3 block(16, 16, 1);
-    dim3 grid(m_ImageWidth / block.x, m_ImageHeight / block.y, 1);
-
-    LaunchKernel(grid, block, 0, static_cast<unsigned int *>(m_CudaDevRenderBuffer), m_ImageWidth, m_ImageHeight, m_SamplesPerPixel, m_MaxDepth, m_DrandState, m_Inputs);
+    LaunchKernel(static_cast<unsigned int *>(m_CudaDevRenderBuffer), m_ImageWidth, m_ImageHeight, m_SamplesPerPixel, m_MaxDepth, m_World, m_DrandState, m_Inputs);
 
     // We want to copy cuda_dev_render_buffer data to the texture.
     // Map buffer objects to get CUDA device pointers.
