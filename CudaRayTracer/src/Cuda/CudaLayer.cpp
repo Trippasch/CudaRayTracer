@@ -50,8 +50,8 @@ void CudaLayer::OnAttach()
     m_Inputs.up_y = upV.y;
     m_Inputs.up_z = upV.z;
 
-    m_Inputs.far = m_Camera->m_FarPlane;
-    m_Inputs.near = m_Camera->m_NearPlane;
+    //m_Inputs.far = m_Camera->m_FarPlane;
+    //m_Inputs.near = m_Camera->m_NearPlane;
     m_Inputs.fov = m_Camera->m_Fov;
 }
 
