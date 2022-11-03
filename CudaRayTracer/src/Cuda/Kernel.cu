@@ -3,7 +3,6 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <float.h>
-#include <algorithm>
 
 #include "../Hittables/HittableList.h"
 #include "../Hittables/Sphere.h"
