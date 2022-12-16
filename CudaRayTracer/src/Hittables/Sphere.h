@@ -16,4 +16,5 @@ public:
 
     __device__ bool Hit(const Ray& r, float t_min, float t_max, HitRecord& rec) const override;
     __host__ bool BoundingBox(AABB& output_box) const override;
+    __host__ inline Sphere* Clone() const override { return new Sphere(*this); }
 };

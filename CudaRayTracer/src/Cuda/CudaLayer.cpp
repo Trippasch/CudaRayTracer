@@ -155,23 +155,23 @@ void CudaLayer::RunCudaInit()
 
 void CudaLayer::GenerateWorld()
 {
-    Sphere* groundSphere;
-    checkCudaErrors(cudaMallocManaged((void **)&groundSphere, sizeof(Sphere)));
-    groundSphere->center = Vec3(0.0f, 100.5f, 0.0f);
-    groundSphere->radius = 100;
-    checkCudaErrors(cudaMallocManaged((void **)&groundSphere->mat_ptr, sizeof(Material)));
-    *(groundSphere->mat_ptr) = Lambertian(Vec3(0.8f, 0.8f, 0.0f));
+    // Sphere* groundSphere;
+    // checkCudaErrors(cudaMallocManaged(&groundSphere, sizeof(Sphere)));
+    // checkCudaErrors(cudaMallocManaged(&groundSphere->mat_ptr, sizeof(Lambertian)));
+    // m_World->Add(new(groundSphere) Sphere(Vec3(0.0f, -100.5f, 0.0f), 100.0f, new(groundSphere->mat_ptr) Lambertian(Vec3(0.8f, 0.8f, 0.0f))));
+
+    // Sphere* sphere1;
+    // checkCudaErrors(cudaMallocManaged(&sphere1, sizeof(Sphere)));
+    // checkCudaErrors(cudaMallocManaged(&sphere1->mat_ptr, sizeof(Lambertian)));
+    // m_World->Add(new(sphere1) Sphere(Vec3(0.0f, 0.0f, -1.0f), 0.5f, new(sphere1->mat_ptr) Lambertian(Vec3(0.1f, 0.2f, 0.5f))));
+
+    auto material1 = new Lambertian(Vec3(0.8f, 0.8f, 0.0f));
+    Sphere* groundSphere = new Sphere(Vec3(0.0f, -100.5f, 0.0f), 100.0f, material1);
     m_World->Add(groundSphere);
 
-    // Hittable* groundSphere;
-    // checkCudaErrors(cudaMallocManaged((void **)&groundSphere, sizeof(Hittable)));
-    // groundSphere = new Sphere(Vec3(0, -100.5, 0), 100, new Lambertian(Vec3(0.8, 0.8, 0.0)));
-    // m_World->Add(groundSphere);
-
-    // Hittable* sphere1;
-    // checkCudaErrors(cudaMallocManaged((void **)&sphere1, sizeof(Hittable)));
-    // sphere1 = new Sphere(Vec3(0, 0, -1), 0.5, new Lambertian(Vec3(0.1, 0.2, 0.5)));
-    // m_World->Add(sphere1);
+    auto material2 = new Lambertian(Vec3(0.1f, 0.2f, 0.5f));
+    Sphere* sphere = new Sphere(Vec3(0.0f, 0.0f, -1.0f), 0.5f, material2);
+    m_World->Add(sphere);
 }
 
 void CudaLayer::RunCudaUpdate()
