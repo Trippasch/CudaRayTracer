@@ -118,11 +118,9 @@ __global__ void Kernel(unsigned int* pos, unsigned int width, unsigned int heigh
         return;
 
     if (x == 0 && y == 0) {
-        for (int i = 0; i < 2; i++) {
-            ((Sphere*)world[i])->center.PrintVector();
-            Material *mat = ((Sphere*)world[i])->mat_ptr;
-            ((Lambertian*)mat)->albedo.PrintVector();
-        }
+        ((Sphere*)world[0])->center.Print();
+        Material *mat = ((Sphere*)world[0])->mat_ptr;
+        ((Lambertian*)mat)->albedo.Print();
     }
 
     unsigned int pixel_index = (y * width + x);
@@ -250,15 +248,15 @@ void LaunchKernel(unsigned int* pos, unsigned int image_width, unsigned int imag
         // d_world[i] = world->objects[i]->Clone();
         // cudaMallocManaged((void**)&d_world[i], sizeof(Hittable));
         // cudaMallocManaged((void**)&d_world[i], sizeof(Lambertian));
-        cudaMemcpy(d_world[i], world->objects[i], sizeof(Hittable), cudaMemcpyHostToDevice);
+        //cudaMemcpy(d_world[i], world->objects[i], sizeof(Hittable), cudaMemcpyHostToDevice);
         d_world[i] = world->objects[i];
     }
 
-    for (int i = 0; i < world->objects.size(); i++) {
-        std::cout << ((Sphere*)d_world[i])->center << std::endl;
-        Material *mat = ((Sphere*)d_world[i])->mat_ptr;
-        std::cout << ((Lambertian*)mat)->albedo << std::endl;
-    }
+    //for (int i = 0; i < world->objects.size(); i++) {
+    //    std::cout << ((Sphere*)d_world[i])->center << std::endl;
+    //    Material *mat = ((Sphere*)d_world[i])->mat_ptr;
+    //    std::cout << ((Lambertian*)mat)->albedo << std::endl;
+    //}
 
     Kernel << < grid, block, sbytes >> > (pos, image_width, image_height, samples_per_pixel, max_depth, d_world, d_rand_state, inputs);
     cudaDeviceSynchronize();

@@ -38,7 +38,7 @@ public:
     __host__ __device__ inline float SquaredLength() const { return e[0]*e[0] + e[1]*e[1] + e[2]*e[2]; }
     __host__ __device__ inline void MakeUnitVector();
 
-    __host__ __device__ inline void PrintVector() const { printf("%f, %f, %f\n", e[0], e[1], e[2]); }
+    __host__ __device__ inline void Print() const { printf("[%f, %f, %f]\n", e[0], e[1], e[2]); }
 
     float e[3];
 };
