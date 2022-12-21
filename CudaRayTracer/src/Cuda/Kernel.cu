@@ -40,15 +40,45 @@ __device__ inline Vec3 IntToRgb(int val)
     return Vec3(r, g, b);
 }
 
-__device__ inline bool HitSphere(const Vec3& center, float radius, const Ray& r)
-{
-    Vec3 oc = r.Origin() - center;
-    float a = Dot(r.Direction(), r.Direction());
-    float b = 2.0f * Dot(oc, r.Direction());
-    float c = Dot(oc, oc) - radius * radius;
-    float discriminant = b * b - 4.0f * a * c;
+// __device__ inline bool HitSphere(const Vec3& center, float radius, const Ray& r)
+// {
+//     Vec3 oc = r.Origin() - center;
+//     float a = Dot(r.Direction(), r.Direction());
+//     float b = 2.0f * Dot(oc, r.Direction());
+//     float c = Dot(oc, oc) - radius * radius;
+//     float discriminant = b * b - 4.0f * a * c;
 
-    return (discriminant > 0.0f);
+//     return (discriminant > 0.0f);
+// }
+
+__device__ bool HitSphere(const Ray& r, float t_min, float t_max, HitRecord& rec, Sphere* sphere)
+{
+    Vec3 oc = r.Origin() - sphere->center;
+    float a = Dot(r.Direction(), r.Direction());
+    float b = Dot(oc, r.Direction());
+    float c = Dot(oc, oc) - sphere->radius*sphere->radius;
+
+    float discriminant = b*b - a*c;
+    if (discriminant > 0) {
+        float temp = (-b - sqrt(discriminant)) / a;
+        if (temp < t_max && temp > t_min) {
+            rec.t = temp;
+            rec.p = r.PointAtParameter(rec.t);
+            rec.normal = (rec.p - sphere->center) / sphere->radius;
+            rec.mat_ptr = sphere->mat_ptr;
+            return true;
+        }
+        temp = (-b + sqrt(discriminant)) / a;
+        if (temp < t_max && temp > t_min) {
+            rec.t = temp;
+            rec.p = r.PointAtParameter(rec.t);
+            rec.normal = (rec.p - sphere->center) / sphere->radius;
+            rec.mat_ptr = sphere->mat_ptr;
+            return true;
+        }
+    }
+
+    return false;
 }
 
 __device__ bool Hit(const Ray& r, float t_min, float t_max, HitRecord& rec, Hittable** world)
@@ -57,8 +87,8 @@ __device__ bool Hit(const Ray& r, float t_min, float t_max, HitRecord& rec, Hitt
     bool hit_anything = false;
     float closest_so_far = t_max;
 
-    for (int i = 0; i < 1; i++) {
-        if (world[i]->Hit(r, t_min, closest_so_far, temp_rec)) {
+    for (int i = 0; i < 2; i++) {
+        if (HitSphere(r, t_min, closest_so_far, temp_rec, (Sphere*)world[i])) {
             hit_anything = true;
             closest_so_far = temp_rec.t;
             rec = temp_rec;
@@ -76,7 +106,9 @@ __device__ inline Vec3 color(const Ray& r, Hittable** world, const int max_depth
         if (Hit(cur_ray, 0.001f, FLT_MAX, rec, world)) {
             Ray scattered;
             Vec3 attenuation;
-            if (rec.mat_ptr->Scatter(cur_ray, rec, attenuation, scattered, local_rand_state)) {
+            auto mat_ptr = rec.mat_ptr;
+            // ((Lambertian*)mat_ptr)->albedo.Print();
+            if (((Lambertian*)mat_ptr)->Scatter(cur_ray, rec, attenuation, scattered, local_rand_state)) {
                 cur_attenuation = attenuation * cur_attenuation;
                 cur_ray = scattered;
             }
@@ -117,11 +149,11 @@ __global__ void Kernel(unsigned int* pos, unsigned int width, unsigned int heigh
     if ((x >= width) || (y >= height))
         return;
 
-    if (x == 0 && y == 0) {
-        ((Sphere*)world[0])->center.Print();
-        Material *mat = ((Sphere*)world[0])->mat_ptr;
-        ((Lambertian*)mat)->albedo.Print();
-    }
+    // if (x == 0 && y == 0) {
+    //     ((Sphere*)world[0])->center.Print();
+    //     Material *mat = ((Sphere*)world[0])->mat_ptr;
+    //     ((Lambertian*)mat)->albedo.Print();
+    // }
 
     unsigned int pixel_index = (y * width + x);
 
@@ -245,10 +277,10 @@ void LaunchKernel(unsigned int* pos, unsigned int image_width, unsigned int imag
     // cudaMemcpy(d_world, &world->objects, world->objects.size() * sizeof(Hittable*));
 
     for (int i = 0; i < world->objects.size(); i++) {
-        // d_world[i] = world->objects[i]->Clone();
         // cudaMallocManaged((void**)&d_world[i], sizeof(Hittable));
         // cudaMallocManaged((void**)&d_world[i], sizeof(Lambertian));
         //cudaMemcpy(d_world[i], world->objects[i], sizeof(Hittable), cudaMemcpyHostToDevice);
+        // d_world[i] = world->objects[i]->Clone();
         d_world[i] = world->objects[i];
     }
 
