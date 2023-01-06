@@ -16,4 +16,5 @@ public:
     void End();
 
     void SetDarkThemeColors();
+    void SetDraculaTheme();
 };

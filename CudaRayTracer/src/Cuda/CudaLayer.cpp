@@ -52,8 +52,8 @@ void CudaLayer::OnAttach()
     m_Inputs.up_y = upV.y;
     m_Inputs.up_z = upV.z;
 
-    //m_Inputs.far = m_Camera->m_FarPlane;
-    //m_Inputs.near = m_Camera->m_NearPlane;
+    m_Inputs.far_plane = m_Camera->m_FarPlane;
+    m_Inputs.near_plane = m_Camera->m_NearPlane;
     m_Inputs.fov = m_Camera->m_Fov;
 }
 
@@ -83,14 +83,17 @@ void CudaLayer::OnImGuiRender()
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
     ImGui::Begin("Generated Image");
 
-    float viewport_width = ImGui::GetContentRegionAvail().x;
-    float viewport_height = ImGui::GetContentRegionAvail().y;
+    if (onImGuiResize() == false) {
+        ImGui::End();
+        ImGui::PopStyleVar();
+        return;
+    }
 
-    ImGui::Image((void*)(intptr_t)m_Texture, ImVec2(viewport_width, viewport_height), ImVec2(0, 1), ImVec2(1, 0));
+    ImGui::ImageButton((void*)(intptr_t)m_Texture, ImVec2(m_ImageWidth, m_ImageHeight), ImVec2(0, 1), ImVec2(1, 0), 0);
     ImGui::PopStyleVar();
 
     // IsWindowFocused() has a minor bug -- it centers the mouse when losing focus
-    if (ImGui::IsWindowFocused()) {
+    if (ImGui::IsItemActive()) {
 
         m_Camera->Inputs((GLFWwindow *)ImGui::GetMainViewport()->PlatformHandle);
 
@@ -117,9 +120,39 @@ void CudaLayer::OnImGuiRender()
     ImGui::End();
 }
 
+bool CudaLayer::onImGuiResize()
+{
+    ImVec2 view = ImGui::GetContentRegionAvail();
+
+    if (view.x != m_ImageWidth || view.y != m_ImageHeight) {
+        if (view.x == 0 || view.y == 0) {
+            return false;
+        }
+
+        m_ImageWidth = view.x;
+        m_ImageHeight = view.y;
+
+        m_NumTexels = m_ImageWidth * m_ImageHeight;
+        m_NumValues = m_NumTexels * 4;
+        m_SizeTexData = sizeof(GLubyte) * m_NumValues;
+
+        checkCudaErrors(cudaFree(m_CudaDevRenderBuffer));
+        checkCudaErrors(cudaFree(m_DrandState));
+        checkCudaErrors(cudaFree(m_DrandState2));
+        checkCudaErrors(cudaMalloc(&m_CudaDevRenderBuffer, m_SizeTexData));
+        checkCudaErrors(cudaMalloc((void **)&m_DrandState, m_NumTexels * sizeof(curandState)));
+        checkCudaErrors(cudaMalloc((void **)&m_DrandState2, 1 * sizeof(curandState)));
+
+        InitGLBuffers();
+        RunCudaInit();
+
+        return true;
+    }
+    return true;
+}
+
 void CudaLayer::InitCudaBuffers()
 {
-    // We don't want to use cudaMallocManaged here - since we definitely want
     checkCudaErrors(cudaMalloc(&m_CudaDevRenderBuffer, m_SizeTexData)); // Allocate CUDA memory for color output
     // Allocate random state
     checkCudaErrors(cudaMalloc((void **)&m_DrandState, m_NumTexels * sizeof(curandState)));
@@ -157,21 +190,28 @@ void CudaLayer::GenerateWorld()
 {
     Sphere* groundSphere;
     checkCudaErrors(cudaMallocManaged(&groundSphere, sizeof(Sphere)));
-    checkCudaErrors(cudaMallocManaged(&groundSphere->mat_ptr, sizeof(Lambertian)));
-    m_World->Add(new(groundSphere) Sphere(Vec3(0.0f, -100.5f, 0.0f), 100.0f, new(groundSphere->mat_ptr) Lambertian(Vec3(0.8f, 0.8f, 0.0f))));
+    checkCudaErrors(cudaMallocManaged(&groundSphere->mat_ptr, sizeof(Material)));
+    m_World->Add(new(groundSphere) Sphere(Vec3(0.0f, -100.5f, 0.0f), 100.0f, new(groundSphere->mat_ptr) Material(Vec3(0.8f, 0.8f, 0.0f), Mat::lambertian)));
 
     Sphere* sphere1;
     checkCudaErrors(cudaMallocManaged(&sphere1, sizeof(Sphere)));
-    checkCudaErrors(cudaMallocManaged(&sphere1->mat_ptr, sizeof(Lambertian)));
-    m_World->Add(new(sphere1) Sphere(Vec3(0.0f, 0.0f, -1.0f), 0.5f, new(sphere1->mat_ptr) Lambertian(Vec3(0.1f, 0.2f, 0.5f))));
+    checkCudaErrors(cudaMallocManaged(&sphere1->mat_ptr, sizeof(Material)));
+    m_World->Add(new(sphere1) Sphere(Vec3(0.0f, 0.0f, -1.0f), 0.5f, new(sphere1->mat_ptr) Material(Vec3(0.1f, 0.2f, 0.5f), Mat::lambertian)));
 
-    // auto material1 = new Lambertian(Vec3(0.8f, 0.8f, 0.0f));
-    // Sphere* groundSphere = new Sphere(Vec3(0.0f, -100.5f, 0.0f), 100.0f, material1);
-    // m_World->Add(groundSphere);
+    Sphere* sphere2;
+    checkCudaErrors(cudaMallocManaged(&sphere2, sizeof(Sphere)));
+    checkCudaErrors(cudaMallocManaged(&sphere2->mat_ptr, sizeof(Material)));
+    m_World->Add(new(sphere2) Sphere(Vec3(1.0f, 0.0f, -1.0f), 0.5f, new(sphere2->mat_ptr) Material(Vec3(0.8f, 0.6f, 0.2f), 0.0f, Mat::metal)));
 
-    // auto material2 = new Lambertian(Vec3(0.1f, 0.2f, 0.5f));
-    // Sphere* sphere = new Sphere(Vec3(0.0f, 0.0f, -1.0f), 0.5f, material2);
-    // m_World->Add(sphere);
+    Sphere* glassSphere_a;
+    checkCudaErrors(cudaMallocManaged(&glassSphere_a, sizeof(Sphere)));
+    checkCudaErrors(cudaMallocManaged(&glassSphere_a->mat_ptr, sizeof(Material)));
+    m_World->Add(new(glassSphere_a) Sphere(Vec3(-1.0f, 0.0f, -1.0f), 0.5f, new(glassSphere_a->mat_ptr) Material(1.5f, Mat::dielectric)));
+
+    Sphere* glassSphere_b;
+    checkCudaErrors(cudaMallocManaged(&glassSphere_b, sizeof(Sphere)));
+    checkCudaErrors(cudaMallocManaged(&glassSphere_b->mat_ptr, sizeof(Material)));
+    m_World->Add(new(glassSphere_b) Sphere(Vec3(-1.0f, 0.0f, -1.0f), -0.45f, new(glassSphere_b->mat_ptr) Material(1.5f, Mat::dielectric)));
 }
 
 void CudaLayer::RunCudaUpdate()

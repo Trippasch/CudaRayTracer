@@ -30,10 +30,10 @@ __device__ bool Sphere::Hit(const Ray& r, float t_min, float t_max, HitRecord& r
     return false;
 }
 
-__host__ bool Sphere::BoundingBox(AABB& output_box) const
-{
-    output_box = AABB(
-        center - Vec3(radius, radius, radius),
-        center + Vec3(radius, radius, radius));
-    return true;
-}
+// __host__ bool Sphere::BoundingBox(AABB& output_box) const
+// {
+//     output_box = AABB(
+//         center - Vec3(radius, radius, radius),
+//         center + Vec3(radius, radius, radius));
+//     return true;
+// }

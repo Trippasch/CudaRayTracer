@@ -14,8 +14,8 @@ typedef struct InputStruct
     float up_y = 0.0f;
     float up_z = 0.0f;
 
-    float far  = 0.0f;
-    float near  = 0.0f;
+    float far_plane  = 0.0f;
+    float near_plane  = 0.0f;
     float fov = 0.0f;
 
 } InputStruct;

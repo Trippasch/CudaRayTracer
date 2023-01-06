@@ -39,6 +39,7 @@ private:
     void RunCudaInit();
     void GenerateWorld();
     void RunCudaUpdate();
+    bool onImGuiResize();
 
 private:
     // Image
@@ -62,7 +63,7 @@ private:
     HittableList* m_World;
 
     // RayTracing
-    unsigned int m_SamplesPerPixel = 1;
+    unsigned int m_SamplesPerPixel = 10;
     unsigned int m_MaxDepth = 10;
 
     InputStruct m_Inputs;

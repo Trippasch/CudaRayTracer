@@ -81,14 +81,14 @@ __device__ bool HitSphere(const Ray& r, float t_min, float t_max, HitRecord& rec
     return false;
 }
 
-__device__ bool Hit(const Ray& r, float t_min, float t_max, HitRecord& rec, Hittable** world)
+__device__ bool Hit(const Ray& r, float t_min, float t_max, HitRecord& rec, Sphere** world, unsigned int world_size)
 {
     HitRecord temp_rec;
     bool hit_anything = false;
     float closest_so_far = t_max;
 
-    for (int i = 0; i < 2; i++) {
-        if (HitSphere(r, t_min, closest_so_far, temp_rec, (Sphere*)world[i])) {
+    for (int i = 0; i < world_size; i++) {
+        if (HitSphere(r, t_min, closest_so_far, temp_rec, world[i])) {
             hit_anything = true;
             closest_so_far = temp_rec.t;
             rec = temp_rec;
@@ -98,17 +98,15 @@ __device__ bool Hit(const Ray& r, float t_min, float t_max, HitRecord& rec, Hitt
     return hit_anything;
 }
 
-__device__ inline Vec3 color(const Ray& r, Hittable** world, const int max_depth, curandState* local_rand_state) {
+__device__ inline Vec3 color(const Ray& r, Sphere** world, unsigned int world_size, const int max_depth, curandState* local_rand_state) {
     Ray cur_ray = r;
     Vec3 cur_attenuation = Vec3(1.0f, 1.0f, 1.0f);
     for (int i = 0; i < max_depth; i++) {
         HitRecord rec;
-        if (Hit(cur_ray, 0.001f, FLT_MAX, rec, world)) {
+        if (Hit(cur_ray, 0.001f, FLT_MAX, rec, world, world_size)) {
             Ray scattered;
             Vec3 attenuation;
-            auto mat_ptr = rec.mat_ptr;
-            // ((Lambertian*)mat_ptr)->albedo.Print();
-            if (((Lambertian*)mat_ptr)->Scatter(cur_ray, rec, attenuation, scattered, local_rand_state)) {
+            if ((rec.mat_ptr)->Scatter(cur_ray, rec, attenuation, scattered, local_rand_state)) {
                 cur_attenuation = attenuation * cur_attenuation;
                 cur_ray = scattered;
             }
@@ -139,7 +137,7 @@ __device__ inline void GetXYZCoords(int& x, int& y, int& z)
     z = blockIdx.z + bt * tz;
 }
 
-__global__ void Kernel(unsigned int* pos, unsigned int width, unsigned int height, const unsigned int samples_per_pixel, const unsigned int max_depth, Hittable** world, curandState* rand_state, InputStruct inputs)
+__global__ void Kernel(unsigned int* pos, unsigned int width, unsigned int height, const unsigned int samples_per_pixel, const unsigned int max_depth, Sphere** world, unsigned int world_size, curandState* rand_state, InputStruct inputs)
 {
     extern __shared__ uchar4 sdata[];
 
@@ -148,12 +146,6 @@ __global__ void Kernel(unsigned int* pos, unsigned int width, unsigned int heigh
 
     if ((x >= width) || (y >= height))
         return;
-
-    // if (x == 0 && y == 0) {
-    //     ((Sphere*)world[0])->center.Print();
-    //     Material *mat = ((Sphere*)world[0])->mat_ptr;
-    //     ((Lambertian*)mat)->albedo.Print();
-    // }
 
     unsigned int pixel_index = (y * width + x);
 
@@ -170,8 +162,8 @@ __global__ void Kernel(unsigned int* pos, unsigned int width, unsigned int heigh
 
     Vec3 center = Vec3(width / 2.0f, height / 2.0f, 0.0f);
     Vec3 distFromCenter = ((x - center.x()) / width) * rightV + ((center.y() - y) / width) * upV;
-    Vec3 startPos = (inputs.near * distFromCenter) + origin + (distFirstPlane * forwardV);
-    Vec3 secondPlanePos = (inputs.far * distFromCenter) + (inputs.fov * forwardV) + origin;
+    Vec3 startPos = (inputs.near_plane * distFromCenter) + origin + (distFirstPlane * forwardV);
+    Vec3 secondPlanePos = (inputs.far_plane * distFromCenter) + (inputs.fov * forwardV) + origin;
 
     Vec3 dirVector = Normalize(secondPlanePos - startPos);
 
@@ -183,7 +175,7 @@ __global__ void Kernel(unsigned int* pos, unsigned int width, unsigned int heigh
         // calculate uv coordinates
     //    float u = (float)(x + curand_uniform(&local_rand_state)) / (float)(width);
     //    float v = (float)(y + curand_uniform(&local_rand_state)) / (float)(height);
-       col = col + color(r, world, max_depth, &local_rand_state);
+       col = col + color(r, world, world_size, max_depth, &local_rand_state);
     }
     rand_state[pixel_index] = local_rand_state;
 
@@ -272,25 +264,14 @@ void LaunchKernel(unsigned int* pos, unsigned int image_width, unsigned int imag
     dim3 grid(image_width / block.x, image_height / block.y, 1);
     size_t sbytes = 0;
 
-    Hittable** d_world;
-    cudaMallocManaged((void**)&d_world, world->objects.size() * sizeof(Hittable*));
-    // cudaMemcpy(d_world, &world->objects, world->objects.size() * sizeof(Hittable*));
+    Sphere** d_world;
+    cudaMallocManaged((void**)&d_world, world->objects.size() * sizeof(Sphere*));
 
     for (int i = 0; i < world->objects.size(); i++) {
-        // cudaMallocManaged((void**)&d_world[i], sizeof(Hittable));
-        // cudaMallocManaged((void**)&d_world[i], sizeof(Lambertian));
-        //cudaMemcpy(d_world[i], world->objects[i], sizeof(Hittable), cudaMemcpyHostToDevice);
-        // d_world[i] = world->objects[i]->Clone();
         d_world[i] = world->objects[i];
     }
 
-    //for (int i = 0; i < world->objects.size(); i++) {
-    //    std::cout << ((Sphere*)d_world[i])->center << std::endl;
-    //    Material *mat = ((Sphere*)d_world[i])->mat_ptr;
-    //    std::cout << ((Lambertian*)mat)->albedo << std::endl;
-    //}
-
-    Kernel << < grid, block, sbytes >> > (pos, image_width, image_height, samples_per_pixel, max_depth, d_world, d_rand_state, inputs);
+    Kernel << < grid, block, sbytes >> > (pos, image_width, image_height, samples_per_pixel, max_depth, d_world, world->objects.size(), d_rand_state, inputs);
     cudaDeviceSynchronize();
 
     cudaFree(d_world);

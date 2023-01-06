@@ -28,7 +28,7 @@ project "CudaRayTracer"
     -- Add necessary build customization using standard Premake5
     -- This assumes we have installed Visual Studio integration for CUDA
     -- Here we set it to 11.6
-    buildcustomizations "BuildCustomizations/CUDA 11.6"
+    buildcustomizations "BuildCustomizations/CUDA 12.0"
     cudaPath "/opt/cuda"
 
     -- CUDA specific properties
