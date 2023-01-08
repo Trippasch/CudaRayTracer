@@ -29,7 +29,7 @@ public:
 
     float m_FarPlane = 10.0f;
     float m_NearPlane = 0.1f;
-    float m_Fov = 4.0f;
+    float m_Fov = 8.0f;
 
     // Prevents the camera from jumping around when first clicking left click
     bool m_FirstClick = true;

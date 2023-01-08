@@ -39,13 +39,12 @@ private:
     void RunCudaInit();
     void GenerateWorld();
     void RunCudaUpdate();
-    bool onImGuiResize();
+    bool OnImGuiResize();
 
 private:
     // Image
-    const float m_AspectRatio = 4.0f / 3.0f;
-    int m_ImageWidth = 800;
-    int m_ImageHeight = static_cast<int>(m_ImageWidth / m_AspectRatio);
+    unsigned int m_ImageWidth = 800;
+    unsigned int m_ImageHeight = 600;
 
     // Cuda Image
     unsigned int m_NumTexels = m_ImageWidth * m_ImageHeight;

@@ -83,7 +83,7 @@ void CudaLayer::OnImGuiRender()
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
     ImGui::Begin("Generated Image");
 
-    if (onImGuiResize() == false) {
+    if (OnImGuiResize() == false) {
         ImGui::End();
         ImGui::PopStyleVar();
         return;
@@ -92,7 +92,6 @@ void CudaLayer::OnImGuiRender()
     ImGui::ImageButton((void*)(intptr_t)m_Texture, ImVec2(m_ImageWidth, m_ImageHeight), ImVec2(0, 1), ImVec2(1, 0), 0);
     ImGui::PopStyleVar();
 
-    // IsWindowFocused() has a minor bug -- it centers the mouse when losing focus
     if (ImGui::IsItemActive()) {
 
         m_Camera->Inputs((GLFWwindow *)ImGui::GetMainViewport()->PlatformHandle);
@@ -120,7 +119,7 @@ void CudaLayer::OnImGuiRender()
     ImGui::End();
 }
 
-bool CudaLayer::onImGuiResize()
+bool CudaLayer::OnImGuiResize()
 {
     ImVec2 view = ImGui::GetContentRegionAvail();
 
