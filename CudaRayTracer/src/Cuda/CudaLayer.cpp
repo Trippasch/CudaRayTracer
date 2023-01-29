@@ -5,7 +5,7 @@
 #include <backends/imgui_impl_opengl3.h>
 
 extern "C"
-void LaunchKernel(unsigned int *pos, unsigned int image_width, unsigned int image_height, const unsigned int samples_per_pixel, const unsigned int max_depth, HittableList* world, curandState *d_rand_state, InputStruct inputs);
+void LaunchKernel(unsigned int *pos, unsigned int image_width, unsigned int image_height, const unsigned int samples_per_pixel, const unsigned int max_depth, BVHNode* world, curandState *d_rand_state, InputStruct inputs);
 
 extern "C" void LaunchRandInit(curandState *d_rand_state2);
 
@@ -211,11 +211,14 @@ void CudaLayer::GenerateWorld()
     checkCudaErrors(cudaMallocManaged(&glassSphere_b, sizeof(Sphere)));
     checkCudaErrors(cudaMallocManaged(&glassSphere_b->mat_ptr, sizeof(Material)));
     m_World->Add(new(glassSphere_b) Sphere(Vec3(-1.0f, 0.0f, -1.0f), -0.45f, new(glassSphere_b->mat_ptr) Material(1.5f, Mat::dielectric)));
+
+    checkCudaErrors(cudaMallocManaged(&m_Tree, sizeof(BVHNode)));
+    m_Tree = new(m_Tree) BVHNode(m_World->objects);
 }
 
 void CudaLayer::RunCudaUpdate()
 {
-    LaunchKernel(static_cast<unsigned int *>(m_CudaDevRenderBuffer), m_ImageWidth, m_ImageHeight, m_SamplesPerPixel, m_MaxDepth, m_World, m_DrandState, m_Inputs);
+    LaunchKernel(static_cast<unsigned int *>(m_CudaDevRenderBuffer), m_ImageWidth, m_ImageHeight, m_SamplesPerPixel, m_MaxDepth, m_Tree, m_DrandState, m_Inputs);
 
     // We want to copy cuda_dev_render_buffer data to the texture.
     // Map buffer objects to get CUDA device pointers.

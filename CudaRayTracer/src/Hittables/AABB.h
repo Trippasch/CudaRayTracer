@@ -21,8 +21,12 @@ public:
             auto invD = 1.0f / r.Direction()[a];
             auto t0 = (Min()[a] - r.Origin()[a]) * invD;
             auto t1 = (Max()[a] - r.Origin()[a]) * invD;
-            if (invD < 0.0f)
-                thrust::swap(t0, t1);
+            if (invD < 0.0f) {
+                // thrust::swap(t0, t1);
+                auto temp = t0;
+                t0 = t1;
+                t1 = temp;
+            }
             t_min = t0 > t_min ? t0 : t_min;
             t_max = t1 < t_max ? t1 : t_max;
             if (t_max <= t_min)
@@ -34,15 +38,15 @@ public:
 
 __forceinline__ __host__ AABB SurroundingBox(AABB box0, AABB box1) {
     Vec3 small(
-        thrust::min(box0.Min().x(), box1.Min().x()),
-        thrust::min(box0.Min().y(), box1.Min().y()),
-        thrust::min(box0.Min().z(), box1.Min().z())
+        fmin(box0.Min().x(), box1.Min().x()),
+        fmin(box0.Min().y(), box1.Min().y()),
+        fmin(box0.Min().z(), box1.Min().z())
     );
 
     Vec3 big(
-        thrust::max(box0.Max().x(), box1.Max().x()),
-        thrust::max(box0.Max().y(), box1.Max().y()),
-        thrust::max(box0.Max().z(), box1.Max().z())
+        fmax(box0.Max().x(), box1.Max().x()),
+        fmax(box0.Max().y(), box1.Max().y()),
+        fmax(box0.Max().z(), box1.Max().z())
     );
 
     return AABB(small, big);

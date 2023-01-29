@@ -1,20 +1,8 @@
 #include "BVHNode.h"
 
-#include <iostream>
+#include "Utils/helper_cuda.h"
 
-#include <thrust/sort.h>
-#include <thrust/functional.h>
-
-__device__ bool BVHNode::Hit(const Ray &ray, float tmin, float tmax, HitRecord &rec) const
-{
-    if (!box.Hit(ray, tmin, tmax))
-        return false;
-
-    bool hit_left = left->Hit(ray, tmin, tmax, rec);
-    bool hit_right = right->Hit(ray, tmin, hit_left ? rec.t : tmax, rec);
-
-    return hit_left || hit_right;
-}
+#include "Core/Log.h"
 
 __host__ bool BVHNode::BoundingBox(AABB &box) const
 {
@@ -22,30 +10,33 @@ __host__ bool BVHNode::BoundingBox(AABB &box) const
     return true;
 }
 
-__host__ inline bool BoxCompare(const Hittable* a, const Hittable* b, int axis)
+__host__ inline bool BoxCompare(const Sphere* a, const Sphere* b, int axis)
 {
     AABB box_a;
     AABB box_b;
 
+    if (!a->BoundingBox(box_a) || !b->BoundingBox(box_b))
+        RT_TRACE("No bounding box in BVHNode constructor.");
+
     return box_a.Min().e[axis] < box_b.Min().e[axis];
 }
 
-__host__ inline bool BoxXCompare(const Hittable* a, const Hittable* b)
+__host__ inline bool BoxXCompare(const Sphere* a, const Sphere* b)
 {
     return BoxCompare(a, b, 0);
 }
 
-__host__ inline bool BoxYCompare(const Hittable* a, const Hittable* b)
+__host__ inline bool BoxYCompare(const Sphere* a, const Sphere* b)
 {
     return BoxCompare(a, b, 1);
 }
 
-__host__ inline bool BoxZCompare(const Hittable* a, const Hittable* b)
+__host__ inline bool BoxZCompare(const Sphere* a, const Sphere* b)
 {
     return BoxCompare(a, b, 2);
 }
 
-__host__ BVHNode::BVHNode(Hittable** list, size_t start, size_t end)
+__host__ BVHNode::BVHNode(std::vector<Sphere*> list, size_t start, size_t end)
 {
     auto objects = list;
 
@@ -70,21 +61,20 @@ __host__ BVHNode::BVHNode(Hittable** list, size_t start, size_t end)
         }
     }
     else {
+        std::sort(objects.begin() + start, objects.begin() + end, comparator);
 
         auto mid = start + object_span / 2;
 
-        cudaMallocManaged((void**)&left, sizeof(Hittable ));
-        cudaMallocManaged((void**)&right, sizeof(Hittable ));
+        checkCudaErrors(cudaMallocManaged((void**)&left, sizeof(Sphere )));
+        checkCudaErrors(cudaMallocManaged((void**)&right, sizeof(Sphere )));
         left = new BVHNode(objects, start, mid);
         right = new BVHNode(objects, mid, end);
     }
 
     AABB box_left, box_right;
 
-    if (left != nullptr && right != nullptr) {
-        if (!left->BoundingBox(box_left) || !right->BoundingBox(box_right)) {
-            printf("No bounding box in BVHNode constructor.\n");
-        }
+    if (!left->BoundingBox(box_left) || !right->BoundingBox(box_right)) {
+        RT_TRACE("No bounding box in BVHNode constructor.");
     }
 
     box = SurroundingBox(box_left, box_right);

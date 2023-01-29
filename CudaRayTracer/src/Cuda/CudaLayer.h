@@ -1,10 +1,12 @@
 #pragma once
 
 #include "Core/Layer.h"
-// #include "Hittables/BVHNode.h"
+
+#include "Hittables/BVHNode.h"
 #include "Hittables/HittableList.h"
 #include "Hittables/Material.h"
 #include "Hittables/Sphere.h"
+
 #include "Utils/SharedStructs.h"
 #include "Utils/helper_cuda.h"
 
@@ -60,6 +62,7 @@ private:
 
     // Hittables
     HittableList* m_World;
+    BVHNode* m_Tree;
 
     // RayTracing
     unsigned int m_SamplesPerPixel = 10;
