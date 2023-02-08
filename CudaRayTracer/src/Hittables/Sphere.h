@@ -1,11 +1,10 @@
 #pragma once
 
-#include "AABB.h"
 #include "Hittable.h"
 
 class Material;
 
-class Sphere : public Hittable
+class Sphere
 {
 public:
     Vec3 center;
@@ -46,11 +45,11 @@ public:
         return false;
     }
 
-    __host__ inline bool Sphere::BoundingBox(AABB& output_box) const
-    {
-        output_box = AABB(
-            center - Vec3(radius, radius, radius),
-            center + Vec3(radius, radius, radius));
-        return true;
-    }
+    // __host__ inline bool Sphere::BoundingBox(AABB& output_box) const
+    // {
+    //     output_box = AABB(
+    //         center - Vec3(radius, radius, radius),
+    //         center + Vec3(radius, radius, radius));
+    //     return true;
+    // }
 };

@@ -2,17 +2,17 @@
 
 #include <vector>
 
-class Hittable;
+#include "Sphere.h"
 
-class HittableList : public Hittable
+class HittableList
 {
 public:
-    std::vector<Hittable*> objects;
+    std::vector<Sphere*> objects;
 public:
     __host__ HittableList() {}
-    __host__ HittableList(Hittable* object) { Add(object); }
+    __host__ HittableList(Sphere* object) { Add(object); }
 
-    __host__ void Add(Hittable* object)
+    __host__ void Add(Sphere* object)
     {
         objects.push_back(object);
     }
@@ -36,19 +36,19 @@ public:
     // }
 
 
-    __host__ inline bool BoundingBox(AABB& output_box) const
-    {
-        if (objects.empty()) return false;
+    // __host__ inline bool BoundingBox(AABB& output_box) const
+    // {
+    //     if (objects.empty()) return false;
 
-        AABB temp_box;
-        bool first_box = true;
+    //     AABB temp_box;
+    //     bool first_box = true;
 
-        for (const auto& object : objects) {
-            if (!object->HittableBoundingBox(temp_box, object)) return false;
-            output_box = first_box ? temp_box : SurroundingBox(output_box, temp_box);
-            first_box = false;
-        }
+    //     for (const auto& object : objects) {
+    //         if (!object->HittableBoundingBox(temp_box, object)) return false;
+    //         output_box = first_box ? temp_box : SurroundingBox(output_box, temp_box);
+    //         first_box = false;
+    //     }
 
-        return true;
-    }
+    //     return true;
+    // }
 };

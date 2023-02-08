@@ -1,6 +1,6 @@
 #pragma once
 
-#include "AABB.h"
+#include "../Utils/Ray.h"
 
 class Material;
 
@@ -19,17 +19,17 @@ typedef struct HitRecord
     }
 } HitRecord;
 
-typedef enum HittableType
-{
-    HITTABLE_LIST = 0,
-    BVH_NODE,
-    SPHERE
-} HittableType;
+// typedef enum HittableType
+// {
+//     HITTABLE_LIST = 0,
+//     BVH_NODE,
+//     SPHERE
+// } HittableType;
 
-class Hittable
-{
-public:
-    HittableType type;
+// class Hittable
+// {
+// public:
+//     HittableType type;
 
-    __host__ bool HittableBoundingBox(AABB &box, Hittable* hittable);
-};
+//     __host__ bool HittableBoundingBox(AABB &box, Hittable* hittable);
+// };

@@ -5,7 +5,6 @@
 #include <float.h>
 #include <algorithm>
 
-#include "../Hittables/BVHNode.h"
 #include "../Hittables/HittableList.h"
 #include "../Hittables/Sphere.h"
 #include "../Hittables/Material.h"
@@ -41,49 +40,29 @@ __device__ inline Vec3 IntToRgb(int val)
     return Vec3(r, g, b);
 }
 
-// __device__ bool Hit(const Ray& r, float t_min, float t_max, HitRecord& rec, Sphere** world, unsigned int world_size)
-// {
-//     HitRecord temp_rec;
-//     bool hit_anything = false;
-//     float closest_so_far = t_max;
+__device__ bool Hit(const Ray& r, float t_min, float t_max, HitRecord& rec, Sphere** world, unsigned int world_size)
+{
+    HitRecord temp_rec;
+    bool hit_anything = false;
+    float closest_so_far = t_max;
 
-//     for (int i = 0; i < world_size; i++) {
-//         if (world[i]->Hit(r, t_min, closest_so_far, temp_rec)) {
-//             hit_anything = true;
-//             closest_so_far = temp_rec.t;
-//             rec = temp_rec;
-//         }
-//     }
+    for (int i = 0; i < world_size; i++) {
+        if (world[i]->Hit(r, t_min, closest_so_far, temp_rec)) {
+            hit_anything = true;
+            closest_so_far = temp_rec.t;
+            rec = temp_rec;
+        }
+    }
 
-//     return hit_anything;
-// }
+    return hit_anything;
+}
 
-__device__ inline Vec3 color(const Ray& r, BVHNode* tree, int max_depth, curandState* local_rand_state) {
-
-    // HitRecord rec;
-    // Ray scattered;
-    // Vec3 attenuation = Vec3(1.0f, 1.0f, 1.0f);
-
-    // if (max_depth <= 0)
-    //     return Vec3(0.0f, 0.0f, 0.0f);
-
-    // if (!tree->Hit(r, 0.001f, FLT_MAX, rec)) {
-    //     Vec3 unit_direction = UnitVector(r.Direction());
-    //     float t = 0.5f * (unit_direction.y() + 1.0f);
-    //     Vec3 c = (1.0f - t) * Vec3(1.0f, 1.0f, 1.0f) + t * Vec3(0.5f, 0.7f, 1.0f);
-    //     return attenuation * c;
-    // }
-
-    // if (!rec.mat_ptr->Scatter(r, rec, attenuation, scattered, local_rand_state))
-    //     return Vec3(0.0f, 0.0f, 0.0f);
-
-    // return attenuation * color(scattered, tree, max_depth-1, local_rand_state);
-
+__device__ inline Vec3 color(const Ray& r, Sphere** world, unsigned int world_size, int max_depth, curandState* local_rand_state) {
     Ray cur_ray = r;
     Vec3 cur_attenuation = Vec3(1.0f, 1.0f, 1.0f);
     for (int i = 0; i < max_depth; i++) {
         HitRecord rec;
-        if (tree->Hit(r, 0.001f, FLT_MAX, rec)) {
+        if (Hit(cur_ray, 0.001f, FLT_MAX, rec, world, world_size)) {
             Ray scattered;
             Vec3 attenuation;
             if ((rec.mat_ptr)->Scatter(cur_ray, rec, attenuation, scattered, local_rand_state)) {
@@ -117,7 +96,7 @@ __device__ inline void GetXYZCoords(int& x, int& y, int& z)
     z = blockIdx.z + bt * tz;
 }
 
-__global__ void Kernel(unsigned int* pos, unsigned int width, unsigned int height, const unsigned int samples_per_pixel, const unsigned int max_depth, BVHNode* tree, curandState* rand_state, InputStruct inputs)
+__global__ void Kernel(unsigned int* pos, unsigned int width, unsigned int height, const unsigned int samples_per_pixel, const unsigned int max_depth, Sphere** world, unsigned int world_size, curandState* rand_state, InputStruct inputs)
 {
     extern __shared__ uchar4 sdata[];
 
@@ -155,7 +134,7 @@ __global__ void Kernel(unsigned int* pos, unsigned int width, unsigned int heigh
         // calculate uv coordinates
     //    float u = (float)(x + curand_uniform(&local_rand_state)) / (float)(width);
     //    float v = (float)(y + curand_uniform(&local_rand_state)) / (float)(height);
-       col = col + color(r, tree, max_depth, &local_rand_state);
+       col = col + color(r, world, world_size, max_depth, &local_rand_state);
     }
     rand_state[pixel_index] = local_rand_state;
 
@@ -237,24 +216,24 @@ __global__ void RenderInit(unsigned int window_width, unsigned int window_height
 // }
 
 extern "C"
-void LaunchKernel(unsigned int* pos, unsigned int image_width, unsigned int image_height, const unsigned int samples_per_pixel, const unsigned int max_depth, BVHNode* tree, curandState* d_rand_state, InputStruct inputs)
+void LaunchKernel(unsigned int* pos, unsigned int image_width, unsigned int image_height, const unsigned int samples_per_pixel, const unsigned int max_depth, HittableList* world, curandState* d_rand_state, InputStruct inputs)
 {
     // Calculate grid size
     dim3 block(16, 16, 1);
     dim3 grid(image_width / block.x, image_height / block.y, 1);
     size_t sbytes = 0;
 
-    // Sphere** d_world;
-    // cudaMallocManaged((void**)&d_world, world->objects.size() * sizeof(Sphere*));
+    Sphere** d_world;
+    cudaMallocManaged((void**)&d_world, world->objects.size() * sizeof(Sphere*));
 
-    // for (int i = 0; i < world->objects.size(); i++) {
-    //     d_world[i] = world->objects[i];
-    // }
+    for (int i = 0; i < world->objects.size(); i++) {
+        d_world[i] = world->objects[i];
+    }
 
-    Kernel << < grid, block, sbytes >> > (pos, image_width, image_height, samples_per_pixel, max_depth, tree, d_rand_state, inputs);
+    Kernel << < grid, block, sbytes >> > (pos, image_width, image_height, samples_per_pixel, max_depth, d_world, world->objects.size(), d_rand_state, inputs);
     cudaDeviceSynchronize();
 
-    // cudaFree(tree);
+    cudaFree(d_world);
 }
 
 extern "C"
