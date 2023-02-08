@@ -10,33 +10,33 @@ __host__ bool BVHNode::BoundingBox(AABB &box) const
     return true;
 }
 
-__host__ inline bool BoxCompare(const Sphere* a, const Sphere* b, int axis)
+__host__ inline bool BoxCompare(Hittable* a, Hittable* b, int axis)
 {
     AABB box_a;
     AABB box_b;
 
-    if (!a->BoundingBox(box_a) || !b->BoundingBox(box_b))
+    if (!a->HittableBoundingBox(box_a, a) || !b->HittableBoundingBox(box_b, b))
         RT_TRACE("No bounding box in BVHNode constructor.");
 
     return box_a.Min().e[axis] < box_b.Min().e[axis];
 }
 
-__host__ inline bool BoxXCompare(const Sphere* a, const Sphere* b)
+__host__ inline bool BoxXCompare(Hittable* a, Hittable* b)
 {
     return BoxCompare(a, b, 0);
 }
 
-__host__ inline bool BoxYCompare(const Sphere* a, const Sphere* b)
+__host__ inline bool BoxYCompare(Hittable* a, Hittable* b)
 {
     return BoxCompare(a, b, 1);
 }
 
-__host__ inline bool BoxZCompare(const Sphere* a, const Sphere* b)
+__host__ inline bool BoxZCompare(Hittable* a, Hittable* b)
 {
     return BoxCompare(a, b, 2);
 }
 
-__host__ BVHNode::BVHNode(std::vector<Sphere*> list, size_t start, size_t end)
+__host__ BVHNode::BVHNode(std::vector<Hittable*> list, size_t start, size_t end)
 {
     auto objects = list;
 
@@ -46,6 +46,7 @@ __host__ BVHNode::BVHNode(std::vector<Sphere*> list, size_t start, size_t end)
                                   : BoxZCompare;
 
     size_t object_span = end - start;
+    RT_INFO("Object span: {0}", object_span);
 
     if (object_span == 1) {
         left = right = objects[start];
@@ -65,17 +66,22 @@ __host__ BVHNode::BVHNode(std::vector<Sphere*> list, size_t start, size_t end)
 
         auto mid = start + object_span / 2;
 
-        checkCudaErrors(cudaMallocManaged((void**)&left, sizeof(Sphere )));
-        checkCudaErrors(cudaMallocManaged((void**)&right, sizeof(Sphere )));
+        checkCudaErrors(cudaMallocManaged((void**)&left, sizeof(BVHNode)));
+        checkCudaErrors(cudaMallocManaged((void**)&right, sizeof(BVHNode)));
+        left->type = BVH_NODE;
         left = new BVHNode(objects, start, mid);
+        right->type = BVH_NODE;
         right = new BVHNode(objects, mid, end);
     }
 
     AABB box_left, box_right;
 
-    if (!left->BoundingBox(box_left) || !right->BoundingBox(box_right)) {
+    if (!left->HittableBoundingBox(box_left, left) || !right->HittableBoundingBox(box_right, right)) {
         RT_TRACE("No bounding box in BVHNode constructor.");
     }
 
     box = SurroundingBox(box_left, box_right);
+
+    // box.minimum.Print();
+    // box.maximum.Print();
 }

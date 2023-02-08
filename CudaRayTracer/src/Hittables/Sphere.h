@@ -1,8 +1,11 @@
 #pragma once
 
-#include "Material.h"
+#include "AABB.h"
+#include "Hittable.h"
 
-class Sphere
+class Material;
+
+class Sphere : public Hittable
 {
 public:
     Vec3 center;

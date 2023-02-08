@@ -1,27 +1,54 @@
 #pragma once
 
-#include "Sphere.h"
-
-#include <memory>
 #include <vector>
 
-class HittableList
+class Hittable;
+
+class HittableList : public Hittable
 {
 public:
-    std::vector<Sphere*> objects;
+    std::vector<Hittable*> objects;
 public:
     __host__ HittableList() {}
-    __host__ HittableList(Sphere* object) { Add(object); }
+    __host__ HittableList(Hittable* object) { Add(object); }
 
-    __host__ void Add(Sphere* object)
+    __host__ void Add(Hittable* object)
     {
         objects.push_back(object);
     }
 
     __host__ void Clear() { objects.clear(); }
 
+    // __device__ inline bool Hit(const Ray& r, double t_min, double t_max, HitRecord& rec) const {
+    //     HitRecord temp_rec;
+    //     bool hit_anything = false;
+    //     float closest_so_far = t_max;
 
-    // __device__ bool Hit(const Ray& r, float t_min, float t_max, HitRecord& rec) const override;
-    // __host__ bool BoundingBox(AABB& output_box) const override;
-    // __host__ inline HittableList* Clone() const override { return new HittableList(*this); }
+    //     for (int i = 0; i < 5; i++) {
+    //         if (object->HittableHit(r, t_min, closest_so_far, temp_rec, object)) {
+    //             hit_anything = true;
+    //             closest_so_far = temp_rec.t;
+    //             rec = temp_rec;
+    //         }
+    //     }
+
+    //     return hit_anything;
+    // }
+
+
+    __host__ inline bool BoundingBox(AABB& output_box) const
+    {
+        if (objects.empty()) return false;
+
+        AABB temp_box;
+        bool first_box = true;
+
+        for (const auto& object : objects) {
+            if (!object->HittableBoundingBox(temp_box, object)) return false;
+            output_box = first_box ? temp_box : SurroundingBox(output_box, temp_box);
+            first_box = false;
+        }
+
+        return true;
+    }
 };

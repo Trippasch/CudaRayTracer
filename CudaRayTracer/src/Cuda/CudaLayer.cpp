@@ -190,29 +190,35 @@ void CudaLayer::GenerateWorld()
     Sphere* groundSphere;
     checkCudaErrors(cudaMallocManaged(&groundSphere, sizeof(Sphere)));
     checkCudaErrors(cudaMallocManaged(&groundSphere->mat_ptr, sizeof(Material)));
+    groundSphere->type = SPHERE;
     m_World->Add(new(groundSphere) Sphere(Vec3(0.0f, -100.5f, 0.0f), 100.0f, new(groundSphere->mat_ptr) Material(Vec3(0.8f, 0.8f, 0.0f), Mat::lambertian)));
 
     Sphere* sphere1;
     checkCudaErrors(cudaMallocManaged(&sphere1, sizeof(Sphere)));
     checkCudaErrors(cudaMallocManaged(&sphere1->mat_ptr, sizeof(Material)));
+    sphere1->type = SPHERE;
     m_World->Add(new(sphere1) Sphere(Vec3(0.0f, 0.0f, -1.0f), 0.5f, new(sphere1->mat_ptr) Material(Vec3(0.1f, 0.2f, 0.5f), Mat::lambertian)));
 
     Sphere* sphere2;
     checkCudaErrors(cudaMallocManaged(&sphere2, sizeof(Sphere)));
     checkCudaErrors(cudaMallocManaged(&sphere2->mat_ptr, sizeof(Material)));
+    sphere2->type = SPHERE;
     m_World->Add(new(sphere2) Sphere(Vec3(1.0f, 0.0f, -1.0f), 0.5f, new(sphere2->mat_ptr) Material(Vec3(0.8f, 0.6f, 0.2f), 0.0f, Mat::metal)));
 
     Sphere* glassSphere_a;
     checkCudaErrors(cudaMallocManaged(&glassSphere_a, sizeof(Sphere)));
     checkCudaErrors(cudaMallocManaged(&glassSphere_a->mat_ptr, sizeof(Material)));
+    glassSphere_a->type = SPHERE;
     m_World->Add(new(glassSphere_a) Sphere(Vec3(-1.0f, 0.0f, -1.0f), 0.5f, new(glassSphere_a->mat_ptr) Material(1.5f, Mat::dielectric)));
 
     Sphere* glassSphere_b;
     checkCudaErrors(cudaMallocManaged(&glassSphere_b, sizeof(Sphere)));
     checkCudaErrors(cudaMallocManaged(&glassSphere_b->mat_ptr, sizeof(Material)));
+    glassSphere_b->type = SPHERE;
     m_World->Add(new(glassSphere_b) Sphere(Vec3(-1.0f, 0.0f, -1.0f), -0.45f, new(glassSphere_b->mat_ptr) Material(1.5f, Mat::dielectric)));
 
     checkCudaErrors(cudaMallocManaged(&m_Tree, sizeof(BVHNode)));
+    m_Tree->type = BVH_NODE;
     m_Tree = new(m_Tree) BVHNode(m_World->objects);
 }
 

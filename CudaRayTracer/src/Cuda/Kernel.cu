@@ -8,6 +8,7 @@
 #include "../Hittables/BVHNode.h"
 #include "../Hittables/HittableList.h"
 #include "../Hittables/Sphere.h"
+#include "../Hittables/Material.h"
 #include "../Utils/SharedStructs.h"
 
 // clamp x to range [a, b]
@@ -58,6 +59,26 @@ __device__ inline Vec3 IntToRgb(int val)
 // }
 
 __device__ inline Vec3 color(const Ray& r, BVHNode* tree, int max_depth, curandState* local_rand_state) {
+
+    // HitRecord rec;
+    // Ray scattered;
+    // Vec3 attenuation = Vec3(1.0f, 1.0f, 1.0f);
+
+    // if (max_depth <= 0)
+    //     return Vec3(0.0f, 0.0f, 0.0f);
+
+    // if (!tree->Hit(r, 0.001f, FLT_MAX, rec)) {
+    //     Vec3 unit_direction = UnitVector(r.Direction());
+    //     float t = 0.5f * (unit_direction.y() + 1.0f);
+    //     Vec3 c = (1.0f - t) * Vec3(1.0f, 1.0f, 1.0f) + t * Vec3(0.5f, 0.7f, 1.0f);
+    //     return attenuation * c;
+    // }
+
+    // if (!rec.mat_ptr->Scatter(r, rec, attenuation, scattered, local_rand_state))
+    //     return Vec3(0.0f, 0.0f, 0.0f);
+
+    // return attenuation * color(scattered, tree, max_depth-1, local_rand_state);
+
     Ray cur_ray = r;
     Vec3 cur_attenuation = Vec3(1.0f, 1.0f, 1.0f);
     for (int i = 0; i < max_depth; i++) {
