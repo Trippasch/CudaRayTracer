@@ -4,23 +4,26 @@
 #include <backends/imgui_impl_glfw.h>
 #include <backends/imgui_impl_opengl3.h>
 
+#define RND (static_cast<float>(rand()) / static_cast<float>(RAND_MAX))
+
 extern "C"
-void LaunchKernel(unsigned int *pos, unsigned int image_width, unsigned int image_height, const unsigned int samples_per_pixel, const unsigned int max_depth, Sphere** world, curandState *d_rand_state, InputStruct inputs);
+void LaunchKernel(unsigned int *pos, unsigned int image_width, unsigned int image_height, const unsigned int samples_per_pixel, const unsigned int max_depth, HittableList* world, curandState *d_rand_state, InputStruct inputs);
 
 extern "C" void LaunchRandInit(curandState *d_rand_state2);
 
 extern "C"
 void LaunchRenderInit(dim3 grid, dim3 block, unsigned int image_width, unsigned int image_height, curandState *d_rand_state);
 
-extern "C"
-void LaunchCreateWorld(Sphere **d_list, Sphere **d_world, curandState *d_rand_state2);
+// extern "C"
+// void LaunchCreateWorld(Sphere **d_list, Sphere **d_world, curandState *d_rand_state2);
 
-extern "C"
-void LaunchFreeWorld(Sphere **d_list, Sphere **d_world, const unsigned int num_hittables);
+// extern "C"
+// void LaunchFreeWorld(Sphere **d_list, Sphere **d_world, const unsigned int num_hittables);
 
 CudaLayer::CudaLayer()
     : Layer("CudaLayer")
 {
+    m_World = new HittableList();
 }
 
 void CudaLayer::OnAttach()
@@ -32,7 +35,7 @@ void CudaLayer::OnAttach()
 
     RunCudaInit();
 
-    // GenerateWorld();
+    GenerateWorld();
 
     m_Camera = std::make_unique<Camera>(m_ImageWidth, m_ImageHeight, glm::vec3(0.0f, 0.0f, 3.0f));
 
@@ -58,16 +61,16 @@ void CudaLayer::OnAttach()
 
 void CudaLayer::OnDetach()
 {
-    LaunchFreeWorld(m_HittableList, m_World, m_NumHittables);
+    // LaunchFreeWorld(m_HittableList, m_World, m_NumHittables);
     checkCudaErrors(cudaFree(m_CudaDevRenderBuffer));
     checkCudaErrors(cudaFree(m_DrandState));
     checkCudaErrors(cudaFree(m_DrandState2));
-    checkCudaErrors(cudaFree(m_HittableList));
-    checkCudaErrors(cudaFree(m_World));
+    // checkCudaErrors(cudaFree(m_HittableList));
+    // checkCudaErrors(cudaFree(m_World));
 
-    // for (auto obj : m_World->objects) {
-    //     checkCudaErrors(cudaFree(obj));
-    // }
+    for (auto obj : m_World->objects) {
+        checkCudaErrors(cudaFree(obj));
+    }
 
     checkCudaErrors(cudaGraphicsUnregisterResource(m_CudaTexResource));
 
@@ -137,20 +140,20 @@ bool CudaLayer::OnImGuiResize()
         m_NumValues = m_NumTexels * 4;
         m_SizeTexData = sizeof(GLubyte) * m_NumValues;
 
-        LaunchFreeWorld(m_HittableList, m_World, m_NumHittables);
+        // LaunchFreeWorld(m_HittableList, m_World, m_NumHittables);
         checkCudaErrors(cudaFree(m_CudaDevRenderBuffer));
         checkCudaErrors(cudaFree(m_DrandState));
         checkCudaErrors(cudaFree(m_DrandState2));
-        checkCudaErrors(cudaFree(m_HittableList));
-        checkCudaErrors(cudaFree(m_World));
+        // checkCudaErrors(cudaFree(m_HittableList));
+        // checkCudaErrors(cudaFree(m_World));
 
         checkCudaErrors(cudaMalloc(&m_CudaDevRenderBuffer, m_SizeTexData));
         checkCudaErrors(cudaMalloc((void **)&m_DrandState, m_NumTexels * sizeof(curandState)));
         checkCudaErrors(cudaMalloc((void **)&m_DrandState2, 1 * sizeof(curandState)));
-        checkCudaErrors(cudaMalloc((void **)&m_HittableList, m_NumHittables * sizeof(Sphere*)));
-        checkCudaErrors(cudaMalloc((void **)&m_World, sizeof(Sphere*)));
+        // checkCudaErrors(cudaMalloc((void **)&m_HittableList, m_NumHittables * sizeof(Sphere*)));
+        // checkCudaErrors(cudaMalloc((void **)&m_World, sizeof(Sphere*)));
 
-        LaunchCreateWorld(m_HittableList, m_World, m_DrandState2);
+        // LaunchCreateWorld(m_HittableList, m_World, m_DrandState2);
 
         InitGLBuffers();
         RunCudaInit();
@@ -167,8 +170,8 @@ void CudaLayer::InitCudaBuffers()
     checkCudaErrors(cudaMalloc((void **)&m_DrandState, m_NumTexels * sizeof(curandState)));
     checkCudaErrors(cudaMalloc((void **)&m_DrandState2, 1 * sizeof(curandState)));
     // Allocate Hittables
-    checkCudaErrors(cudaMalloc((void **)&m_HittableList, m_NumHittables * sizeof(Sphere*)));
-    checkCudaErrors(cudaMalloc((void **)&m_World, sizeof(Sphere*)));
+    // checkCudaErrors(cudaMalloc((void **)&m_HittableList, m_NumHittables * sizeof(Sphere*)));
+    // checkCudaErrors(cudaMalloc((void **)&m_World, sizeof(Sphere*)));
 }
 
 void CudaLayer::InitGLBuffers()
@@ -197,40 +200,65 @@ void CudaLayer::RunCudaInit()
 
     LaunchRenderInit(grid, block, m_ImageWidth, m_ImageHeight, m_DrandState);
 
-    LaunchCreateWorld(m_HittableList, m_World, m_DrandState2);
+    // LaunchCreateWorld(m_HittableList, m_World, m_DrandState2);
 }
 
-// void CudaLayer::GenerateWorld()
-// {
-//     Sphere* groundSphere;
-//     checkCudaErrors(cudaMallocManaged(&groundSphere, sizeof(Sphere)));
-//     checkCudaErrors(cudaMallocManaged(&groundSphere->mat_ptr, sizeof(Material)));
-//     m_World->Add(new(groundSphere) Sphere(Vec3(0.0f, -100.5f, 0.0f), 100.0f, new(groundSphere->mat_ptr) Material(Vec3(0.8f, 0.8f, 0.0f), Mat::lambertian)));
+void CudaLayer::GenerateWorld()
+{
+    // Sphere* new_sphere;
+    // checkCudaErrors(cudaMallocManaged(&new_sphere, sizeof(Sphere)));
+    // checkCudaErrors(cudaMallocManaged(&new_sphere->mat_ptr, sizeof(Material)));
+    // m_World->Add(new(new_sphere) Sphere(Vec3(0, -1000.0f, -1), 1000.0f, new(new_sphere->mat_ptr) Material(Vec3(0.5f, 0.5f, 0.5f), Mat::lambertian)));
 
-//     Sphere* sphere1;
-//     checkCudaErrors(cudaMallocManaged(&sphere1, sizeof(Sphere)));
-//     checkCudaErrors(cudaMallocManaged(&sphere1->mat_ptr, sizeof(Material)));
-//     m_World->Add(new(sphere1) Sphere(Vec3(0.0f, 0.0f, -1.0f), 0.5f, new(sphere1->mat_ptr) Material(Vec3(0.1f, 0.2f, 0.5f), Mat::lambertian)));
+    // std::srand(std::time(nullptr));
+    // for (int a = -2; a < 2; a++) {
+    //     for (int b = -2; b < 2; b++) {
+    //         float choose_mat = (std::rand() % 2) + 1;
+    //         Vec3 center = Vec3(a + RND, 0.2, b + RND);
+    //         if (choose_mat == 1) {
+    //             Sphere *lamertian;
+    //             checkCudaErrors(cudaMallocManaged(&lamertian, sizeof(Sphere)));
+    //             checkCudaErrors(cudaMallocManaged(&lamertian->mat_ptr, sizeof(Material)));
+    //             m_World->Add(new (lamertian) Sphere(center, 0.2, new(lamertian->mat_ptr) Material(Vec3(RND, RND, RND), Mat::lambertian)));
+    //         }
+    //         else if (choose_mat == 2) {
+    //             Sphere *metal;
+    //             checkCudaErrors(cudaMallocManaged(&metal, sizeof(Sphere)));
+    //             checkCudaErrors(cudaMallocManaged(&metal->mat_ptr, sizeof(Material)));
+    //             m_World->Add(new (metal) Sphere(center, 0.2, new(metal->mat_ptr) Material(Vec3(0.5f * (1.0f + RND), 0.5f * (1.0f + RND), 0.5f * (1.0f + RND)), 0.5f * RND, Mat::metal)));
+    //         }
+    //     }
+    // }
 
-//     Sphere* sphere2;
-//     checkCudaErrors(cudaMallocManaged(&sphere2, sizeof(Sphere)));
-//     checkCudaErrors(cudaMallocManaged(&sphere2->mat_ptr, sizeof(Material)));
-//     m_World->Add(new(sphere2) Sphere(Vec3(1.0f, 0.0f, -1.0f), 0.5f, new(sphere2->mat_ptr) Material(Vec3(0.8f, 0.6f, 0.2f), 0.0f, Mat::metal)));
+    // checkCudaErrors(cudaMallocManaged(&new_sphere, sizeof(Sphere)));
+    // checkCudaErrors(cudaMallocManaged(&new_sphere->mat_ptr, sizeof(Material)));
+    // m_World->Add(new(new_sphere) Sphere(Vec3(-4, 1, 0), 1.0f, new(new_sphere->mat_ptr) Material(Vec3(0.4f, 0.2f, 0.1f), Mat::lambertian)));
 
-//     Sphere* glassSphere_a;
-//     checkCudaErrors(cudaMallocManaged(&glassSphere_a, sizeof(Sphere)));
-//     checkCudaErrors(cudaMallocManaged(&glassSphere_a->mat_ptr, sizeof(Material)));
-//     m_World->Add(new(glassSphere_a) Sphere(Vec3(-1.0f, 0.0f, -1.0f), 0.5f, new(glassSphere_a->mat_ptr) Material(1.5f, Mat::dielectric)));
+    Sphere* groundSphere;
+    checkCudaErrors(cudaMallocManaged(&groundSphere, sizeof(Sphere)));
+    checkCudaErrors(cudaMallocManaged(&groundSphere->mat_ptr, sizeof(Material)));
+    m_World->Add(new(groundSphere) Sphere(Vec3(0.0f, -100.5f, 0.0f), 100.0f, new(groundSphere->mat_ptr) Material(Vec3(0.8f, 0.8f, 0.0f), Mat::lambertian)));
 
-//     Sphere* glassSphere_b;
-//     checkCudaErrors(cudaMallocManaged(&glassSphere_b, sizeof(Sphere)));
-//     checkCudaErrors(cudaMallocManaged(&glassSphere_b->mat_ptr, sizeof(Material)));
-//     m_World->Add(new(glassSphere_b) Sphere(Vec3(-1.0f, 0.0f, -1.0f), -0.45f, new(glassSphere_b->mat_ptr) Material(1.5f, Mat::dielectric)));
+    Sphere* sphere1;
+    checkCudaErrors(cudaMallocManaged(&sphere1, sizeof(Sphere)));
+    checkCudaErrors(cudaMallocManaged(&sphere1->mat_ptr, sizeof(Material)));
+    m_World->Add(new(sphere1) Sphere(Vec3(0.0f, 0.0f, -1.0f), 0.5f, new(sphere1->mat_ptr) Material(Vec3(0.1f, 0.2f, 0.5f), Mat::lambertian)));
 
-//     // checkCudaErrors(cudaMallocManaged(&m_Tree, sizeof(BVHNode)));
-//     // m_Tree->type = BVH_NODE;
-//     // m_Tree = new(m_Tree) BVHNode(m_World->objects);
-// }
+    Sphere* sphere2;
+    checkCudaErrors(cudaMallocManaged(&sphere2, sizeof(Sphere)));
+    checkCudaErrors(cudaMallocManaged(&sphere2->mat_ptr, sizeof(Material)));
+    m_World->Add(new(sphere2) Sphere(Vec3(1.0f, 0.0f, -1.0f), 0.5f, new(sphere2->mat_ptr) Material(Vec3(0.8f, 0.6f, 0.2f), 0.0f, Mat::metal)));
+
+    // Sphere* glassSphere_a;
+    // checkCudaErrors(cudaMallocManaged(&glassSphere_a, sizeof(Sphere)));
+    // checkCudaErrors(cudaMallocManaged(&glassSphere_a->mat_ptr, sizeof(Material)));
+    // m_World->Add(new(glassSphere_a) Sphere(Vec3(-1.0f, 0.0f, -1.0f), 0.5f, new(glassSphere_a->mat_ptr) Material(1.5f, Mat::dielectric)));
+
+    // Sphere* glassSphere_b;
+    // checkCudaErrors(cudaMallocManaged(&glassSphere_b, sizeof(Sphere)));
+    // checkCudaErrors(cudaMallocManaged(&glassSphere_b->mat_ptr, sizeof(Material)));
+    // m_World->Add(new(glassSphere_b) Sphere(Vec3(-1.0f, 0.0f, -1.0f), -0.45f, new(glassSphere_b->mat_ptr) Material(1.5f, Mat::dielectric)));
+}
 
 void CudaLayer::RunCudaUpdate()
 {

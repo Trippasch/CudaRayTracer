@@ -16,10 +16,10 @@ public:
     float ir;
     Mat material;
 public:
-    __device__ Material(const Vec3& a, Mat m) : albedo(a), material(m) {}
+    __host__ Material(const Vec3& a, Mat m) : albedo(a), material(m) {}
 
-    __device__ Material(const Vec3& a, float f, Mat m) : albedo(a), fuzz(f < 1 ? f : 1), material(m) {}
-    __device__ Material(float index_of_refraction , Mat m) : ir(index_of_refraction), material(m) {}
+    __host__ Material(const Vec3& a, float f, Mat m) : albedo(a), fuzz(f < 1 ? f : 1), material(m) {}
+    __host__ Material(float index_of_refraction , Mat m) : ir(index_of_refraction), material(m) {}
 
     __device__ bool Scatter(const Ray& r, const HitRecord& rec, Vec3& attenuation, Ray& scattered, curandState* local_rand_state) const
     {

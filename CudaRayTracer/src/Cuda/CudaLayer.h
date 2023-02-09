@@ -38,7 +38,7 @@ private:
     void InitCudaBuffers();
     void InitGLBuffers();
     void RunCudaInit();
-    // void GenerateWorld();
+    void GenerateWorld();
     void RunCudaUpdate();
     bool OnImGuiResize();
 
@@ -60,13 +60,14 @@ private:
     curandState* m_DrandState2;
 
     // Hittables
-    Sphere** m_HittableList;
-    const unsigned int m_NumHittables = 20;
-    Sphere** m_World;
+    // Sphere** m_HittableList;
+    // const unsigned int m_NumHittables = 20;
+    // Sphere** m_World;
+    HittableList* m_World;
 
     // RayTracing
     unsigned int m_SamplesPerPixel = 10;
-    unsigned int m_MaxDepth = 10;
+    unsigned int m_MaxDepth = 5;
 
     InputStruct m_Inputs;
 
