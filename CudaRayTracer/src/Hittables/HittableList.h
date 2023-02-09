@@ -4,36 +4,31 @@
 
 #include "Sphere.h"
 
-class HittableList
+class HittableList : public Sphere
 {
 public:
-    std::vector<Sphere*> objects;
+    Sphere** list;
+    unsigned int size;
 public:
-    __host__ HittableList() {}
-    __host__ HittableList(Sphere* object) { Add(object); }
+    __device__ HittableList() {}
+    __device__ HittableList(Sphere** l, unsigned int n) { list = l; size = n; }
 
-    __host__ void Add(Sphere* object)
+    __device__ inline bool Hit(const Ray& r, float t_min, float t_max, HitRecord& rec) const
     {
-        objects.push_back(object);
+        HitRecord temp_rec;
+        bool hit_anything = false;
+        float closest_so_far = t_max;
+
+        for (int i = 0; i < size; i++) {
+            if (list[i]->Hit(r, t_min, closest_so_far, temp_rec)) {
+                hit_anything = true;
+                closest_so_far = temp_rec.t;
+                rec = temp_rec;
+            }
+        }
+
+        return hit_anything;
     }
-
-    __host__ void Clear() { objects.clear(); }
-
-    // __device__ inline bool Hit(const Ray& r, double t_min, double t_max, HitRecord& rec) const {
-    //     HitRecord temp_rec;
-    //     bool hit_anything = false;
-    //     float closest_so_far = t_max;
-
-    //     for (int i = 0; i < 5; i++) {
-    //         if (object->HittableHit(r, t_min, closest_so_far, temp_rec, object)) {
-    //             hit_anything = true;
-    //             closest_so_far = temp_rec.t;
-    //             rec = temp_rec;
-    //         }
-    //     }
-
-    //     return hit_anything;
-    // }
 
 
     // __host__ inline bool BoundingBox(AABB& output_box) const

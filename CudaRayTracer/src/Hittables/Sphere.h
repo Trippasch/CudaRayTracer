@@ -11,8 +11,8 @@ public:
     float radius;
     Material* mat_ptr;
 public:
-    __host__ __device__ Sphere() {}
-    __host__ __device__ Sphere(Vec3 cen, float r, Material* m)
+    __device__ Sphere() {}
+    __device__ Sphere(Vec3 cen, float r, Material* m)
         : center(cen), radius(r), mat_ptr(m) {}
 
     __device__ inline bool Hit(const Ray& r, float t_min, float t_max, HitRecord& rec) const
