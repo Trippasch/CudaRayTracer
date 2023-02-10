@@ -67,7 +67,7 @@ private:
 
     // RayTracing
     unsigned int m_SamplesPerPixel = 10;
-    unsigned int m_MaxDepth = 5;
+    unsigned int m_MaxDepth = 10;
 
     InputStruct m_Inputs;
 

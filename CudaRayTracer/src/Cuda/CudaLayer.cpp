@@ -37,7 +37,7 @@ void CudaLayer::OnAttach()
 
     GenerateWorld();
 
-    m_Camera = std::make_unique<Camera>(m_ImageWidth, m_ImageHeight, glm::vec3(0.0f, 0.0f, 3.0f));
+    m_Camera = std::make_unique<Camera>(m_ImageWidth, m_ImageHeight, glm::vec3(0.0f, 2.0f, 10.0f));
 
     glm::vec3 rightV = glm::normalize(glm::cross(m_Camera->m_Orientation, m_Camera->m_Up));
     glm::vec3 upV = glm::normalize(glm::cross(m_Camera->m_Orientation, rightV));
@@ -249,15 +249,15 @@ void CudaLayer::GenerateWorld()
     checkCudaErrors(cudaMallocManaged(&sphere2->mat_ptr, sizeof(Material)));
     m_World->Add(new(sphere2) Sphere(Vec3(1.0f, 0.0f, -1.0f), 0.5f, new(sphere2->mat_ptr) Material(Vec3(0.8f, 0.6f, 0.2f), 0.0f, Mat::metal)));
 
-    // Sphere* glassSphere_a;
-    // checkCudaErrors(cudaMallocManaged(&glassSphere_a, sizeof(Sphere)));
-    // checkCudaErrors(cudaMallocManaged(&glassSphere_a->mat_ptr, sizeof(Material)));
-    // m_World->Add(new(glassSphere_a) Sphere(Vec3(-1.0f, 0.0f, -1.0f), 0.5f, new(glassSphere_a->mat_ptr) Material(1.5f, Mat::dielectric)));
+    Sphere* glassSphere_a;
+    checkCudaErrors(cudaMallocManaged(&glassSphere_a, sizeof(Sphere)));
+    checkCudaErrors(cudaMallocManaged(&glassSphere_a->mat_ptr, sizeof(Material)));
+    m_World->Add(new(glassSphere_a) Sphere(Vec3(-1.0f, 0.0f, -1.0f), 0.5f, new(glassSphere_a->mat_ptr) Material(1.5f, Mat::dielectric)));
 
-    // Sphere* glassSphere_b;
-    // checkCudaErrors(cudaMallocManaged(&glassSphere_b, sizeof(Sphere)));
-    // checkCudaErrors(cudaMallocManaged(&glassSphere_b->mat_ptr, sizeof(Material)));
-    // m_World->Add(new(glassSphere_b) Sphere(Vec3(-1.0f, 0.0f, -1.0f), -0.45f, new(glassSphere_b->mat_ptr) Material(1.5f, Mat::dielectric)));
+    Sphere* glassSphere_b;
+    checkCudaErrors(cudaMallocManaged(&glassSphere_b, sizeof(Sphere)));
+    checkCudaErrors(cudaMallocManaged(&glassSphere_b->mat_ptr, sizeof(Material)));
+    m_World->Add(new(glassSphere_b) Sphere(Vec3(-1.0f, 0.0f, -1.0f), -0.45f, new(glassSphere_b->mat_ptr) Material(1.5f, Mat::dielectric)));
 }
 
 void CudaLayer::RunCudaUpdate()
