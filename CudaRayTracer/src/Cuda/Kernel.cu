@@ -117,8 +117,6 @@ __global__ void Kernel(unsigned int* pos, unsigned int width, unsigned int heigh
     Vec3 upV = Vec3(inputs.up_x, inputs.up_y, inputs.up_z);
     Vec3 rightV = Normalize(Cross(upV, forwardV));
 
-    float distFirstPlane = inputs.fov * 0.1f;
-
     Vec3 center = Vec3(width / 2.0f, height / 2.0f, 0.0f);
 
     for (int s = 0; s < samples_per_pixel; s++) {
@@ -126,8 +124,8 @@ __global__ void Kernel(unsigned int* pos, unsigned int width, unsigned int heigh
         float u = (float)((x - center.x()) + curand_uniform(&local_rand_state)) / (float)(width);
         float v = (float)((center.y() - y) + curand_uniform(&local_rand_state)) / (float)(width);
         Vec3 distFromCenter = (u * rightV) + (v * upV);
-        Vec3 startPos = (inputs.near_plane * distFromCenter) + origin + (distFirstPlane * forwardV);
-        Vec3 secondPlanePos = (inputs.far_plane * distFromCenter) + (inputs.fov * forwardV) + origin;
+        Vec3 startPos = (inputs.near_plane * distFromCenter) + origin + (inputs.fov * forwardV);
+        Vec3 secondPlanePos = (inputs.far_plane * distFromCenter) + ((1.0f/inputs.fov * 10.0f) * forwardV) + origin;
         Vec3 dirVector = Normalize(secondPlanePos - startPos);
 
         Ray r = Ray(startPos, dirVector);

@@ -39,6 +39,7 @@ private:
     void InitGLBuffers();
     void RunCudaInit();
     void GenerateWorld();
+    void AddSphere();
     void RunCudaUpdate();
     bool OnImGuiResize();
 
@@ -70,6 +71,20 @@ private:
     unsigned int m_MaxDepth = 10;
 
     InputStruct m_Inputs;
+
+    // Sphere Properties
+    Sphere* m_Sphere;
+    int m_SphereID = 0;
+    Vec3 m_SpherePosition = Vec3(0.0f, 0.0f, 0.0f);
+    float m_SphereRadius = 0.0f;
+
+    // Material Properties
+    bool m_UseLambertian = true;
+    bool m_UseMetal = false;
+    bool m_UseDielectric = false;
+    Vec3 m_Albedo = Vec3(0.0f, 0.0f, 0.0f);
+    float m_Fuzz = 0.0f;
+    float m_IR = 0.0f;
 
     // Camera
     std::unique_ptr<Camera> m_Camera;

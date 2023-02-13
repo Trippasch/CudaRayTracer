@@ -16,6 +16,7 @@ public:
     float ir;
     Mat material;
 public:
+    __host__ Material() {}
     __host__ Material(const Vec3& a, Mat m) : albedo(a), material(m) {}
 
     __host__ Material(const Vec3& a, float f, Mat m) : albedo(a), fuzz(f < 1 ? f : 1), material(m) {}

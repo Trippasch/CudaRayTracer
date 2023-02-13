@@ -56,7 +56,7 @@ void CudaLayer::OnAttach()
 
     m_Inputs.far_plane = m_Camera->m_FarPlane;
     m_Inputs.near_plane = m_Camera->m_NearPlane;
-    m_Inputs.fov = m_Camera->m_Fov;
+    m_Inputs.fov = RAD(m_Camera->m_Fov);
 }
 
 void CudaLayer::OnDetach()
@@ -97,6 +97,14 @@ void CudaLayer::OnImGuiRender()
     ImGui::ImageButton((void*)(intptr_t)m_Texture, ImVec2(m_ImageWidth, m_ImageHeight), ImVec2(0, 1), ImVec2(1, 0), 0);
     ImGui::PopStyleVar();
 
+    if (ImGui::IsWindowHovered()) {
+        ImGuiIO& io = ImGui::GetIO();
+        if (io.MouseWheel) {
+            m_Camera->ProcessMouseScroll(io.MouseWheel);
+            m_Inputs.fov = RAD(m_Camera->m_Fov);
+        }
+    }
+
     if (ImGui::IsItemActive()) {
 
         m_Camera->Inputs((GLFWwindow *)ImGui::GetMainViewport()->PlatformHandle);
@@ -119,6 +127,155 @@ void CudaLayer::OnImGuiRender()
     else {
         glfwSetInputMode((GLFWwindow *)ImGui::GetMainViewport()->PlatformHandle, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
         m_Camera->m_FirstClick = true;
+    }
+
+    ImGui::End();
+
+    ImGui::Begin("Metrics");
+    ImGuiIO &io = ImGui::GetIO();
+
+    ImGui::Text("Dear ImGui %s", ImGui::GetVersion());
+
+#ifdef RT_DEBUG
+    ImGui::Text("Running on Debug mode");
+#elif RT_RELEASE
+    ImGui::Text("Running on Release mode");
+#elif RT_DIST
+    ImGui::Text("Running on Dist mode");
+#endif
+
+    ImGui::Text("Application average\n %.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate);
+
+    ImGui::End();
+
+    ImGui::Begin("Opions");
+
+    static ImGuiTreeNodeFlags base_flags = ImGuiTreeNodeFlags_DefaultOpen;
+
+    if (ImGui::CollapsingHeader("Camera", base_flags))
+    {
+        if (ImGui::DragFloat3("Position", (float *)&m_Camera->m_Position, 0.01f, -FLT_MAX, FLT_MAX, "%.2f")) {
+            m_Inputs.origin_x = m_Camera->m_Position.x;
+            m_Inputs.origin_y = m_Camera->m_Position.y;
+            m_Inputs.origin_z = m_Camera->m_Position.z;
+        }
+        if (ImGui::DragFloat3("Orientation", (float *)&m_Camera->m_Orientation, 0.01f, -FLT_MAX, FLT_MAX, "%.2f")) {
+            m_Inputs.orientation_x = m_Camera->m_Orientation.x;
+            m_Inputs.orientation_y = m_Camera->m_Orientation.y;
+            m_Inputs.orientation_z = m_Camera->m_Orientation.z;
+        }
+        if (ImGui::SliderFloat("Field of view", &m_Camera->m_Fov, 1.0f, 90.0f, "%.2f")) {
+            m_Inputs.fov = RAD(m_Camera->m_Fov);
+        }
+    }
+
+    if (ImGui::CollapsingHeader("Spheres Settings", base_flags)) {
+
+        for (int i = 0; i < m_World->objects.size(); i++) {
+            if (ImGui::TreeNodeEx(("Sphere Properties " + std::to_string(i)).c_str())) {
+                ImGui::DragFloat3(("Sphere Position " + std::to_string(i)).c_str(), (float *)&m_World->objects.at(i)->center, 0.01f, -FLT_MAX, FLT_MAX, "%.2f");
+                ImGui::DragFloat(("Sphere Radius " + std::to_string(i)).c_str(), (float *)&m_World->objects.at(i)->radius, 0.01f, -FLT_MAX, FLT_MAX, "%.2f");
+
+                if (ImGui::TreeNodeEx(("Material " + std::to_string(i)).c_str(), base_flags)) {
+
+                    if (m_World->objects.at(i)->mat_ptr->material == Mat::lambertian) {
+                        ImGui::Text("Lambertian");
+                        ImGui::ColorEdit3(("Albedo " + std::to_string(i)).c_str(), (float *)&m_World->objects.at(i)->mat_ptr->albedo);
+                    }
+                    else if (m_World->objects.at(i)->mat_ptr->material == Mat::metal) {
+                        ImGui::Text("Metal");
+                        ImGui::ColorEdit3(("Albedo " + std::to_string(i)).c_str(), (float *)&m_World->objects.at(i)->mat_ptr->albedo);
+                        ImGui::DragFloat(("Fuzziness " + std::to_string(i)).c_str(), (float *)&m_World->objects.at(i)->mat_ptr->fuzz, 0.01f, 0.0f, 1.0f, "%.2f");
+                    }
+                    else {
+                        ImGui::Text("Dielectric");
+                        ImGui::DragFloat(("Index of Refraction " + std::to_string(i)).c_str(), (float *)&m_World->objects.at(i)->mat_ptr->ir, 0.01f, -FLT_MAX, FLT_MAX, "%.2f");
+                    }
+
+                    ImGui::TreePop();
+                }
+
+                ImGui::TreePop();
+            }
+        }
+
+        if (ImGui::Button("Add Sphere...")) {
+            ImGui::OpenPopup("New Sphere");
+            m_Sphere = new Sphere();
+            m_Sphere->mat_ptr = new Material();
+        }
+        if (ImGui::BeginPopupModal("New Sphere")) {
+            if (ImGui::DragFloat3("Sphere Position", (float *)&m_SpherePosition, 0.01f, -FLT_MAX, FLT_MAX, "%.2f")) {
+                m_Sphere->center = m_SpherePosition;
+            }
+            if (ImGui::DragFloat("Sphere Radius", (float *)&m_SphereRadius, 0.01f, -FLT_MAX, FLT_MAX, "%.2f")) {
+                m_Sphere->radius = m_SphereRadius;
+            }
+            if (ImGui::TreeNodeEx("Material", base_flags)) {
+                if (ImGui::ColorEdit3("Albedo", (float *)&m_Albedo)) {
+                    m_Sphere->mat_ptr->albedo = m_Albedo;
+                }
+
+                if (ImGui::DragFloat("Fuzziness", (float *)&m_Fuzz, 0.01f, 0.0f, 1.0f, "%.2f")) {
+                    m_Sphere->mat_ptr->fuzz = m_Fuzz;
+                }
+
+                if (ImGui::DragFloat("Index of Refraction", (float *)&m_IR, 0.01f, -FLT_MAX, FLT_MAX, "%.2f")) {
+                    m_Sphere->mat_ptr->ir = m_IR;
+                }
+
+                if (ImGui::Checkbox("Lambertian", &m_UseLambertian)) {
+                    m_UseMetal = false;
+                    m_UseDielectric = false;
+                }
+
+                if (ImGui::Checkbox("Metal", &m_UseMetal)) {
+                    m_UseLambertian = false;
+                    m_UseDielectric = false;
+                }
+
+                if (ImGui::Checkbox("Dielectric", &m_UseDielectric)) {
+                    m_UseMetal = false;
+                    m_UseLambertian = false;
+                }
+
+                ImGui::TreePop();
+            }
+
+            if (ImGui::Button("Add")) {
+                AddSphere();
+                ImGui::CloseCurrentPopup();
+            }
+
+            if (ImGui::Button("Cancel")) {
+                ImGui::CloseCurrentPopup();
+            }
+
+            ImGui::EndPopup();
+        }
+
+        if (ImGui::Button("Delete Sphere...")) {
+            ImGui::OpenPopup("Delete Sphere");
+        }
+        if (ImGui::BeginPopupModal("Delete Sphere")) {
+            ImGui::InputInt("Enter the sphere ID you want to delete", &m_SphereID);
+
+            for (int i = 0; i < m_World->objects.size(); i++) {
+                if (m_SphereID == i) {
+                    if (ImGui::Button("Delete Sphere")) {
+                        checkCudaErrors(cudaFree(m_World->objects.at(m_SphereID)));
+                        m_World->objects.erase(m_World->objects.begin() + m_SphereID);
+                        ImGui::CloseCurrentPopup();
+                    }
+                }
+            }
+
+            if (ImGui::Button("Cancel")) {
+                ImGui::CloseCurrentPopup();
+            }
+
+            ImGui::EndPopup();
+        }
     }
 
     ImGui::End();
@@ -258,6 +415,21 @@ void CudaLayer::GenerateWorld()
     checkCudaErrors(cudaMallocManaged(&glassSphere_b, sizeof(Sphere)));
     checkCudaErrors(cudaMallocManaged(&glassSphere_b->mat_ptr, sizeof(Material)));
     m_World->Add(new(glassSphere_b) Sphere(Vec3(-1.0f, 0.0f, -1.0f), -0.45f, new(glassSphere_b->mat_ptr) Material(1.5f, Mat::dielectric)));
+}
+
+void CudaLayer::AddSphere()
+{
+    checkCudaErrors(cudaMallocManaged(&m_Sphere, sizeof(Sphere)));
+    checkCudaErrors(cudaMallocManaged(&m_Sphere->mat_ptr, sizeof(Material)));
+    if (m_UseLambertian) {
+        m_World->Add(new(m_Sphere) Sphere(m_SpherePosition, m_SphereRadius, new(m_Sphere->mat_ptr) Material(m_Albedo, Mat::lambertian)));
+    }
+    else if (m_UseMetal) {
+        m_World->Add(new(m_Sphere) Sphere(m_SpherePosition, m_SphereRadius, new(m_Sphere->mat_ptr) Material(m_Albedo, m_Fuzz, Mat::metal)));
+    }
+    else {
+        m_World->Add(new(m_Sphere) Sphere(m_SpherePosition, m_SphereRadius, new(m_Sphere->mat_ptr) Material(m_IR, Mat::dielectric)));
+    }
 }
 
 void CudaLayer::RunCudaUpdate()

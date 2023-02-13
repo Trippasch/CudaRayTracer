@@ -20,6 +20,7 @@ public:
     glm::mat4 Matrix(float fovDeg, float nearPlane, float farPlane);
 
     // Handles camera inputs
+    void ProcessMouseScroll(float yoffset);
     void Inputs(GLFWwindow* window);
 
 public:
@@ -29,7 +30,7 @@ public:
 
     float m_FarPlane = 10.0f;
     float m_NearPlane = 0.1f;
-    float m_Fov = 8.0f;
+    float m_Fov = 45.0f;
 
     // Prevents the camera from jumping around when first clicking left click
     bool m_FirstClick = true;
