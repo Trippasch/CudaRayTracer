@@ -75,8 +75,8 @@ private:
     // Sphere Properties
     Sphere* m_Sphere;
     int m_SphereID = 0;
-    Vec3 m_SpherePosition = Vec3(0.0f, 0.0f, 0.0f);
-    float m_SphereRadius = 0.0f;
+    Vec3 m_SpherePosition = Vec3(0.0f, 1.0f, 0.0f);
+    float m_SphereRadius = 0.5f;
 
     // Material Properties
     bool m_UseLambertian = true;

@@ -172,7 +172,7 @@ void CudaLayer::OnImGuiRender()
     if (ImGui::CollapsingHeader("Spheres Settings", base_flags)) {
 
         for (int i = 0; i < m_World->objects.size(); i++) {
-            if (ImGui::TreeNodeEx(("Sphere Properties " + std::to_string(i)).c_str())) {
+            if (ImGui::TreeNodeEx(("Sphere " + std::to_string(i)).c_str())) {
                 ImGui::DragFloat3(("Sphere Position " + std::to_string(i)).c_str(), (float *)&m_World->objects.at(i)->center, 0.01f, -FLT_MAX, FLT_MAX, "%.2f");
                 ImGui::DragFloat(("Sphere Radius " + std::to_string(i)).c_str(), (float *)&m_World->objects.at(i)->radius, 0.01f, -FLT_MAX, FLT_MAX, "%.2f");
 
@@ -201,45 +201,22 @@ void CudaLayer::OnImGuiRender()
 
         if (ImGui::Button("Add Sphere...")) {
             ImGui::OpenPopup("New Sphere");
-            m_Sphere = new Sphere();
-            m_Sphere->mat_ptr = new Material();
         }
         if (ImGui::BeginPopupModal("New Sphere")) {
-            if (ImGui::DragFloat3("Sphere Position", (float *)&m_SpherePosition, 0.01f, -FLT_MAX, FLT_MAX, "%.2f")) {
-                m_Sphere->center = m_SpherePosition;
+
+            if (ImGui::Checkbox("Lambertian", &m_UseLambertian)) {
+                m_UseMetal = false;
+                m_UseDielectric = false;
             }
-            if (ImGui::DragFloat("Sphere Radius", (float *)&m_SphereRadius, 0.01f, -FLT_MAX, FLT_MAX, "%.2f")) {
-                m_Sphere->radius = m_SphereRadius;
+
+            if (ImGui::Checkbox("Metal", &m_UseMetal)) {
+                m_UseLambertian = false;
+                m_UseDielectric = false;
             }
-            if (ImGui::TreeNodeEx("Material", base_flags)) {
-                if (ImGui::ColorEdit3("Albedo", (float *)&m_Albedo)) {
-                    m_Sphere->mat_ptr->albedo = m_Albedo;
-                }
 
-                if (ImGui::DragFloat("Fuzziness", (float *)&m_Fuzz, 0.01f, 0.0f, 1.0f, "%.2f")) {
-                    m_Sphere->mat_ptr->fuzz = m_Fuzz;
-                }
-
-                if (ImGui::DragFloat("Index of Refraction", (float *)&m_IR, 0.01f, -FLT_MAX, FLT_MAX, "%.2f")) {
-                    m_Sphere->mat_ptr->ir = m_IR;
-                }
-
-                if (ImGui::Checkbox("Lambertian", &m_UseLambertian)) {
-                    m_UseMetal = false;
-                    m_UseDielectric = false;
-                }
-
-                if (ImGui::Checkbox("Metal", &m_UseMetal)) {
-                    m_UseLambertian = false;
-                    m_UseDielectric = false;
-                }
-
-                if (ImGui::Checkbox("Dielectric", &m_UseDielectric)) {
-                    m_UseMetal = false;
-                    m_UseLambertian = false;
-                }
-
-                ImGui::TreePop();
+            if (ImGui::Checkbox("Dielectric", &m_UseDielectric)) {
+                m_UseMetal = false;
+                m_UseLambertian = false;
             }
 
             if (ImGui::Button("Add")) {
