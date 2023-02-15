@@ -7,8 +7,9 @@
 #define PI 3.141592654f
 #define DEG(rad) rad*57.2957795
 #define RAD(deg) deg/57.2957795
+#define RND (static_cast<float>(rand()) / static_cast<float>(RAND_MAX))
 
-#define RND (curand_uniform(&local_rand_state))
+// #define RND (curand_uniform(&local_rand_state))
 
 class Vec3
 {

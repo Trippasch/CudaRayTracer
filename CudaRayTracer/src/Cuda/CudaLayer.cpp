@@ -4,8 +4,6 @@
 #include <backends/imgui_impl_glfw.h>
 #include <backends/imgui_impl_opengl3.h>
 
-#define RND (static_cast<float>(rand()) / static_cast<float>(RAND_MAX))
-
 extern "C"
 void LaunchKernel(unsigned int *pos, unsigned int image_width, unsigned int image_height, const unsigned int samples_per_pixel, const unsigned int max_depth, HittableList* world, curandState *d_rand_state, InputStruct inputs);
 
@@ -169,6 +167,10 @@ void CudaLayer::OnImGuiRender()
         }
     }
 
+    if (ImGui::CollapsingHeader("Ray Tracing Settings", base_flags)) {
+        ImGui::SliderInt("Samples Per Pixel", (int *)&m_SamplesPerPixel, 1, 100);
+    }
+
     if (ImGui::CollapsingHeader("Spheres Settings", base_flags)) {
 
         for (int i = 0; i < m_World->objects.size(); i++) {
@@ -176,19 +178,16 @@ void CudaLayer::OnImGuiRender()
                 ImGui::DragFloat3(("Sphere Position " + std::to_string(i)).c_str(), (float *)&m_World->objects.at(i)->center, 0.01f, -FLT_MAX, FLT_MAX, "%.2f");
                 ImGui::DragFloat(("Sphere Radius " + std::to_string(i)).c_str(), (float *)&m_World->objects.at(i)->radius, 0.01f, -FLT_MAX, FLT_MAX, "%.2f");
 
-                if (ImGui::TreeNodeEx(("Material " + std::to_string(i)).c_str(), base_flags)) {
+                if (ImGui::TreeNodeEx(GetTextForEnum(m_World->objects.at(i)->mat_ptr->material), base_flags)) {
 
                     if (m_World->objects.at(i)->mat_ptr->material == Mat::lambertian) {
-                        ImGui::Text("Lambertian");
                         ImGui::ColorEdit3(("Albedo " + std::to_string(i)).c_str(), (float *)&m_World->objects.at(i)->mat_ptr->albedo);
                     }
                     else if (m_World->objects.at(i)->mat_ptr->material == Mat::metal) {
-                        ImGui::Text("Metal");
                         ImGui::ColorEdit3(("Albedo " + std::to_string(i)).c_str(), (float *)&m_World->objects.at(i)->mat_ptr->albedo);
                         ImGui::DragFloat(("Fuzziness " + std::to_string(i)).c_str(), (float *)&m_World->objects.at(i)->mat_ptr->fuzz, 0.01f, 0.0f, 1.0f, "%.2f");
                     }
                     else {
-                        ImGui::Text("Dielectric");
                         ImGui::DragFloat(("Index of Refraction " + std::to_string(i)).c_str(), (float *)&m_World->objects.at(i)->mat_ptr->ir, 0.01f, -FLT_MAX, FLT_MAX, "%.2f");
                     }
 
@@ -202,7 +201,12 @@ void CudaLayer::OnImGuiRender()
         if (ImGui::Button("Add Sphere...")) {
             ImGui::OpenPopup("New Sphere");
         }
-        if (ImGui::BeginPopupModal("New Sphere")) {
+
+        // Always center this window when appearing
+        ImVec2 center = ImGui::GetMainViewport()->GetCenter();
+        ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
+
+        if (ImGui::BeginPopupModal("New Sphere", NULL, ImGuiWindowFlags_AlwaysAutoResize)) {
 
             if (ImGui::Checkbox("Lambertian", &m_UseLambertian)) {
                 m_UseMetal = false;
@@ -234,8 +238,13 @@ void CudaLayer::OnImGuiRender()
         if (ImGui::Button("Delete Sphere...")) {
             ImGui::OpenPopup("Delete Sphere");
         }
-        if (ImGui::BeginPopupModal("Delete Sphere")) {
-            ImGui::InputInt("Enter the sphere ID you want to delete", &m_SphereID);
+
+        // Always center this window when appearing
+        ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
+
+        if (ImGui::BeginPopupModal("Delete Sphere", NULL, ImGuiWindowFlags_AlwaysAutoResize)) {
+            ImGui::Text("Enther the sphere ID you want to delete");
+            ImGui::InputInt("Sphere ID", &m_SphereID);
 
             for (int i = 0; i < m_World->objects.size(); i++) {
                 if (m_SphereID == i) {

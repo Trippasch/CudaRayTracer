@@ -76,3 +76,19 @@ private:
         return r0 + (1.0f - r0) * pow((1.0f - cosine), 5.0f);
     }
 };
+
+__forceinline__ __host__ const char *GetTextForEnum(int enumVal)
+{
+    switch(enumVal)
+    {
+    case Mat::lambertian:
+        return "Lambertian";
+    case Mat::metal:
+        return "Metal";
+    case Mat::dielectric:
+        return "Dielectric";
+
+    default:
+        return "Not recognized..";
+    }
+}
