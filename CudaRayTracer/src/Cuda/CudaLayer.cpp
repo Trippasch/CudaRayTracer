@@ -54,7 +54,7 @@ void CudaLayer::OnAttach()
 
     m_Inputs.far_plane = m_Camera->m_FarPlane;
     m_Inputs.near_plane = m_Camera->m_NearPlane;
-    m_Inputs.fov = RAD(m_Camera->m_Fov);
+    m_Inputs.fov = glm::radians(m_Camera->m_Fov);
 }
 
 void CudaLayer::OnDetach()
@@ -99,11 +99,11 @@ void CudaLayer::OnImGuiRender()
         ImGuiIO& io = ImGui::GetIO();
         if (io.MouseWheel) {
             m_Camera->ProcessMouseScroll(io.MouseWheel);
-            m_Inputs.fov = RAD(m_Camera->m_Fov);
+            m_Inputs.fov = glm::radians(m_Camera->m_Fov);
         }
     }
 
-    if (ImGui::IsItemActive()) {
+    if (ImGui::IsWindowFocused()) {
 
         m_Camera->Inputs((GLFWwindow *)ImGui::GetMainViewport()->PlatformHandle);
 
@@ -162,13 +162,14 @@ void CudaLayer::OnImGuiRender()
             m_Inputs.orientation_y = m_Camera->m_Orientation.y;
             m_Inputs.orientation_z = m_Camera->m_Orientation.z;
         }
-        if (ImGui::SliderFloat("Field of view", &m_Camera->m_Fov, 1.0f, 90.0f, "%.2f")) {
-            m_Inputs.fov = RAD(m_Camera->m_Fov);
+        if (ImGui::SliderFloat("Field of view", &m_Camera->m_Fov, 1.0f, 120.0f, "%.2f")) {
+            m_Inputs.fov = glm::radians(m_Camera->m_Fov);
         }
     }
 
     if (ImGui::CollapsingHeader("Ray Tracing Settings", base_flags)) {
         ImGui::SliderInt("Samples Per Pixel", (int *)&m_SamplesPerPixel, 1, 100);
+        ImGui::SliderInt("Max Depth", (int *)&m_MaxDepth, 1, 50);
     }
 
     if (ImGui::CollapsingHeader("Spheres Settings", base_flags)) {
@@ -405,16 +406,17 @@ void CudaLayer::GenerateWorld()
 
 void CudaLayer::AddSphere()
 {
-    checkCudaErrors(cudaMallocManaged(&m_Sphere, sizeof(Sphere)));
-    checkCudaErrors(cudaMallocManaged(&m_Sphere->mat_ptr, sizeof(Material)));
+    Sphere* new_sphere;
+    checkCudaErrors(cudaMallocManaged(&new_sphere, sizeof(Sphere)));
+    checkCudaErrors(cudaMallocManaged(&new_sphere->mat_ptr, sizeof(Material)));
     if (m_UseLambertian) {
-        m_World->Add(new(m_Sphere) Sphere(m_SpherePosition, m_SphereRadius, new(m_Sphere->mat_ptr) Material(m_Albedo, Mat::lambertian)));
+        m_World->Add(new(new_sphere) Sphere(m_SpherePosition, m_SphereRadius, new(new_sphere->mat_ptr) Material(m_Albedo, Mat::lambertian)));
     }
     else if (m_UseMetal) {
-        m_World->Add(new(m_Sphere) Sphere(m_SpherePosition, m_SphereRadius, new(m_Sphere->mat_ptr) Material(m_Albedo, m_Fuzz, Mat::metal)));
+        m_World->Add(new(new_sphere) Sphere(m_SpherePosition, m_SphereRadius, new(new_sphere->mat_ptr) Material(m_Albedo, m_Fuzz, Mat::metal)));
     }
     else {
-        m_World->Add(new(m_Sphere) Sphere(m_SpherePosition, m_SphereRadius, new(m_Sphere->mat_ptr) Material(m_IR, Mat::dielectric)));
+        m_World->Add(new(new_sphere) Sphere(m_SpherePosition, m_SphereRadius, new(new_sphere->mat_ptr) Material(m_IR, Mat::dielectric)));
     }
 }
 

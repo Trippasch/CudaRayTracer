@@ -30,8 +30,8 @@ void Camera::ProcessMouseScroll(float yoffset)
     m_Fov -= static_cast<float>(yoffset);
     if (m_Fov < 1.0f)
         m_Fov = 1.0f;
-    if (m_Fov > 90.0f)
-        m_Fov = 90.0f;
+    if (m_Fov > 120.0f)
+        m_Fov = 120.0f;
 }
 
 void Camera::Inputs(GLFWwindow* window)
@@ -71,7 +71,7 @@ void Camera::Inputs(GLFWwindow* window)
     }
 
     // Handles mouse inputs
-    if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS)
+    if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS)
     {
         // Disables mouse cursor
         glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
@@ -114,7 +114,7 @@ void Camera::Inputs(GLFWwindow* window)
         direction.z = sin(glm::radians(m_Yaw)) * cos(glm::radians(m_Pitch));
         m_Orientation = glm::normalize(direction);
     }
-    else if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_RELEASE)
+    else if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_RELEASE)
     {
         // Unhides cursor since camera is not looking around anymore
         glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
