@@ -30,7 +30,7 @@
                 "${workspaceFolder}/vendor/spdlog/include",
                 "${workspaceFolder}/vendor/ImGui",
                 "${workspaceFolder}/vendor/glm",
-                "C:\\Program Files\\NVIDIA GPU Computing Toolkit\\CUDA\\v12.0\\include",
+                "C:\\Program Files\\NVIDIA GPU Computing Toolkit\\CUDA\\v12.0\\include"
             ],
             "defines": [
                 "RT_DEBUG",
