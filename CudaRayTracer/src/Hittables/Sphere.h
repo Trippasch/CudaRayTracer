@@ -29,6 +29,7 @@ public:
                 rec.t = temp;
                 rec.p = r.PointAtParameter(rec.t);
                 rec.normal = (rec.p - center) / radius;
+                GetSphereUV(rec.normal, rec.u, rec.v);
                 rec.mat_ptr = mat_ptr;
                 return true;
             }
@@ -37,12 +38,22 @@ public:
                 rec.t = temp;
                 rec.p = r.PointAtParameter(rec.t);
                 rec.normal = (rec.p - center) / radius;
+                GetSphereUV(rec.normal, rec.u, rec.v);
                 rec.mat_ptr = mat_ptr;
                 return true;
             }
         }
 
         return false;
+    }
+
+private:
+    __device__ static inline void GetSphereUV(const Vec3& p, float& u, float& v)
+    {
+        float theta = acos(-p.y());
+        float phi = atan2(-p.z(), p.x()) + PI;
+        u = phi / (2 * PI);
+        v = theta / PI;
     }
 
     // __host__ inline bool Sphere::BoundingBox(AABB& output_box) const

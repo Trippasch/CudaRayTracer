@@ -59,16 +59,16 @@ void CudaLayer::OnAttach()
 
 void CudaLayer::OnDetach()
 {
+    for (auto obj : m_World->objects) {
+        DeleteSphere(obj);
+    }
+
     // LaunchFreeWorld(m_HittableList, m_World, m_NumHittables);
     checkCudaErrors(cudaFree(m_CudaDevRenderBuffer));
     checkCudaErrors(cudaFree(m_DrandState));
     checkCudaErrors(cudaFree(m_DrandState2));
     // checkCudaErrors(cudaFree(m_HittableList));
     // checkCudaErrors(cudaFree(m_World));
-
-    for (auto obj : m_World->objects) {
-        checkCudaErrors(cudaFree(obj));
-    }
 
     checkCudaErrors(cudaGraphicsUnregisterResource(m_CudaTexResource));
 
@@ -188,7 +188,7 @@ void CudaLayer::OnImGuiRender()
                         ImGui::ColorEdit3(("Albedo " + std::to_string(i)).c_str(), (float *)&m_World->objects.at(i)->mat_ptr->albedo);
                         ImGui::DragFloat(("Fuzziness " + std::to_string(i)).c_str(), (float *)&m_World->objects.at(i)->mat_ptr->fuzz, 0.01f, 0.0f, 1.0f, "%.2f");
                     }
-                    else {
+                    else if (m_World->objects.at(i)->mat_ptr->material == Mat::dielectric) {
                         ImGui::DragFloat(("Index of Refraction " + std::to_string(i)).c_str(), (float *)&m_World->objects.at(i)->mat_ptr->ir, 0.01f, -FLT_MAX, FLT_MAX, "%.2f");
                     }
 
@@ -250,7 +250,7 @@ void CudaLayer::OnImGuiRender()
             for (int i = 0; i < m_World->objects.size(); i++) {
                 if (m_SphereID == i) {
                     if (ImGui::Button("Delete Sphere")) {
-                        checkCudaErrors(cudaFree(m_World->objects.at(m_SphereID)));
+                        DeleteSphere(m_World->objects.at(m_SphereID));
                         m_World->objects.erase(m_World->objects.begin() + m_SphereID);
                         ImGui::CloseCurrentPopup();
                     }
@@ -284,21 +284,12 @@ bool CudaLayer::OnImGuiResize()
         m_NumValues = m_NumTexels * 4;
         m_SizeTexData = sizeof(GLubyte) * m_NumValues;
 
-        // LaunchFreeWorld(m_HittableList, m_World, m_NumHittables);
         checkCudaErrors(cudaFree(m_CudaDevRenderBuffer));
         checkCudaErrors(cudaFree(m_DrandState));
         checkCudaErrors(cudaFree(m_DrandState2));
-        // checkCudaErrors(cudaFree(m_HittableList));
-        // checkCudaErrors(cudaFree(m_World));
+        checkCudaErrors(cudaGraphicsUnregisterResource(m_CudaTexResource));
 
-        checkCudaErrors(cudaMalloc(&m_CudaDevRenderBuffer, m_SizeTexData));
-        checkCudaErrors(cudaMalloc((void **)&m_DrandState, m_NumTexels * sizeof(curandState)));
-        checkCudaErrors(cudaMalloc((void **)&m_DrandState2, 1 * sizeof(curandState)));
-        // checkCudaErrors(cudaMalloc((void **)&m_HittableList, m_NumHittables * sizeof(Sphere*)));
-        // checkCudaErrors(cudaMalloc((void **)&m_World, sizeof(Sphere*)));
-
-        // LaunchCreateWorld(m_HittableList, m_World, m_DrandState2);
-
+        InitCudaBuffers();
         InitGLBuffers();
         RunCudaInit();
 
@@ -378,10 +369,17 @@ void CudaLayer::GenerateWorld()
     // checkCudaErrors(cudaMallocManaged(&new_sphere->mat_ptr, sizeof(Material)));
     // m_World->Add(new(new_sphere) Sphere(Vec3(-4, 1, 0), 1.0f, new(new_sphere->mat_ptr) Material(Vec3(0.4f, 0.2f, 0.1f), Mat::lambertian)));
 
+    // Texture* checker = new Texture(new Texture(Vec3(0.2f, 0.3f, 0.1f), Tex::constant_texture), new Texture(Vec3(0.9f, 0.9f, 0.9f), Tex::constant_texture), Tex::checker_texture);
+    // Texture* color1 = new Texture(Vec3(1.0f, 0.0f, 0.0f), Tex::constant_texture);
+    // checkCudaErrors(cudaMallocManaged(&color1, sizeof(Texture)));
+
     Sphere* groundSphere;
     checkCudaErrors(cudaMallocManaged(&groundSphere, sizeof(Sphere)));
     checkCudaErrors(cudaMallocManaged(&groundSphere->mat_ptr, sizeof(Material)));
-    m_World->Add(new(groundSphere) Sphere(Vec3(0.0f, -100.5f, 0.0f), 100.0f, new(groundSphere->mat_ptr) Material(Vec3(0.8f, 0.8f, 0.0f), Mat::lambertian)));
+    checkCudaErrors(cudaMallocManaged(&groundSphere->mat_ptr->texture_albedo, sizeof(Texture)));
+    checkCudaErrors(cudaMallocManaged(&groundSphere->mat_ptr->texture_albedo->odd, sizeof(Texture)));
+    checkCudaErrors(cudaMallocManaged(&groundSphere->mat_ptr->texture_albedo->even, sizeof(Texture)));
+    m_World->Add(new(groundSphere) Sphere(Vec3(0.0f, -1000.5f, 0.0f), 1000.0f, new(groundSphere->mat_ptr) Material(new(groundSphere->mat_ptr->texture_albedo) Texture(new(groundSphere->mat_ptr->texture_albedo->odd) Texture(Vec3(0.2f, 0.3f, 0.1f), Tex::constant_texture), new(groundSphere->mat_ptr->texture_albedo->even) Texture(Vec3(0.9f, 0.9f, 0.9f), Tex::constant_texture), Tex::checker_texture), Mat::lambertian_texture)));
 
     Sphere* sphere1;
     checkCudaErrors(cudaMallocManaged(&sphere1, sizeof(Sphere)));
@@ -418,6 +416,17 @@ void CudaLayer::AddSphere()
     else {
         m_World->Add(new(new_sphere) Sphere(m_SpherePosition, m_SphereRadius, new(new_sphere->mat_ptr) Material(m_IR, Mat::dielectric)));
     }
+}
+
+void CudaLayer::DeleteSphere(Sphere* sphere)
+{
+    if (sphere->mat_ptr->texture_albedo != nullptr) {
+        checkCudaErrors(cudaFree(sphere->mat_ptr->texture_albedo->odd));
+        checkCudaErrors(cudaFree(sphere->mat_ptr->texture_albedo->even));
+    }
+    checkCudaErrors(cudaFree(sphere->mat_ptr->texture_albedo));
+    checkCudaErrors(cudaFree(sphere->mat_ptr));
+    checkCudaErrors(cudaFree(sphere));
 }
 
 void CudaLayer::RunCudaUpdate()

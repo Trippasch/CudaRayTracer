@@ -40,6 +40,7 @@ private:
     void RunCudaInit();
     void GenerateWorld();
     void AddSphere();
+    void DeleteSphere(Sphere* sphere);
     void RunCudaUpdate();
     bool OnImGuiResize();
 

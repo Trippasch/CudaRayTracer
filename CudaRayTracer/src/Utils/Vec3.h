@@ -41,6 +41,8 @@ public:
 
     __host__ __device__ inline void Print() const { printf("[%f, %f, %f]\n", e[0], e[1], e[2]); }
 
+    __host__ __device__ inline bool NearZero() const;
+
     float e[3];
 };
 
@@ -142,6 +144,12 @@ __host__ __device__ inline Vec3& Vec3::operator/=(const float t) {
     return *this;
 }
 
+__host__ __device__ inline bool Vec3::NearZero() const {
+    // Return true if the vector is close to zero in all dimensions.
+    const auto s = 1e-8;
+    return (fabs(e[0]) < s) && (fabs(e[1]) < s) && (fabs(e[2]) < s);
+}
+
 __host__ __device__ inline Vec3 UnitVector(Vec3 v) {
     return v / v.Length();
 }
@@ -181,6 +189,20 @@ __device__ inline Vec3 RandomInUnitSphere(curandState* local_rand_state)
         p = 2.0f * Random(local_rand_state) - Vec3(1.0f, 1.0f, 1.0f);
     } while (LengthSquared(p) >= 1.0f);
     return p;
+}
+
+__device__ inline Vec3 RandomInUnitVector(curandState* local_rand_state)
+{
+    return UnitVector(RandomInUnitSphere(local_rand_state));
+}
+
+__device__ inline Vec3 RandomInHemisphere(const Vec3& normal, curandState* local_rand_state)
+{
+    Vec3 in_unit_sphere = RandomInUnitSphere(local_rand_state);
+    if (Dot(in_unit_sphere, normal) > 0.0) // In the same hemisphere as the normal
+        return in_unit_sphere;
+    else
+        return -in_unit_sphere;
 }
 
 __device__ inline Vec3 RandomInUnitDisk(curandState* local_rand_state) {

@@ -10,6 +10,7 @@ typedef struct HitRecord
     Vec3 normal;
     Material* mat_ptr;
     float t;
+    float u, v;
     bool front_face;
 
     __device__ inline void SetFaceNormal(const Ray& r, const Vec3& outward_normal)

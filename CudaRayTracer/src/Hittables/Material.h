@@ -1,11 +1,14 @@
 #pragma once
 
 #include "Hittable.h"
+#include "Texture.h"
 
 enum Mat {
     lambertian = 0,
     metal,
-    dielectric
+    dielectric,
+    diffuse_light,
+    lambertian_texture
 };
 
 class Material
@@ -15,14 +18,18 @@ public:
     float fuzz;
     float ir;
     Mat material;
+    Texture* emit;
+    Texture* texture_albedo;
+
 public:
     __host__ Material() {}
     __host__ Material(const Vec3& a, Mat m) : albedo(a), material(m) {}
+    __host__ Material(Texture* a, Mat m) : texture_albedo(a), material(m) {}
 
     __host__ Material(const Vec3& a, float f, Mat m) : albedo(a), fuzz(f < 1 ? f : 1), material(m) {}
     __host__ Material(float index_of_refraction , Mat m) : ir(index_of_refraction), material(m) {}
 
-    __device__ bool Scatter(const Ray& r, const HitRecord& rec, Vec3& attenuation, Ray& scattered, curandState* local_rand_state) const
+    __device__ inline bool Scatter(const Ray& r, const HitRecord& rec, Vec3& attenuation, Ray& scattered, curandState* local_rand_state) const
     {
         if (material == 0) {
             Vec3 target = rec.p + rec.normal + RandomInUnitSphere(local_rand_state);
@@ -65,10 +72,24 @@ public:
                 scattered = Ray(rec.p, refracted);
             return true;
         }
+        else if (material == 3) {
+            return false;
+        }
+        else if (material == 4) {
+            Vec3 target = rec.p + rec.normal + RandomInUnitSphere(local_rand_state);
+            scattered = Ray(rec.p, target - rec.p);
+            attenuation = texture_albedo->value(rec.u, rec.v, rec.p);
+            return true;
+        }
+    }
+
+    __device__ inline Vec3 Emitted(float u, float v, const Vec3& p) const
+    {
+        return emit->value(u, v, p);
     }
 
 private:
-    __device__ static float Reflectance(float cosine, float ir)
+    __device__ static inline float Reflectance(float cosine, float ir)
     {
         // Use Schlick's approximation for reflectance.
         auto r0 = (1.0f - ir) / (1.0f + ir);
@@ -87,6 +108,10 @@ __forceinline__ __host__ const char *GetTextForEnum(int enumVal)
         return "Metal";
     case Mat::dielectric:
         return "Dielectric";
+    case Mat::diffuse_light:
+        return "Diffuse Light";
+    case Mat::lambertian_texture:
+        return "Lambertian Texture";
 
     default:
         return "Not recognized..";
