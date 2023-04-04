@@ -167,7 +167,7 @@ void CudaLayer::OnImGuiRender()
             m_Inputs.orientation_y = m_Camera->m_Orientation.y;
             m_Inputs.orientation_z = m_Camera->m_Orientation.z;
         }
-        if (ImGui::SliderFloat("Field of view", &m_Camera->m_Fov, 1.0f, 120.0f, "%.2f")) {
+        if (ImGui::SliderFloat("Field of view", &m_Camera->m_Fov, 1.0f, 120.0f, "%.f")) {
             m_Inputs.fov = glm::radians(m_Camera->m_Fov);
         }
     }

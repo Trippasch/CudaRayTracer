@@ -3,7 +3,7 @@
 #include <GLFW/glfw3.h>
 #include <glm/glm.hpp>
 
-const float SPEED = 0.1f;
+const float SPEED = 0.05f;
 const float SENSITIVITY = 0.1f;
 
 class Camera
