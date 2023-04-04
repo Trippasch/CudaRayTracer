@@ -28,6 +28,11 @@ void CudaLayer::OnAttach()
 {
     findCudaDevice();
 
+    size_t pValue;
+    cudaDeviceSetLimit(cudaLimitStackSize, 2048);
+    cudaDeviceGetLimit(&pValue, cudaLimitStackSize);
+    RT_INFO("CUDA Stack Size Limit: {0} bytes", pValue);
+
     InitCudaBuffers();
     InitGLBuffers();
 
@@ -189,7 +194,7 @@ void CudaLayer::OnImGuiRender()
                         ImGui::DragFloat(("Fuzziness " + std::to_string(i)).c_str(), (float *)&m_World->objects.at(i)->mat_ptr->fuzz, 0.01f, 0.0f, 1.0f, "%.2f");
                     }
                     else if (m_World->objects.at(i)->mat_ptr->material == Mat::dielectric) {
-                        ImGui::DragFloat(("Index of Refraction " + std::to_string(i)).c_str(), (float *)&m_World->objects.at(i)->mat_ptr->ir, 0.01f, -FLT_MAX, FLT_MAX, "%.2f");
+                        ImGui::DragFloat(("Index of Refraction " + std::to_string(i)).c_str(), (float *)&m_World->objects.at(i)->mat_ptr->ir, 0.01f, 0.0f, FLT_MAX, "%.2f");
                     }
 
                     ImGui::TreePop();
