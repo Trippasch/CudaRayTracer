@@ -3,7 +3,6 @@
 #include "../Core/Log.h"
 
 #include "../Utils/Math.cuh"
-#include <stb_image.h>
 
 enum Tex {
     constant_texture = 0,
@@ -24,17 +23,8 @@ public:
     __host__ Texture() {}
     __host__ Texture(Vec3 c, Tex t) : color(c), texture(t) {}
     __host__ Texture(Texture* t0, Texture* t1, Tex t) : even(t0), odd(t1), texture(t) {}
-    __host__ Texture(const char* filename)
+    __host__ Texture(unsigned char* d, int w, int h, Tex t) : data(d), width(w), height(h), texture(t)
     {
-        auto components_per_pixel = bytes_per_pixel;
-
-        data = stbi_load(filename, &width, &height, &components_per_pixel, components_per_pixel);
-
-        if (!data) {
-            RT_ERROR("ERROR: Could not load texture image file {0}", filename);
-            width = height = 0;
-        }
-
         bytes_per_scanline = bytes_per_pixel * width;
     }
 
@@ -70,7 +60,7 @@ public:
                 j = height - 1;
 
             const float color_scale = 1.0f / 255.0f;
-            auto pixel = data + j * bytes_per_scanline + i * bytes_per_pixel;
+            unsigned char* pixel = data + j * bytes_per_scanline + i * bytes_per_pixel;
 
             return Vec3(color_scale * pixel[0], color_scale * pixel[1], color_scale * pixel[2]);
         }

@@ -4,6 +4,8 @@
 #include <backends/imgui_impl_glfw.h>
 #include <backends/imgui_impl_opengl3.h>
 
+#include "../Utils/RawStbImage.h"
+
 extern "C"
 void LaunchKernel(unsigned int *pos, unsigned int image_width, unsigned int image_height, const unsigned int samples_per_pixel, const unsigned int max_depth, HittableList* world, curandState *d_rand_state, InputStruct inputs);
 
@@ -385,6 +387,27 @@ void CudaLayer::GenerateWorld()
     checkCudaErrors(cudaMallocManaged(&groundSphere->mat_ptr->texture_albedo->odd, sizeof(Texture)));
     checkCudaErrors(cudaMallocManaged(&groundSphere->mat_ptr->texture_albedo->even, sizeof(Texture)));
     m_World->Add(new(groundSphere) Sphere(Vec3(0.0f, -1000.5f, 0.0f), 1000.0f, new(groundSphere->mat_ptr) Material(new(groundSphere->mat_ptr->texture_albedo) Texture(new(groundSphere->mat_ptr->texture_albedo->odd) Texture(Vec3(0.2f, 0.3f, 0.1f), Tex::constant_texture), new(groundSphere->mat_ptr->texture_albedo->even) Texture(Vec3(0.9f, 0.9f, 0.9f), Tex::constant_texture), Tex::checker_texture), Mat::lambertian_texture)));
+
+
+    int width, height, nr;
+    unsigned char* data;
+    unsigned char* odata;
+    const char* filename = "assets/textures/earth.jpg";
+
+    data = stbi_load(filename, &width, &height, &nr, 0);
+
+    if (!data) {
+        RT_ERROR("ERROR: Could not load texture image file {0}", filename);
+        width = height = 0;
+    }
+
+    Sphere* earth_sphere;
+    checkCudaErrors(cudaMallocManaged(&earth_sphere, sizeof(Sphere)));
+    checkCudaErrors(cudaMallocManaged(&earth_sphere->mat_ptr, sizeof(Material)));
+    checkCudaErrors(cudaMallocManaged(&earth_sphere->mat_ptr->texture_albedo, sizeof(Texture)));
+    checkCudaErrors(cudaMallocManaged(&odata, width * height * nr * sizeof(unsigned char)));
+    checkCudaErrors(cudaMemcpy(odata, data, width * height * 3 * sizeof(unsigned char), cudaMemcpyHostToDevice));
+    m_World->Add(new(earth_sphere) Sphere(Vec3(0.0f, 5.0f, -1.0f), 0.5f, new(earth_sphere->mat_ptr) Material(new(earth_sphere->mat_ptr->texture_albedo) Texture(odata, width, height, Tex::image_texture), Mat::lambertian_texture)));
 
     Sphere* sphere1;
     checkCudaErrors(cudaMallocManaged(&sphere1, sizeof(Sphere)));
