@@ -2,9 +2,9 @@
 
 #include "Core/Layer.h"
 
-#include "Hittables/HittableList.h"
-#include "Hittables/Material.h"
-#include "Hittables/Sphere.h"
+#include "Hittables/HittableList.cuh"
+#include "Hittables/Material.cuh"
+#include "Hittables/Sphere.cuh"
 
 #include "Utils/SharedStructs.h"
 #include "Utils/helper_cuda.h"
@@ -68,8 +68,8 @@ private:
     HittableList* m_World;
 
     // RayTracing
-    unsigned int m_SamplesPerPixel = 10;
-    unsigned int m_MaxDepth = 10;
+    unsigned int m_SamplesPerPixel = 50;
+    unsigned int m_MaxDepth = 12;
 
     InputStruct m_Inputs;
 

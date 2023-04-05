@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../Utils/Ray.h"
+#include "../Utils/Ray.cuh"
 
 #include <thrust/swap.h>
 #include <thrust/extrema.h>

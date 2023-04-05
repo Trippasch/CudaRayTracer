@@ -3,23 +3,12 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <float.h>
-#include <algorithm>
 
-#include "../Hittables/HittableList.h"
-#include "../Hittables/Sphere.h"
-#include "../Hittables/Material.h"
+#include "../Hittables/HittableList.cuh"
+#include "../Hittables/Sphere.cuh"
+#include "../Hittables/Material.cuh"
 #include "../Utils/SharedStructs.h"
-
-// clamp x to range [a, b]
-__device__ inline float Clamp(float x, float a, float b)
-{
-    return max(a, min(b, x));
-}
-
-__device__ inline int Clamp(int x, int a, int b)
-{
-    return max(a, min(b, x));
-}
+#include "../Utils/Math.cu"
 
 // convert floating point rgb color to 8-bit integer
 __device__ inline int RgbToInt(float r, float g, float b)

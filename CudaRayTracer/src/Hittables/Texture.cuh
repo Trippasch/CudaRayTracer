@@ -2,7 +2,7 @@
 
 #include "../Core/Log.h"
 
-#include "../Utils/Vec3.h"
+#include "../Utils/Math.cuh"
 #include <stb_image.h>
 
 enum Tex {
@@ -57,8 +57,8 @@ public:
                 return Vec3(0, 1, 1);
 
             // Clamp input texture coordinates to [0,1] x [1,0]
-            // u = Clamp(u, 0.0f, 1.0f);
-            // v = 1.0f - Clamp(v, 0.0f, 1.0f); // Flip V to image coordinates
+            u = Clamp(u, 0.0f, 1.0f);
+            v = 1.0f - Clamp(v, 0.0f, 1.0f); // Flip V to image coordinates
 
             int i = static_cast<int>(u * width);
             int j = static_cast<int>(v * height);

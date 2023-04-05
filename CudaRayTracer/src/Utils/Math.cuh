@@ -182,17 +182,6 @@ __host__ __device__ inline float LengthSquared(Vec3 e)
     return e.x() * e.x() + e.y() * e.y() + e.z() * e.z();
 }
 
-// // clamp x to range [a, b]
-// __device__ inline float Clamp(float x, float a, float b)
-// {
-//     return max(a, min(b, x));
-// }
-
-// __device__ inline int Clamp(int x, int a, int b)
-// {
-//     return max(a, min(b, x));
-// }
-
 __device__ inline Vec3 RandomInUnitSphere(curandState* local_rand_state)
 {
     Vec3 p;
@@ -241,3 +230,8 @@ __host__ __device__ inline bool Refract(const Vec3& v, const Vec3& n, float eati
 
     return false;
 }
+
+// clamp x to range [a, b]
+__device__ float Clamp(float x, float a, float b);
+
+__device__ int Clamp(int x, int a, int b);

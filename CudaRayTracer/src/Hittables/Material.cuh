@@ -1,7 +1,7 @@
 #pragma once
 
-#include "Hittable.h"
-#include "Texture.h"
+#include "Hittable.cuh"
+#include "Texture.cuh"
 
 enum Mat {
     lambertian = 0,

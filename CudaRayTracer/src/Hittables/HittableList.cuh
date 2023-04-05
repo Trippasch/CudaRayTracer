@@ -2,7 +2,7 @@
 
 #include <vector>
 
-#include "Sphere.h"
+#include "Sphere.cuh"
 
 class HittableList
 {
