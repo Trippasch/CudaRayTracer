@@ -392,7 +392,7 @@ void CudaLayer::GenerateWorld()
     int width, height, nr;
     unsigned char* data;
     unsigned char* odata;
-    const char* filename = "assets/textures/earth.jpg";
+    const char* filename = "assets/textures/earrrth.jpeg";
 
     data = stbi_load(filename, &width, &height, &nr, 0);
 
@@ -407,7 +407,7 @@ void CudaLayer::GenerateWorld()
     checkCudaErrors(cudaMallocManaged(&earth_sphere->mat_ptr->texture_albedo, sizeof(Texture)));
     checkCudaErrors(cudaMallocManaged(&odata, width * height * nr * sizeof(unsigned char)));
     checkCudaErrors(cudaMemcpy(odata, data, width * height * 3 * sizeof(unsigned char), cudaMemcpyHostToDevice));
-    m_World->Add(new(earth_sphere) Sphere(Vec3(0.0f, 5.0f, -1.0f), 0.5f, new(earth_sphere->mat_ptr) Material(new(earth_sphere->mat_ptr->texture_albedo) Texture(odata, width, height, Tex::image_texture), Mat::lambertian_texture)));
+    m_World->Add(new(earth_sphere) Sphere(Vec3(0.0f, 3.5f, -1.0f), 2.0f, new(earth_sphere->mat_ptr) Material(new(earth_sphere->mat_ptr->texture_albedo) Texture(odata, width, height, Tex::image_texture), Mat::lambertian_texture)));
 
     Sphere* sphere1;
     checkCudaErrors(cudaMallocManaged(&sphere1, sizeof(Sphere)));
