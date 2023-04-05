@@ -1,10 +1,14 @@
 #pragma once
 
+#include "../Core/Log.h"
+
 #include "../Utils/Vec3.h"
+#include <stb_image.h>
 
 enum Tex {
     constant_texture = 0,
     checker_texture,
+    image_texture,
 };
 
 class Texture
@@ -14,11 +18,25 @@ public:
     Texture* odd;
     Texture* even;
     Tex texture;
+    const static int bytes_per_pixel = 3;
 
 public:
     __host__ Texture() {}
     __host__ Texture(Vec3 c, Tex t) : color(c), texture(t) {}
     __host__ Texture(Texture* t0, Texture* t1, Tex t) : even(t0), odd(t1), texture(t) {}
+    __host__ Texture(const char* filename)
+    {
+        auto components_per_pixel = bytes_per_pixel;
+
+        data = stbi_load(filename, &width, &height, &components_per_pixel, components_per_pixel);
+
+        if (!data) {
+            RT_ERROR("ERROR: Could not load texture image file {0}", filename);
+            width = height = 0;
+        }
+
+        bytes_per_scanline = bytes_per_pixel * width;
+    }
 
     __device__ inline Vec3 value(float u, float v, const Vec3& p) const
     {
@@ -34,5 +52,32 @@ public:
                 return even->value(u, v, p);
             }
         }
+        else if (texture == 2) {
+            if (data == nullptr)
+                return Vec3(0, 1, 1);
+
+            // Clamp input texture coordinates to [0,1] x [1,0]
+            // u = Clamp(u, 0.0f, 1.0f);
+            // v = 1.0f - Clamp(v, 0.0f, 1.0f); // Flip V to image coordinates
+
+            int i = static_cast<int>(u * width);
+            int j = static_cast<int>(v * height);
+
+            // Clamp integer mapping, since actual coordinates should be less than 1.0
+            if (i >= width)
+                i = width - 1;
+            if (j >= height)
+                j = height - 1;
+
+            const float color_scale = 1.0f / 255.0f;
+            auto pixel = data + j * bytes_per_scanline + i * bytes_per_pixel;
+
+            return Vec3(color_scale * pixel[0], color_scale * pixel[1], color_scale * pixel[2]);
+        }
     }
+
+private:
+    unsigned char *data;
+    int width, height;
+    int bytes_per_scanline;
 };

@@ -16,6 +16,7 @@ project "CudaRayTracer"
         "src",
         "../vendor/ImGui",
         "../vendor/spdlog/include",
+        "../vendor/stb",
         "../vendor/GLFW/include",
         "%{IncludeDir.Glad}",
         "%{IncludeDir.glm}"
@@ -36,7 +37,7 @@ project "CudaRayTracer"
         "CudaRayTracer/src/Cuda/*.cu"
     }
 
-    cudaMaxRegCount "32"
+    -- cudaMaxRegCount "63"
 
     cudaCompilerOptions {
         "-t0",                                  -- Compile in parallel

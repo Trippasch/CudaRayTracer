@@ -3,6 +3,7 @@
 #include <cmath>
 #include <iostream>
 #include <curand_kernel.h>
+#include <cuda_runtime.h>
 
 #define PI 3.141592654f
 #define DEG(rad) rad*57.2957795
@@ -180,6 +181,17 @@ __host__ __device__ inline float LengthSquared(Vec3 e)
 {
     return e.x() * e.x() + e.y() * e.y() + e.z() * e.z();
 }
+
+// // clamp x to range [a, b]
+// __device__ inline float Clamp(float x, float a, float b)
+// {
+//     return max(a, min(b, x));
+// }
+
+// __device__ inline int Clamp(int x, int a, int b)
+// {
+//     return max(a, min(b, x));
+// }
 
 __device__ inline Vec3 RandomInUnitSphere(curandState* local_rand_state)
 {

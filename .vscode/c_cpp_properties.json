@@ -9,6 +9,7 @@
                 "${workspaceFolder}/vendor/spdlog/include",
                 "${workspaceFolder}/vendor/ImGui",
                 "${workspaceFolder}/vendor/glm",
+                "${workspaceFolder}/vendor/stb",
                 "/opt/cuda/include/"
             ],
             "defines": [
@@ -30,6 +31,7 @@
                 "${workspaceFolder}/vendor/spdlog/include",
                 "${workspaceFolder}/vendor/ImGui",
                 "${workspaceFolder}/vendor/glm",
+                "${workspaceFolder}/vendor/stb",
                 "C:\\Program Files\\NVIDIA GPU Computing Toolkit\\CUDA\\v12.0\\include"
             ],
             "defines": [
