@@ -17,6 +17,8 @@ public:
     Texture* odd;
     Texture* even;
     Tex texture;
+    unsigned char *data;
+    int width, height;
     const static int bytes_per_pixel = 3;
 
 public:
@@ -67,7 +69,5 @@ public:
     }
 
 private:
-    unsigned char *data;
-    int width, height;
     int bytes_per_scanline;
 };

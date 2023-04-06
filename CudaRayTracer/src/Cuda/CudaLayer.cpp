@@ -188,11 +188,20 @@ void CudaLayer::OnImGuiRender()
 
                 if (ImGui::TreeNodeEx(GetTextForEnum(m_World->objects.at(i)->mat_ptr->material), base_flags)) {
 
-                    if (m_World->objects.at(i)->mat_ptr->material == Mat::lambertian) {
-                        ImGui::ColorEdit3(("Albedo " + std::to_string(i)).c_str(), (float *)&m_World->objects.at(i)->mat_ptr->albedo);
+                    if (m_World->objects.at(i)->mat_ptr->material == Mat::lambertian && m_World->objects.at(i)->mat_ptr->albedo->texture == Tex::constant_texture) {
+                        ImGui::ColorEdit3(("Albedo " + std::to_string(i)).c_str(), (float *)&m_World->objects.at(i)->mat_ptr->albedo->color);
                     }
-                    else if (m_World->objects.at(i)->mat_ptr->material == Mat::metal) {
-                        ImGui::ColorEdit3(("Albedo " + std::to_string(i)).c_str(), (float *)&m_World->objects.at(i)->mat_ptr->albedo);
+                    else if (m_World->objects.at(i)->mat_ptr->material == Mat::lambertian && m_World->objects.at(i)->mat_ptr->albedo->texture == Tex::checker_texture) {
+                        ImGui::ColorEdit3(("Albedo odd " + std::to_string(i)).c_str(), (float *)&m_World->objects.at(i)->mat_ptr->albedo->odd->color);
+                        ImGui::ColorEdit3(("Albedo even " + std::to_string(i)).c_str(), (float *)&m_World->objects.at(i)->mat_ptr->albedo->even->color);
+                    }
+                    else if (m_World->objects.at(i)->mat_ptr->material == Mat::metal && m_World->objects.at(i)->mat_ptr->albedo->texture == Tex::constant_texture) {
+                        ImGui::ColorEdit3(("Albedo " + std::to_string(i)).c_str(), (float *)&m_World->objects.at(i)->mat_ptr->albedo->color);
+                        ImGui::DragFloat(("Fuzziness " + std::to_string(i)).c_str(), (float *)&m_World->objects.at(i)->mat_ptr->fuzz, 0.01f, 0.0f, 1.0f, "%.2f");
+                    }
+                    else if (m_World->objects.at(i)->mat_ptr->material == Mat::metal && m_World->objects.at(i)->mat_ptr->albedo->texture == Tex::checker_texture) {
+                        ImGui::ColorEdit3(("Albedo odd " + std::to_string(i)).c_str(), (float *)&m_World->objects.at(i)->mat_ptr->albedo->odd->color);
+                        ImGui::ColorEdit3(("Albedo even " + std::to_string(i)).c_str(), (float *)&m_World->objects.at(i)->mat_ptr->albedo->even->color);
                         ImGui::DragFloat(("Fuzziness " + std::to_string(i)).c_str(), (float *)&m_World->objects.at(i)->mat_ptr->fuzz, 0.01f, 0.0f, 1.0f, "%.2f");
                     }
                     else if (m_World->objects.at(i)->mat_ptr->material == Mat::dielectric) {
@@ -216,6 +225,9 @@ void CudaLayer::OnImGuiRender()
 
         if (ImGui::BeginPopupModal("New Sphere", NULL, ImGuiWindowFlags_AlwaysAutoResize)) {
 
+            ImGui::Text("Choose the sphere material:");
+            ImGui::Separator();
+
             if (ImGui::Checkbox("Lambertian", &m_UseLambertian)) {
                 m_UseMetal = false;
                 m_UseDielectric = false;
@@ -229,6 +241,18 @@ void CudaLayer::OnImGuiRender()
             if (ImGui::Checkbox("Dielectric", &m_UseDielectric)) {
                 m_UseMetal = false;
                 m_UseLambertian = false;
+            }
+
+            ImGui::Separator();
+
+            if (m_UseLambertian == true || m_UseMetal == true) {
+                ImGui::Text("Choose the sphere material texture:");
+                ImGui::Separator();
+                if (ImGui::Checkbox("Constant Texture", &m_UseConstantTexture))
+                    m_UseCheckerTexture = false;
+                if (ImGui::Checkbox("Checker Texture", &m_UseCheckerTexture))
+                    m_UseConstantTexture = false;
+                ImGui::Separator();
             }
 
             if (ImGui::Button("Add")) {
@@ -383,11 +407,10 @@ void CudaLayer::GenerateWorld()
     Sphere* groundSphere;
     checkCudaErrors(cudaMallocManaged(&groundSphere, sizeof(Sphere)));
     checkCudaErrors(cudaMallocManaged(&groundSphere->mat_ptr, sizeof(Material)));
-    checkCudaErrors(cudaMallocManaged(&groundSphere->mat_ptr->texture_albedo, sizeof(Texture)));
-    checkCudaErrors(cudaMallocManaged(&groundSphere->mat_ptr->texture_albedo->odd, sizeof(Texture)));
-    checkCudaErrors(cudaMallocManaged(&groundSphere->mat_ptr->texture_albedo->even, sizeof(Texture)));
-    m_World->Add(new(groundSphere) Sphere(Vec3(0.0f, -1000.5f, 0.0f), 1000.0f, new(groundSphere->mat_ptr) Material(new(groundSphere->mat_ptr->texture_albedo) Texture(new(groundSphere->mat_ptr->texture_albedo->odd) Texture(Vec3(0.2f, 0.3f, 0.1f), Tex::constant_texture), new(groundSphere->mat_ptr->texture_albedo->even) Texture(Vec3(0.9f, 0.9f, 0.9f), Tex::constant_texture), Tex::checker_texture), Mat::lambertian_texture)));
-
+    checkCudaErrors(cudaMallocManaged(&groundSphere->mat_ptr->albedo, sizeof(Texture)));
+    checkCudaErrors(cudaMallocManaged(&groundSphere->mat_ptr->albedo->odd, sizeof(Texture)));
+    checkCudaErrors(cudaMallocManaged(&groundSphere->mat_ptr->albedo->even, sizeof(Texture)));
+    m_World->Add(new(groundSphere) Sphere(Vec3(0.0f, -1000.5f, 0.0f), 1000.0f, new(groundSphere->mat_ptr) Material(new(groundSphere->mat_ptr->albedo) Texture(new(groundSphere->mat_ptr->albedo->odd) Texture(Vec3(0.2f, 0.3f, 0.1f), Tex::constant_texture), new(groundSphere->mat_ptr->albedo->even) Texture(Vec3(0.9f, 0.9f, 0.9f), Tex::constant_texture), Tex::checker_texture), Mat::lambertian)));
 
     int width, height, nr;
     unsigned char* data;
@@ -404,20 +427,22 @@ void CudaLayer::GenerateWorld()
     Sphere* earth_sphere;
     checkCudaErrors(cudaMallocManaged(&earth_sphere, sizeof(Sphere)));
     checkCudaErrors(cudaMallocManaged(&earth_sphere->mat_ptr, sizeof(Material)));
-    checkCudaErrors(cudaMallocManaged(&earth_sphere->mat_ptr->texture_albedo, sizeof(Texture)));
+    checkCudaErrors(cudaMallocManaged(&earth_sphere->mat_ptr->albedo, sizeof(Texture)));
     checkCudaErrors(cudaMallocManaged(&odata, width * height * nr * sizeof(unsigned char)));
     checkCudaErrors(cudaMemcpy(odata, data, width * height * 3 * sizeof(unsigned char), cudaMemcpyHostToDevice));
-    m_World->Add(new(earth_sphere) Sphere(Vec3(0.0f, 3.5f, -1.0f), 2.0f, new(earth_sphere->mat_ptr) Material(new(earth_sphere->mat_ptr->texture_albedo) Texture(odata, width, height, Tex::image_texture), Mat::lambertian_texture)));
+    m_World->Add(new(earth_sphere) Sphere(Vec3(0.0f, 3.5f, -1.0f), 2.0f, new(earth_sphere->mat_ptr) Material(new(earth_sphere->mat_ptr->albedo) Texture(odata, width, height, Tex::image_texture), Mat::lambertian)));
 
     Sphere* sphere1;
     checkCudaErrors(cudaMallocManaged(&sphere1, sizeof(Sphere)));
     checkCudaErrors(cudaMallocManaged(&sphere1->mat_ptr, sizeof(Material)));
-    m_World->Add(new(sphere1) Sphere(Vec3(0.0f, 0.0f, -1.0f), 0.5f, new(sphere1->mat_ptr) Material(Vec3(0.1f, 0.2f, 0.5f), Mat::lambertian)));
+    checkCudaErrors(cudaMallocManaged(&sphere1->mat_ptr->albedo, sizeof(Texture)));
+    m_World->Add(new(sphere1) Sphere(Vec3(0.0f, 0.0f, -1.0f), 0.5f, new(sphere1->mat_ptr) Material(new(sphere1->mat_ptr->albedo) Texture(Vec3(0.1f, 0.2f, 0.5f), Tex::constant_texture), Mat::lambertian)));
 
     Sphere* sphere2;
     checkCudaErrors(cudaMallocManaged(&sphere2, sizeof(Sphere)));
     checkCudaErrors(cudaMallocManaged(&sphere2->mat_ptr, sizeof(Material)));
-    m_World->Add(new(sphere2) Sphere(Vec3(1.0f, 0.0f, -1.0f), 0.5f, new(sphere2->mat_ptr) Material(Vec3(0.8f, 0.6f, 0.2f), 0.0f, Mat::metal)));
+    checkCudaErrors(cudaMallocManaged(&sphere2->mat_ptr->albedo, sizeof(Texture)));
+    m_World->Add(new(sphere2) Sphere(Vec3(1.0f, 0.0f, -1.0f), 0.5f, new(sphere2->mat_ptr) Material(new(sphere2->mat_ptr->albedo) Texture(Vec3(0.8f, 0.6f, 0.2f), Tex::constant_texture), 0.0f, Mat::metal)));
 
     Sphere* glassSphere_a;
     checkCudaErrors(cudaMallocManaged(&glassSphere_a, sizeof(Sphere)));
@@ -435,11 +460,26 @@ void CudaLayer::AddSphere()
     Sphere* new_sphere;
     checkCudaErrors(cudaMallocManaged(&new_sphere, sizeof(Sphere)));
     checkCudaErrors(cudaMallocManaged(&new_sphere->mat_ptr, sizeof(Material)));
+    checkCudaErrors(cudaMallocManaged(&new_sphere->mat_ptr->albedo, sizeof(Texture)));
     if (m_UseLambertian) {
-        m_World->Add(new(new_sphere) Sphere(m_SpherePosition, m_SphereRadius, new(new_sphere->mat_ptr) Material(m_Albedo, Mat::lambertian)));
+        if (m_UseConstantTexture) {
+            m_World->Add(new(new_sphere) Sphere(m_SpherePosition, m_SphereRadius, new(new_sphere->mat_ptr) Material(new(new_sphere->mat_ptr->albedo) Texture(m_newColor, Tex::constant_texture), Mat::lambertian)));
+        }
+        else {
+            checkCudaErrors(cudaMallocManaged(&new_sphere->mat_ptr->albedo->even, sizeof(Texture)));
+            checkCudaErrors(cudaMallocManaged(&new_sphere->mat_ptr->albedo->odd, sizeof(Texture)));
+            m_World->Add(new(new_sphere) Sphere(m_SpherePosition, m_SphereRadius, new(new_sphere->mat_ptr) Material(new(new_sphere->mat_ptr->albedo) Texture(new(new_sphere->mat_ptr->albedo->odd) Texture(Vec3(0.2f, 0.3f, 0.1f), Tex::constant_texture), new(new_sphere->mat_ptr->albedo->even) Texture(Vec3(0.9f, 0.9f, 0.9f), Tex::constant_texture), Tex::checker_texture), Mat::lambertian)));
+        }
     }
     else if (m_UseMetal) {
-        m_World->Add(new(new_sphere) Sphere(m_SpherePosition, m_SphereRadius, new(new_sphere->mat_ptr) Material(m_Albedo, m_Fuzz, Mat::metal)));
+        if (m_UseConstantTexture) {
+            m_World->Add(new(new_sphere) Sphere(m_SpherePosition, m_SphereRadius, new(new_sphere->mat_ptr) Material(new(new_sphere->mat_ptr->albedo) Texture(m_newColor, Tex::constant_texture), m_Fuzz, Mat::metal)));
+        }
+        else {
+            checkCudaErrors(cudaMallocManaged(&new_sphere->mat_ptr->albedo->even, sizeof(Texture)));
+            checkCudaErrors(cudaMallocManaged(&new_sphere->mat_ptr->albedo->odd, sizeof(Texture)));
+            m_World->Add(new(new_sphere) Sphere(m_SpherePosition, m_SphereRadius, new(new_sphere->mat_ptr) Material(new(new_sphere->mat_ptr->albedo) Texture(new(new_sphere->mat_ptr->albedo->odd) Texture(Vec3(0.2f, 0.3f, 0.1f), Tex::constant_texture), new(new_sphere->mat_ptr->albedo->even) Texture(Vec3(0.9f, 0.9f, 0.9f), Tex::constant_texture), Tex::checker_texture), m_Fuzz, Mat::metal)));
+        }
     }
     else {
         m_World->Add(new(new_sphere) Sphere(m_SpherePosition, m_SphereRadius, new(new_sphere->mat_ptr) Material(m_IR, Mat::dielectric)));
@@ -448,11 +488,12 @@ void CudaLayer::AddSphere()
 
 void CudaLayer::DeleteSphere(Sphere* sphere)
 {
-    if (sphere->mat_ptr->texture_albedo != nullptr) {
-        checkCudaErrors(cudaFree(sphere->mat_ptr->texture_albedo->odd));
-        checkCudaErrors(cudaFree(sphere->mat_ptr->texture_albedo->even));
+    if (sphere->mat_ptr->albedo != nullptr) {
+        checkCudaErrors(cudaFree(sphere->mat_ptr->albedo->odd));
+        checkCudaErrors(cudaFree(sphere->mat_ptr->albedo->even));
+        checkCudaErrors(cudaFree(sphere->mat_ptr->albedo->data));
     }
-    checkCudaErrors(cudaFree(sphere->mat_ptr->texture_albedo));
+    checkCudaErrors(cudaFree(sphere->mat_ptr->albedo));
     checkCudaErrors(cudaFree(sphere->mat_ptr));
     checkCudaErrors(cudaFree(sphere));
 }

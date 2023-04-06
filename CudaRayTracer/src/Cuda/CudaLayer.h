@@ -82,7 +82,9 @@ private:
     bool m_UseLambertian = true;
     bool m_UseMetal = false;
     bool m_UseDielectric = false;
-    Vec3 m_Albedo = Vec3(0.0f, 0.0f, 0.0f);
+    bool m_UseConstantTexture = true;
+    bool m_UseCheckerTexture = false;
+    Vec3 m_newColor = Vec3(1.0f, 1.0f, 1.0f);
     float m_Fuzz = 0.0f;
     float m_IR = 0.0f;
 
