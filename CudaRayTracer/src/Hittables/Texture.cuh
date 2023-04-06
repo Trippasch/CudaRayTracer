@@ -22,7 +22,7 @@ public:
     const static int bytes_per_pixel = 3;
 
 public:
-    __host__ Texture() {}
+    __host__ Texture() : color(Vec3(1.0f, 1.0f, 1.0f)), texture(Tex::constant_texture) {}
     __host__ Texture(Vec3 c, Tex t) : color(c), texture(t) {}
     __host__ Texture(Texture* t0, Texture* t1, Tex t) : even(t0), odd(t1), texture(t) {}
     __host__ Texture(unsigned char* d, int w, int h, Tex t) : data(d), width(w), height(h), texture(t)

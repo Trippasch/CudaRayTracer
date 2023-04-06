@@ -23,7 +23,9 @@ public:
     __host__ Material() {}
     __host__ Material(Texture* a, Mat m) : albedo(a), material(m) {}
     __host__ Material(Texture* a, float f, Mat m) : albedo(a), fuzz(f < 1 ? f : 1), material(m) {}
-    __host__ Material(float index_of_refraction , Mat m) : ir(index_of_refraction), material(m) {}
+    __host__ Material(float index_of_refraction , Mat m) : ir(index_of_refraction), material(m) {
+        albedo->color = Vec3(1.0f, 1.0f, 1.0f);
+    }
 
     __device__ inline bool Scatter(const Ray& r, const HitRecord& rec, Vec3& attenuation, Ray& scattered, curandState* local_rand_state) const
     {
