@@ -21,9 +21,39 @@ public:
 
 public:
     __host__ Material() {}
-    __host__ Material(Texture* a, Mat m) : albedo(a), material(m) {}
-    __host__ Material(Texture* a, float f, Mat m) : albedo(a), fuzz(f < 1 ? f : 1), material(m) {}
+    __host__ Material(Texture* a, Mat m) : albedo(a), material(m) {
+        if (albedo->texture == Tex::constant_texture) {
+            albedo->even->color = Vec3(1.0f, 1.0f, 1.0f);
+            albedo->odd->color = Vec3(0.0f, 0.0f, 0.0f);
+        }
+        else if (albedo->texture == Tex::checker_texture) {
+            albedo->color = Vec3(1.0f, 1.0f, 1.0f);
+        }
+        else if (albedo->texture == Tex::image_texture) {
+            albedo->even->color = Vec3(1.0f, 1.0f, 1.0f);
+            albedo->odd->color = Vec3(0.0f, 0.0f, 0.0f);
+            albedo->color = Vec3(1.0f, 1.0f, 1.0f);
+        }
+    }
+    __host__ Material(Texture* a, float f, Mat m) : albedo(a), fuzz(f < 1 ? f : 1), material(m) {
+        if (albedo->texture == Tex::constant_texture) {
+            albedo->even->color = Vec3(1.0f, 1.0f, 1.0f);
+            albedo->odd->color = Vec3(0.0f, 0.0f, 0.0f);
+        }
+        else if (albedo->texture == Tex::checker_texture) {
+            albedo->color = Vec3(1.0f, 1.0f, 1.0f);
+        }
+        else if (albedo->texture == Tex::image_texture) {
+            albedo->even->color = Vec3(1.0f, 1.0f, 1.0f);
+            albedo->odd->color = Vec3(0.0f, 0.0f, 0.0f);
+            albedo->color = Vec3(1.0f, 1.0f, 1.0f);
+        }
+    }
     __host__ Material(float index_of_refraction , Mat m) : ir(index_of_refraction), material(m) {
+        if (albedo->texture == Tex::constant_texture) {
+            albedo->even->color = Vec3(1.0f, 1.0f, 1.0f);
+            albedo->odd->color = Vec3(0.0f, 0.0f, 0.0f);
+        }
         albedo->color = Vec3(1.0f, 1.0f, 1.0f);
     }
 
