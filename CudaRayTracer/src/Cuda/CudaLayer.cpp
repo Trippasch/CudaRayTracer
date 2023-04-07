@@ -243,12 +243,12 @@ void CudaLayer::OnImGuiRender()
 
                                     if (m_World->objects.at(i)->mat_ptr->albedo->data != nullptr) {
                                         checkCudaErrors(cudaFree(m_World->objects.at(i)->mat_ptr->albedo->data));
-                                        STBI_FREE(m_TextureImageData);
                                     }
 
                                     m_TextureImageData = LoadImage(m_TextureImageFilename, m_TextureImageData, &m_TextureImageWidth, &m_TextureImageHeight, &m_TextureImageNR);
                                     checkCudaErrors(cudaMallocManaged(&m_World->objects.at(i)->mat_ptr->albedo->data, m_TextureImageWidth * m_TextureImageHeight * m_TextureImageNR * sizeof(unsigned char)));
                                     checkCudaErrors(cudaMemcpy(m_World->objects.at(i)->mat_ptr->albedo->data, m_TextureImageData, m_TextureImageWidth * m_TextureImageHeight * m_TextureImageNR * sizeof(unsigned char), cudaMemcpyHostToDevice));
+                                    STBI_FREE(m_TextureImageData);
 
                                     m_World->objects.at(i)->mat_ptr->albedo->width = m_TextureImageWidth; 
                                     m_World->objects.at(i)->mat_ptr->albedo->height = m_TextureImageHeight; 
@@ -492,6 +492,7 @@ void CudaLayer::GenerateWorld()
     m_TextureImageData = LoadImage(m_TextureImageFilename, m_TextureImageData, &m_TextureImageWidth, &m_TextureImageHeight, &m_TextureImageNR);
     checkCudaErrors(cudaMallocManaged(&earth_sphere->mat_ptr->albedo->data, m_TextureImageWidth * m_TextureImageHeight * m_TextureImageNR * sizeof(unsigned char)));
     checkCudaErrors(cudaMemcpy(earth_sphere->mat_ptr->albedo->data, m_TextureImageData, m_TextureImageWidth * m_TextureImageHeight * m_TextureImageNR * sizeof(unsigned char), cudaMemcpyHostToDevice));
+    STBI_FREE(m_TextureImageData);
     m_World->Add(new(earth_sphere) Sphere(Vec3(0.0f, 3.5f, -1.0f), 2.0f, new(earth_sphere->mat_ptr) Material(new(earth_sphere->mat_ptr->albedo) Texture(earth_sphere->mat_ptr->albedo->data, m_TextureImageWidth, m_TextureImageHeight, Tex::image_texture), Mat::lambertian)));
 
     Sphere* sphere1;

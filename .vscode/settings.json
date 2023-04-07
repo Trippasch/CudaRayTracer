@@ -1,5 +1,6 @@
 {
     "files.associations": {
+        "*.cu": "cuda-cpp",
         "cmath": "cpp",
         "cstdlib": "cpp",
         "memory": "cpp",
@@ -69,6 +70,29 @@
         "streambuf": "cpp",
         "thread": "cpp",
         "cinttypes": "cpp",
-        "valarray": "cpp"
+        "valarray": "cpp",
+        "xstring": "cpp",
+        "forward_list": "cpp",
+        "filesystem": "cpp",
+        "format": "cpp",
+        "ios": "cpp",
+        "locale": "cpp",
+        "ranges": "cpp",
+        "stack": "cpp",
+        "xfacet": "cpp",
+        "xhash": "cpp",
+        "xiosbase": "cpp",
+        "xlocale": "cpp",
+        "xlocbuf": "cpp",
+        "xlocinfo": "cpp",
+        "xlocmes": "cpp",
+        "xlocmon": "cpp",
+        "xlocnum": "cpp",
+        "xloctime": "cpp",
+        "xmemory": "cpp",
+        "xstddef": "cpp",
+        "xtr1common": "cpp",
+        "xtree": "cpp",
+        "xutility": "cpp"
     }
 }
