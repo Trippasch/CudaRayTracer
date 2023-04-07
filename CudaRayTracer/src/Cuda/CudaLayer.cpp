@@ -226,8 +226,6 @@ void CudaLayer::OnImGuiRender()
 
                                 if (m_World->objects.at(i)->mat_ptr->albedo->data == nullptr) {
                                     ImGui::Text("None");
-
-                                    m_World->objects.at(i) = new(m_World->objects.at(i)) Sphere(m_World->objects.at(i)->center, m_World->objects.at(i)->radius, new(m_World->objects.at(i)->mat_ptr) Material(new(m_World->objects.at(i)->mat_ptr->albedo) Texture(m_World->objects.at(i)->mat_ptr->albedo->data, m_TextureImageWidth, m_TextureImageHeight, Tex::image_texture), m_World->objects.at(i)->mat_ptr->material));
                                 }
                                 else {
                                     ImGui::Text(m_TextureImageFilename);
@@ -254,6 +252,8 @@ void CudaLayer::OnImGuiRender()
 
                                         m_World->objects.at(i)->mat_ptr->albedo->width = m_TextureImageWidth; 
                                         m_World->objects.at(i)->mat_ptr->albedo->height = m_TextureImageHeight; 
+
+                                        m_World->objects.at(i) = new(m_World->objects.at(i)) Sphere(m_World->objects.at(i)->center, m_World->objects.at(i)->radius, new(m_World->objects.at(i)->mat_ptr) Material(new(m_World->objects.at(i)->mat_ptr->albedo) Texture(m_World->objects.at(i)->mat_ptr->albedo->data, m_TextureImageWidth, m_TextureImageHeight, Tex::image_texture), m_World->objects.at(i)->mat_ptr->material));
                                     }
 
                                     // close
