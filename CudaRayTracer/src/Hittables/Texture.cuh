@@ -17,7 +17,7 @@ public:
     Texture* odd;
     Texture* even;
     Tex texture;
-    unsigned char *data;
+    unsigned char *data = nullptr;
     int width, height;
     const static int bytes_per_pixel = 3;
 

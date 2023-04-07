@@ -84,9 +84,17 @@ private:
     bool m_UseDielectric = false;
     bool m_UseConstantTexture = true;
     bool m_UseCheckerTexture = false;
+    bool m_UseImageTexture = false;
     Vec3 m_newColor = Vec3(1.0f, 1.0f, 1.0f);
     float m_Fuzz = 0.0f;
     float m_IR = 0.0f;
+
+    // Texture Image
+    int m_TextureImageWidth;
+    int m_TextureImageHeight;
+    int m_TextureImageNR;
+    unsigned char* m_TextureImageData = nullptr;
+    const char* m_TextureImageFilename = "assets/textures/Earth_8K.jpeg";
 
     // Camera
     std::unique_ptr<Camera> m_Camera;

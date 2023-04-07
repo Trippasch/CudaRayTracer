@@ -167,6 +167,12 @@ void ImGuiLayer::SetDraculaTheme()
     colors[ImGuiCol_SliderGrab] = ImVec4{0.44f, 0.37f, 0.61f, 0.54f};
     colors[ImGuiCol_SliderGrabActive] = ImVec4{0.74f, 0.58f, 0.98f, 0.54f};
 
+    // Navigation
+    colors[ImGuiCol_NavHighlight] = ImVec4{0.44f, 0.37f, 0.61f, 1.0f};
+
+    // Child BG
+    colors[ImGuiCol_ChildBg] = ImVec4{0.1f, 0.1f, 0.13f, 1.0f};
+
     // Frame BG
     colors[ImGuiCol_FrameBg] = ImVec4{0.13f, 0.13, 0.17, 1.0f};
     colors[ImGuiCol_FrameBgHovered] = ImVec4{0.19f, 0.2f, 0.25f, 1.0f};
