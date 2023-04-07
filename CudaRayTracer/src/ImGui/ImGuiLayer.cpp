@@ -170,6 +170,10 @@ void ImGuiLayer::SetDraculaTheme()
     // Navigation
     colors[ImGuiCol_NavHighlight] = ImVec4{0.44f, 0.37f, 0.61f, 1.0f};
 
+    // Tables
+    colors[ImGuiCol_TableHeaderBg] = ImVec4{0.13f, 0.13f, 0.17f, 1.0f};
+    colors[ImGuiCol_TableRowBgAlt] = ImVec4{0.13f, 0.13f, 0.17f, 1.0f};
+
     // Child BG
     colors[ImGuiCol_ChildBg] = ImVec4{0.1f, 0.1f, 0.13f, 1.0f};
 

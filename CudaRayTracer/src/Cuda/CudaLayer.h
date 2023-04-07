@@ -94,7 +94,7 @@ private:
     int m_TextureImageHeight;
     int m_TextureImageNR;
     unsigned char* m_TextureImageData = nullptr;
-    const char* m_TextureImageFilename = "assets/textures/Earth_8K.jpeg";
+    const char* m_TextureImageFilename = "assets/textures/8k_earth_daymap.jpg";
 
     // Camera
     std::unique_ptr<Camera> m_Camera;

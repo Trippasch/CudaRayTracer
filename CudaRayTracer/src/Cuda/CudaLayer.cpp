@@ -6,8 +6,7 @@
 
 #include "../Utils/RawStbImage.h"
 
-#include "ImGui/ImGuiFileBrowser.h"
-imgui_addons::ImGuiFileBrowser file_dialog; // As a class member or globally
+#include "ImGui/ImGuiFileDialog.h"
 
 extern "C"
 void LaunchKernel(unsigned int *pos, unsigned int image_width, unsigned int image_height, const unsigned int samples_per_pixel, const unsigned int max_depth, HittableList* world, curandState *d_rand_state, InputStruct inputs);
@@ -235,23 +234,30 @@ void CudaLayer::OnImGuiRender()
                                 }
 
                                 if (ImGui::Button("Open..."))
-                                    ImGui::OpenPopup("Open File");
+                                    ImGuiFileDialog::Instance()->OpenDialog("ChooseFileDlgKey", "Choose File", ".jpg,.jpeg,.png", ".", 1, nullptr, ImGuiFileDialogFlags_Modal);
 
-                                if(file_dialog.showFileDialog("Open File", imgui_addons::ImGuiFileBrowser::DialogMode::OPEN, ImVec2(700, 310), ".jpg,.jpeg,.png,.bmp"))
-                                {
-                                    m_TextureImageFilename = ("assets/textures/" + file_dialog.selected_fn).c_str();
+                                // display
+                                if (ImGuiFileDialog::Instance()->Display("ChooseFileDlgKey")) {
+                                    // action if OK
+                                    if (ImGuiFileDialog::Instance()->IsOk()) {
 
-                                    if (m_World->objects.at(i)->mat_ptr->albedo->data != nullptr) {
-                                        checkCudaErrors(cudaFree(m_World->objects.at(i)->mat_ptr->albedo->data));
+                                        m_TextureImageFilename = ("assets/textures/" + ImGuiFileDialog::Instance()->GetCurrentFileName()).c_str();
+
+                                        if (m_World->objects.at(i)->mat_ptr->albedo->data != nullptr) {
+                                            checkCudaErrors(cudaFree(m_World->objects.at(i)->mat_ptr->albedo->data));
+                                        }
+
+                                        m_TextureImageData = LoadImage(m_TextureImageFilename, m_TextureImageData, &m_TextureImageWidth, &m_TextureImageHeight, &m_TextureImageNR);
+                                        checkCudaErrors(cudaMallocManaged(&m_World->objects.at(i)->mat_ptr->albedo->data, m_TextureImageWidth * m_TextureImageHeight * m_TextureImageNR * sizeof(unsigned char)));
+                                        checkCudaErrors(cudaMemcpy(m_World->objects.at(i)->mat_ptr->albedo->data, m_TextureImageData, m_TextureImageWidth * m_TextureImageHeight * m_TextureImageNR * sizeof(unsigned char), cudaMemcpyHostToDevice));
+                                        STBI_FREE(m_TextureImageData);
+
+                                        m_World->objects.at(i)->mat_ptr->albedo->width = m_TextureImageWidth; 
+                                        m_World->objects.at(i)->mat_ptr->albedo->height = m_TextureImageHeight; 
                                     }
 
-                                    m_TextureImageData = LoadImage(m_TextureImageFilename, m_TextureImageData, &m_TextureImageWidth, &m_TextureImageHeight, &m_TextureImageNR);
-                                    checkCudaErrors(cudaMallocManaged(&m_World->objects.at(i)->mat_ptr->albedo->data, m_TextureImageWidth * m_TextureImageHeight * m_TextureImageNR * sizeof(unsigned char)));
-                                    checkCudaErrors(cudaMemcpy(m_World->objects.at(i)->mat_ptr->albedo->data, m_TextureImageData, m_TextureImageWidth * m_TextureImageHeight * m_TextureImageNR * sizeof(unsigned char), cudaMemcpyHostToDevice));
-                                    STBI_FREE(m_TextureImageData);
-
-                                    m_World->objects.at(i)->mat_ptr->albedo->width = m_TextureImageWidth; 
-                                    m_World->objects.at(i)->mat_ptr->albedo->height = m_TextureImageHeight; 
+                                    // close
+                                    ImGuiFileDialog::Instance()->Close();
                                 }
                             }
 
