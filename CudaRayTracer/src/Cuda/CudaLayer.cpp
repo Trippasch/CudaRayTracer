@@ -489,17 +489,18 @@ void CudaLayer::GenerateWorld()
     checkCudaErrors(cudaMallocManaged(&groundSphere->mat_ptr->albedo->even, sizeof(Texture)));
     m_World->Add(new(groundSphere) Sphere(Vec3(0.0f, -1000.5f, 0.0f), 1000.0f, new(groundSphere->mat_ptr) Material(new(groundSphere->mat_ptr->albedo) Texture(new(groundSphere->mat_ptr->albedo->odd) Texture(Vec3(0.2f, 0.3f, 0.1f), Tex::constant_texture), new(groundSphere->mat_ptr->albedo->even) Texture(Vec3(0.9f, 0.9f, 0.9f), Tex::constant_texture), Tex::checker_texture), Mat::lambertian)));
 
-    Sphere* earth_sphere;
-    checkCudaErrors(cudaMallocManaged(&earth_sphere, sizeof(Sphere)));
-    checkCudaErrors(cudaMallocManaged(&earth_sphere->mat_ptr, sizeof(Material)));
-    checkCudaErrors(cudaMallocManaged(&earth_sphere->mat_ptr->albedo, sizeof(Texture)));
-    checkCudaErrors(cudaMallocManaged(&earth_sphere->mat_ptr->albedo->odd, sizeof(Texture)));
-    checkCudaErrors(cudaMallocManaged(&earth_sphere->mat_ptr->albedo->even, sizeof(Texture)));
+    Sphere* skybox_sphere;
+    checkCudaErrors(cudaMallocManaged(&skybox_sphere, sizeof(Sphere)));
+    checkCudaErrors(cudaMallocManaged(&skybox_sphere->mat_ptr, sizeof(Material)));
+    checkCudaErrors(cudaMallocManaged(&skybox_sphere->mat_ptr->albedo, sizeof(Texture)));
+    checkCudaErrors(cudaMallocManaged(&skybox_sphere->mat_ptr->albedo->odd, sizeof(Texture)));
+    checkCudaErrors(cudaMallocManaged(&skybox_sphere->mat_ptr->albedo->even, sizeof(Texture)));
+    m_TextureImageFilename = "assets/textures/industrial_sunset_puresky.jpg";
     m_TextureImageData = LoadImage(m_TextureImageFilename, m_TextureImageData, &m_TextureImageWidth, &m_TextureImageHeight, &m_TextureImageNR);
-    checkCudaErrors(cudaMallocManaged(&earth_sphere->mat_ptr->albedo->data, m_TextureImageWidth * m_TextureImageHeight * m_TextureImageNR * sizeof(unsigned char)));
-    checkCudaErrors(cudaMemcpy(earth_sphere->mat_ptr->albedo->data, m_TextureImageData, m_TextureImageWidth * m_TextureImageHeight * m_TextureImageNR * sizeof(unsigned char), cudaMemcpyHostToDevice));
+    checkCudaErrors(cudaMallocManaged(&skybox_sphere->mat_ptr->albedo->data, m_TextureImageWidth * m_TextureImageHeight * m_TextureImageNR * sizeof(unsigned char)));
+    checkCudaErrors(cudaMemcpy(skybox_sphere->mat_ptr->albedo->data, m_TextureImageData, m_TextureImageWidth * m_TextureImageHeight * m_TextureImageNR * sizeof(unsigned char), cudaMemcpyHostToDevice));
     STBI_FREE(m_TextureImageData);
-    m_World->Add(new(earth_sphere) Sphere(Vec3(0.0f, 3.5f, -1.0f), 2.0f, new(earth_sphere->mat_ptr) Material(new(earth_sphere->mat_ptr->albedo) Texture(earth_sphere->mat_ptr->albedo->data, m_TextureImageWidth, m_TextureImageHeight, Tex::image_texture), Mat::lambertian)));
+    m_World->Add(new(skybox_sphere) Sphere(Vec3(0.0f, 0.0f, 0.0f), 1000.0f, new(skybox_sphere->mat_ptr) Material(new(skybox_sphere->mat_ptr->albedo) Texture(skybox_sphere->mat_ptr->albedo->data, m_TextureImageWidth, m_TextureImageHeight, Tex::image_texture), Mat::lambertian)));
 
     Sphere* sphere1;
     checkCudaErrors(cudaMallocManaged(&sphere1, sizeof(Sphere)));
