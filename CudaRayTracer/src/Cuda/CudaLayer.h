@@ -89,6 +89,9 @@ private:
     float m_Fuzz = 0.0f;
     float m_IR = 0.0f;
 
+    // Light properties
+    int m_LightIntensity = 1;
+
     // Texture Image
     int m_TextureImageWidth;
     int m_TextureImageHeight;

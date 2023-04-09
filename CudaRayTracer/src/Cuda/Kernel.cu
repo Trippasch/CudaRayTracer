@@ -111,22 +111,32 @@ __device__ inline Vec3 color(const Ray& r, Sphere** world, unsigned int world_si
 
     for (int i = 0; i < max_depth; i++) {
         HitRecord rec;
+        Vec3 emitted = Vec3(0.0f, 0.0f, 0.0f);
         if (Hit(cur_ray, 0.001f, FLT_MAX, rec, world, world_size)) {
             Ray scattered;
             Vec3 attenuation;
+
+            if (rec.mat_ptr->material == Mat::diffuse_light) {
+                emitted = (rec.mat_ptr)->Emitted(rec.u, rec.v, rec.p);
+            }
+
             if ((rec.mat_ptr)->Scatter(cur_ray, rec, attenuation, scattered, local_rand_state)) {
                 cur_attenuation = attenuation * cur_attenuation;
                 cur_ray = scattered;
+
+                // return emitted + cur_attenuation;
             }
             else {
-                return Vec3(0.0f, 0.0f, 0.0f);
+                return emitted;
+                // return Vec3(0.0f, 0.0f, 0.0f);
             }
         }
         else {
+            // return Vec3(0.0f, 0.0f, 0.0f);
             Vec3 unit_direction = UnitVector(cur_ray.Direction());
             float t = 0.5f * (unit_direction.y() + 1.0f);
             Vec3 c = (1.0f - t) * Vec3(1.0f, 1.0f, 1.0f) + t * Vec3(0.5f, 0.7f, 1.0f);
-            return cur_attenuation * c;
+            return emitted + cur_attenuation * c;
         }
     }
     return Vec3(0.0f, 0.0f, 0.0f); // exceeded recursion

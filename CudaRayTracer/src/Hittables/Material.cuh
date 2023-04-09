@@ -16,6 +16,7 @@ public:
     Texture* albedo;
     float fuzz;
     float ir;
+    int light_intensity;
     Mat material;
     Texture* emit;
 
@@ -56,6 +57,7 @@ public:
         }
         albedo->color = Vec3(1.0f, 1.0f, 1.0f);
     }
+    __host__ Material(Texture* e, int i, Mat m) : emit(e), light_intensity(i), material(m) {}
 
     __device__ inline bool Scatter(const Ray& r, const HitRecord& rec, Vec3& attenuation, Ray& scattered, curandState* local_rand_state) const
     {
@@ -107,7 +109,7 @@ public:
 
     __device__ inline Vec3 Emitted(float u, float v, const Vec3& p) const
     {
-        return emit->value(u, v, p);
+        return light_intensity * emit->value(u, v, p);
     }
 
 private:

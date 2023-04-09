@@ -181,7 +181,7 @@ void CudaLayer::OnImGuiRender()
     ImGui::Separator();
 
     if (ImGui::CollapsingHeader("Ray Tracing Settings", base_flags)) {
-        ImGui::SliderInt("Samples Per Pixel", (int *)&m_SamplesPerPixel, 1, 100);
+        ImGui::SliderInt("Samples Per Pixel", (int *)&m_SamplesPerPixel, 1, 1000);
         ImGui::SliderInt("Max Depth", (int *)&m_MaxDepth, 1, 50);
     }
 
@@ -195,7 +195,7 @@ void CudaLayer::OnImGuiRender()
                 ImGui::DragFloat(("Sphere Radius " + std::to_string(i)).c_str(), (float *)&m_World->objects.at(i)->radius, 0.01f, -FLT_MAX, FLT_MAX, "%.2f");
 
                 if (ImGui::TreeNodeEx("Material", base_flags)) {
-                    const char* mat_items[] = {"Lambertian", "Metal", "Dielectric"};
+                    const char* mat_items[] = {"Lambertian", "Metal", "Dielectric", "Diffuse Light"};
                     int mat_item_current = m_World->objects.at(i)->mat_ptr->material;
 
                     if (ImGui::Combo(" ", &mat_item_current, mat_items, IM_ARRAYSIZE(mat_items))) {
@@ -206,7 +206,7 @@ void CudaLayer::OnImGuiRender()
                         ImGui::DragFloat(("Fuzziness " + std::to_string(i)).c_str(), (float *)&m_World->objects.at(i)->mat_ptr->fuzz, 0.01f, 0.0f, 1.0f, "%.2f");
                     }
 
-                    if (m_World->objects.at(i)->mat_ptr->material != Mat::dielectric) {
+                    if (m_World->objects.at(i)->mat_ptr->material != Mat::dielectric && m_World->objects.at(i)->mat_ptr->material != Mat::diffuse_light) {
                         if (ImGui::TreeNodeEx("Texture", base_flags)) {
                             const char* tex_items[] = {"Constant", "Checker", "Image"};
                             int tex_item_current = m_World->objects.at(i)->mat_ptr->albedo->texture;
@@ -264,7 +264,10 @@ void CudaLayer::OnImGuiRender()
                             ImGui::TreePop();
                         }
                     }
-                    else {
+                    else if (m_World->objects.at(i)->mat_ptr->material == Mat::diffuse_light) {
+                        ImGui::SliderInt("Light Intensity", &m_World->objects.at(i)->mat_ptr->light_intensity, 0, 10);
+                    }
+                    else if (m_World->objects.at(i)->mat_ptr->material == Mat::dielectric) {
                         ImGui::DragFloat(("Index of Refraction " + std::to_string(i)).c_str(), (float *)&m_World->objects.at(i)->mat_ptr->ir, 0.01f, 0.0f, FLT_MAX, "%.2f");
                     }
 
@@ -533,6 +536,12 @@ void CudaLayer::GenerateWorld()
     checkCudaErrors(cudaMallocManaged(&glassSphere_b->mat_ptr->albedo->odd, sizeof(Texture)));
     checkCudaErrors(cudaMallocManaged(&glassSphere_b->mat_ptr->albedo->even, sizeof(Texture)));
     m_World->Add(new(glassSphere_b) Sphere(Vec3(-1.0f, 0.0f, -1.0f), -0.45f, new(glassSphere_b->mat_ptr) Material(1.5f, Mat::dielectric)));
+
+    Sphere* light_sphere;
+    checkCudaErrors(cudaMallocManaged(&light_sphere, sizeof(Sphere)));
+    checkCudaErrors(cudaMallocManaged(&light_sphere->mat_ptr, sizeof(Material)));
+    checkCudaErrors(cudaMallocManaged(&light_sphere->mat_ptr->emit, sizeof(Texture)));
+    m_World->Add(new(light_sphere) Sphere(Vec3(0.0f, 5.0f, 0.0f), 0.5f, new(light_sphere->mat_ptr) Material(new(light_sphere->mat_ptr->emit) Texture(Vec3(1.0f, 1.0f, 1.0f), Tex::constant_texture), m_LightIntensity, Mat::diffuse_light)));
 }
 
 void CudaLayer::AddSphere()
