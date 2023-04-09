@@ -143,6 +143,8 @@ void CudaLayer::OnImGuiRender()
 
     ImGui::Text("Dear ImGui %s", ImGui::GetVersion());
 
+    ImGui::Text("Generated image dimensions: %dx%d", m_ImageWidth, m_ImageHeight);
+
 #ifdef RT_DEBUG
     ImGui::Text("Running on Debug mode");
 #elif RT_RELEASE
@@ -206,7 +208,11 @@ void CudaLayer::OnImGuiRender()
                         ImGui::DragFloat(("Fuzziness " + std::to_string(i)).c_str(), (float *)&m_World->objects.at(i)->mat_ptr->fuzz, 0.01f, 0.0f, 1.0f, "%.2f");
                     }
 
-                    if (m_World->objects.at(i)->mat_ptr->material != Mat::dielectric && m_World->objects.at(i)->mat_ptr->material != Mat::diffuse_light) {
+                    if (m_World->objects.at(i)->mat_ptr->material == Mat::diffuse_light) {
+                        ImGui::SliderInt("Light Intensity", &m_World->objects.at(i)->mat_ptr->light_intensity, 0, 10);
+                    }
+
+                    if (m_World->objects.at(i)->mat_ptr->material != Mat::dielectric) {
                         if (ImGui::TreeNodeEx("Texture", base_flags)) {
                             const char* tex_items[] = {"Constant", "Checker", "Image"};
                             int tex_item_current = m_World->objects.at(i)->mat_ptr->albedo->texture;
@@ -223,13 +229,6 @@ void CudaLayer::OnImGuiRender()
                                 ImGui::ColorEdit3(("Albedo even " + std::to_string(i)).c_str(), (float *)&m_World->objects.at(i)->mat_ptr->albedo->even->color);
                             }
                             else if (m_World->objects.at(i)->mat_ptr->albedo->texture == Tex::image_texture) {
-
-                                if (m_World->objects.at(i)->mat_ptr->albedo->data == nullptr) {
-                                    ImGui::Text("None");
-                                }
-                                else {
-                                    ImGui::Text(m_TextureImageFilename);
-                                }
 
                                 if (ImGui::Button("Open..."))
                                     ImGuiFileDialog::Instance()->OpenDialog("ChooseFileDlgKey", "Choose File", ".jpg,.jpeg,.png", ".", 1, nullptr, ImGuiFileDialogFlags_Modal);
@@ -259,13 +258,17 @@ void CudaLayer::OnImGuiRender()
                                     // close
                                     ImGuiFileDialog::Instance()->Close();
                                 }
+
+                                if (m_World->objects.at(i)->mat_ptr->albedo->data == nullptr) {
+                                    ImGui::Text("None");
+                                }
+                                else {
+                                    ImGui::Text(m_TextureImageFilename);
+                                }
                             }
 
                             ImGui::TreePop();
                         }
-                    }
-                    else if (m_World->objects.at(i)->mat_ptr->material == Mat::diffuse_light) {
-                        ImGui::SliderInt("Light Intensity", &m_World->objects.at(i)->mat_ptr->light_intensity, 0, 10);
                     }
                     else if (m_World->objects.at(i)->mat_ptr->material == Mat::dielectric) {
                         ImGui::DragFloat(("Index of Refraction " + std::to_string(i)).c_str(), (float *)&m_World->objects.at(i)->mat_ptr->ir, 0.01f, 0.0f, FLT_MAX, "%.2f");
@@ -295,19 +298,27 @@ void CudaLayer::OnImGuiRender()
             if (ImGui::Checkbox("Lambertian", &m_UseLambertian)) {
                 m_UseMetal = false;
                 m_UseDielectric = false;
+                m_UseDiffuseLight = false;
             }
             else if (ImGui::Checkbox("Metal", &m_UseMetal)) {
                 m_UseLambertian = false;
                 m_UseDielectric = false;
+                m_UseDiffuseLight = false;
             }
             else if (ImGui::Checkbox("Dielectric", &m_UseDielectric)) {
                 m_UseMetal = false;
                 m_UseLambertian = false;
+                m_UseDiffuseLight = false;
+            }
+            else if (ImGui::Checkbox("Diffuse Light", &m_UseDiffuseLight)) {
+                m_UseMetal = false;
+                m_UseLambertian = false;
+                m_UseDielectric = false;
             }
 
             ImGui::Separator();
 
-            if (m_UseLambertian == true || m_UseMetal == true) {
+            if (m_UseLambertian == true || m_UseMetal == true || m_UseDiffuseLight == true) {
                 ImGui::Text("Choose the sphere material texture:");
                 ImGui::Separator();
                 if (ImGui::Checkbox("Constant Texture", &m_UseConstantTexture)) {
@@ -325,7 +336,7 @@ void CudaLayer::OnImGuiRender()
                 ImGui::Separator();
             }
 
-            if ((m_UseLambertian || m_UseMetal || m_UseDielectric)) {
+            if ((m_UseLambertian || m_UseMetal || m_UseDielectric || m_UseDiffuseLight)) {
                 if (!m_UseDielectric) {
                     if (m_UseConstantTexture || m_UseCheckerTexture || m_UseImageTexture) {
                         if (ImGui::Button("Add")) {
@@ -540,8 +551,15 @@ void CudaLayer::GenerateWorld()
     Sphere* light_sphere;
     checkCudaErrors(cudaMallocManaged(&light_sphere, sizeof(Sphere)));
     checkCudaErrors(cudaMallocManaged(&light_sphere->mat_ptr, sizeof(Material)));
-    checkCudaErrors(cudaMallocManaged(&light_sphere->mat_ptr->emit, sizeof(Texture)));
-    m_World->Add(new(light_sphere) Sphere(Vec3(0.0f, 5.0f, 0.0f), 0.5f, new(light_sphere->mat_ptr) Material(new(light_sphere->mat_ptr->emit) Texture(Vec3(1.0f, 1.0f, 1.0f), Tex::constant_texture), m_LightIntensity, Mat::diffuse_light)));
+    checkCudaErrors(cudaMallocManaged(&light_sphere->mat_ptr->albedo, sizeof(Texture)));
+    checkCudaErrors(cudaMallocManaged(&light_sphere->mat_ptr->albedo->odd, sizeof(Texture)));
+    checkCudaErrors(cudaMallocManaged(&light_sphere->mat_ptr->albedo->even, sizeof(Texture)));
+    m_TextureImageFilename = "assets/textures/8k_sun.jpg";
+    m_TextureImageData = LoadImage(m_TextureImageFilename, m_TextureImageData, &m_TextureImageWidth, &m_TextureImageHeight, &m_TextureImageNR);
+    checkCudaErrors(cudaMallocManaged(&light_sphere->mat_ptr->albedo->data, m_TextureImageWidth * m_TextureImageHeight * m_TextureImageNR * sizeof(unsigned char)));
+    checkCudaErrors(cudaMemcpy(light_sphere->mat_ptr->albedo->data, m_TextureImageData, m_TextureImageWidth * m_TextureImageHeight * m_TextureImageNR * sizeof(unsigned char), cudaMemcpyHostToDevice));
+    STBI_FREE(m_TextureImageData);
+    m_World->Add(new(light_sphere) Sphere(Vec3(0.0f, 2.0f, 0.0f), 0.5f, new(light_sphere->mat_ptr) Material(new(light_sphere->mat_ptr->albedo) Texture(light_sphere->mat_ptr->albedo->data, m_TextureImageWidth, m_TextureImageHeight, Tex::image_texture), m_LightIntensity, Mat::diffuse_light)));
 }
 
 void CudaLayer::AddSphere()
@@ -571,10 +589,21 @@ void CudaLayer::AddSphere()
             m_World->Add(new(new_sphere) Sphere(m_SpherePosition, m_SphereRadius, new(new_sphere->mat_ptr) Material(new(new_sphere->mat_ptr->albedo) Texture(new(new_sphere->mat_ptr->albedo->odd) Texture(Vec3(0.0f, 0.0f, 0.0f), Tex::constant_texture), new(new_sphere->mat_ptr->albedo->even) Texture(Vec3(1.0f, 1.0f, 1.0f), Tex::constant_texture), Tex::checker_texture), m_Fuzz, Mat::metal)));
         }
         else if (m_UseImageTexture) {
-            m_World->Add(new(new_sphere) Sphere(m_SpherePosition, m_SphereRadius, new(new_sphere->mat_ptr) Material(new(new_sphere->mat_ptr->albedo) Texture(new_sphere->mat_ptr->albedo->data, m_TextureImageWidth, m_TextureImageHeight, Tex::image_texture), Mat::metal)));
+            m_World->Add(new(new_sphere) Sphere(m_SpherePosition, m_SphereRadius, new(new_sphere->mat_ptr) Material(new(new_sphere->mat_ptr->albedo) Texture(new_sphere->mat_ptr->albedo->data, m_TextureImageWidth, m_TextureImageHeight, Tex::image_texture), m_Fuzz, Mat::metal)));
         }
     }
-    else {
+    else if (m_UseDiffuseLight) {
+        if (m_UseConstantTexture) {
+            m_World->Add(new(new_sphere) Sphere(m_SpherePosition, m_SphereRadius, new(new_sphere->mat_ptr) Material(new(new_sphere->mat_ptr->albedo) Texture(m_newColor, Tex::constant_texture), m_LightIntensity, Mat::diffuse_light)));
+        }
+        else if (m_UseCheckerTexture) {
+            m_World->Add(new(new_sphere) Sphere(m_SpherePosition, m_SphereRadius, new(new_sphere->mat_ptr) Material(new(new_sphere->mat_ptr->albedo) Texture(new(new_sphere->mat_ptr->albedo->odd) Texture(Vec3(0.0f, 0.0f, 0.0f), Tex::constant_texture), new(new_sphere->mat_ptr->albedo->even) Texture(Vec3(1.0f, 1.0f, 1.0f), Tex::constant_texture), Tex::checker_texture), m_LightIntensity, Mat::diffuse_light)));
+        }
+        else if (m_UseImageTexture) {
+            m_World->Add(new(new_sphere) Sphere(m_SpherePosition, m_SphereRadius, new(new_sphere->mat_ptr) Material(new(new_sphere->mat_ptr->albedo) Texture(new_sphere->mat_ptr->albedo->data, m_TextureImageWidth, m_TextureImageHeight, Tex::image_texture), m_LightIntensity, Mat::diffuse_light)));
+        }
+    }
+    else if (m_UseDielectric) {
         m_World->Add(new(new_sphere) Sphere(m_SpherePosition, m_SphereRadius, new(new_sphere->mat_ptr) Material(m_IR, Mat::dielectric)));
     }
 }

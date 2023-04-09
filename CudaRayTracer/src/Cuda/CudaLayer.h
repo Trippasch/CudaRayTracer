@@ -82,6 +82,7 @@ private:
     bool m_UseLambertian = true;
     bool m_UseMetal = false;
     bool m_UseDielectric = false;
+    bool m_UseDiffuseLight = false;
     bool m_UseConstantTexture = true;
     bool m_UseCheckerTexture = false;
     bool m_UseImageTexture = false;
@@ -90,7 +91,7 @@ private:
     float m_IR = 0.0f;
 
     // Light properties
-    int m_LightIntensity = 1;
+    int m_LightIntensity = 2;
 
     // Texture Image
     int m_TextureImageWidth;

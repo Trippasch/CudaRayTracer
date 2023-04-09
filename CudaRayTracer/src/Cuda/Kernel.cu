@@ -47,65 +47,6 @@ __device__ bool Hit(const Ray& r, float t_min, float t_max, HitRecord& rec, Sphe
 }
 
 __device__ inline Vec3 color(const Ray& r, Sphere** world, unsigned int world_size, int max_depth, curandState* local_rand_state) {
-
-    // HitRecord rec;
-
-    // // If we've exceeded the ray bounce limit, no more light is gathered.
-    // if (max_depth <= 0)
-    //     return Vec3(0.0f, 0.0f, 0.0f);
-
-    // // If the ray hits nothing, return the background color.
-    // if (!Hit(r, 0.001f, FLT_MAX, rec, world, world_size))
-    //     return Vec3(1.0f, 0.0f, 0.0f);
-
-    // Ray scattered;
-    // Vec3 attenuation;
-    // Vec3 emitted = rec.mat_ptr->Emitted(rec.u, rec.v, rec.p);
-
-    // if (!rec.mat_ptr->Scatter(r, rec, attenuation, scattered, local_rand_state))
-    //     return emitted;
-
-    // return emitted + attenuation * color(scattered, world, world_size, max_depth - 1, local_rand_state);
-
-    ///////////////////////////////////////////////////////////////////////////
-
-    // Ray cur_ray = r;
-    // Vec3 cur_attenuation = Vec3(1.0f, 1.0f, 1.0f);
-
-    // Vec3 background(0, 0, 0);
-    // Vec3 emitted_stack[8];
-    // Vec3 ray_color_stack[8];
-    // Vec3 attenuation_stack[8];
-    // int index = 0;
-
-    // for (int i = 0; i < max_depth; i++) {
-    //     HitRecord rec;
-    //     if (!Hit(cur_ray, 0.001f, FLT_MAX, rec, world, world_size)) {
-    //         ray_color_stack[i] = background;
-    //         index = i;
-    //         break;
-    //     }
-
-    //     Ray scattered;
-    //     Vec3 attenuation;
-    //     Vec3 emitted = rec.mat_ptr->Emitted(rec, 0, 0, Vec3(0, 0, 0));
-    //     emitted_stack[i] = emitted;
-    //     if (!(rec.mat_ptr)->Scatter(cur_ray, rec, attenuation, scattered, local_rand_state)) {
-    //         ray_color_stack[i] = emitted;
-    //         index = i;
-    //         break;
-    //     }
-    //     cur_ray = scattered;
-    //     attenuation_stack[i] = attenuation;
-    // }
-
-    // for (int i = index-1; i >= 0; --i) {
-    //     ray_color_stack[i] = emitted_stack[i] + attenuation_stack[i] * ray_color_stack[i + 1];
-    // }
-    // return ray_color_stack[0];
-
-    ///////////////////////////////////////////////////////////////////////////
-
     Ray cur_ray = r;
     Vec3 cur_attenuation = Vec3(1.0f, 1.0f, 1.0f);
 
@@ -123,12 +64,9 @@ __device__ inline Vec3 color(const Ray& r, Sphere** world, unsigned int world_si
             if ((rec.mat_ptr)->Scatter(cur_ray, rec, attenuation, scattered, local_rand_state)) {
                 cur_attenuation = attenuation * cur_attenuation;
                 cur_ray = scattered;
-
-                // return emitted + cur_attenuation;
             }
             else {
-                return emitted;
-                // return Vec3(0.0f, 0.0f, 0.0f);
+                return emitted * cur_attenuation;
             }
         }
         else {
@@ -136,7 +74,7 @@ __device__ inline Vec3 color(const Ray& r, Sphere** world, unsigned int world_si
             Vec3 unit_direction = UnitVector(cur_ray.Direction());
             float t = 0.5f * (unit_direction.y() + 1.0f);
             Vec3 c = (1.0f - t) * Vec3(1.0f, 1.0f, 1.0f) + t * Vec3(0.5f, 0.7f, 1.0f);
-            return emitted + cur_attenuation * c;
+            return cur_attenuation * c;
         }
     }
     return Vec3(0.0f, 0.0f, 0.0f); // exceeded recursion

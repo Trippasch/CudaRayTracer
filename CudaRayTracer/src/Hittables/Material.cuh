@@ -18,7 +18,6 @@ public:
     float ir;
     int light_intensity;
     Mat material;
-    Texture* emit;
 
 public:
     __host__ Material() {}
@@ -57,7 +56,20 @@ public:
         }
         albedo->color = Vec3(1.0f, 1.0f, 1.0f);
     }
-    __host__ Material(Texture* e, int i, Mat m) : emit(e), light_intensity(i), material(m) {}
+    __host__ Material(Texture* a, int l, Mat m) : albedo(a), light_intensity(l), material(m) {
+        if (albedo->texture == Tex::constant_texture) {
+            albedo->even->color = Vec3(1.0f, 1.0f, 1.0f);
+            albedo->odd->color = Vec3(0.0f, 0.0f, 0.0f);
+        }
+        else if (albedo->texture == Tex::checker_texture) {
+            albedo->color = Vec3(1.0f, 1.0f, 1.0f);
+        }
+        else if (albedo->texture == Tex::image_texture) {
+            albedo->even->color = Vec3(1.0f, 1.0f, 1.0f);
+            albedo->odd->color = Vec3(0.0f, 0.0f, 0.0f);
+            albedo->color = Vec3(1.0f, 1.0f, 1.0f);
+        }
+    }
 
     __device__ inline bool Scatter(const Ray& r, const HitRecord& rec, Vec3& attenuation, Ray& scattered, curandState* local_rand_state) const
     {
@@ -109,7 +121,7 @@ public:
 
     __device__ inline Vec3 Emitted(float u, float v, const Vec3& p) const
     {
-        return light_intensity * emit->value(u, v, p);
+        return light_intensity * albedo->value(u, v, p);
     }
 
 private:
