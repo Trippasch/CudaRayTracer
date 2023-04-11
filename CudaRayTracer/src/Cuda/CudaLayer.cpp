@@ -194,22 +194,18 @@ void CudaLayer::OnImGuiRender()
             if (ImGui::TreeNodeEx(("Hittable " + std::to_string(i)).c_str())) {
 
                 if (m_World->objects.at(i)->hittable == Hitt::sphere) {
-                    ImGui::DragFloat3(("Sphere Position " + std::to_string(i)).c_str(), (float *)&m_World->objects.at(i)->center, 0.01f, -FLT_MAX, FLT_MAX, "%.2f");
-                    ImGui::DragFloat(("Sphere Radius " + std::to_string(i)).c_str(), (float *)&m_World->objects.at(i)->radius, 0.01f, -FLT_MAX, FLT_MAX, "%.2f");
+                    ImGui::DragFloat3("Position", (float *)&m_World->objects.at(i)->center, 0.01f, -FLT_MAX, FLT_MAX, "%.2f");
+                    ImGui::DragFloat("Radius", (float *)&m_World->objects.at(i)->radius, 0.01f, -FLT_MAX, FLT_MAX, "%.2f");
                 }
                 else if (m_World->objects.at(i)->hittable == Hitt::xy_rect) {
-                    ImGui::DragFloat3(("Rect Position " + std::to_string(i)).c_str(), (float *)&m_RectPosition, 0.01f, -FLT_MAX, FLT_MAX, "%.2f");
+                    ImGui::DragFloat3("Position", (float *)&m_RectPosition, 0.01f, -FLT_MAX, FLT_MAX, "%.2f");
+                    ImGui::DragFloat("Width", (float *)&m_RectWidth, 0.01f, 0, FLT_MAX, "%.2f");
+                    ImGui::DragFloat("Height", (float *)&m_RectHeight, 0.01f, 0, FLT_MAX, "%.2f");
 
-                    ImGui::DragFloat("X0", (float *)&m_World->objects.at(i)->x0, 0.01f, -FLT_MAX, FLT_MAX, "%.2f");
-                    ImGui::DragFloat("X1", (float *)&m_World->objects.at(i)->x1, 0.01f, -FLT_MAX, FLT_MAX, "%.2f");
-                    ImGui::DragFloat("Y0", (float *)&m_World->objects.at(i)->y0, 0.01f, -FLT_MAX, FLT_MAX, "%.2f");
-                    ImGui::DragFloat("Y1", (float *)&m_World->objects.at(i)->y1, 0.01f, -FLT_MAX, FLT_MAX, "%.2f");
-                    ImGui::DragFloat("K", (float *)&m_World->objects.at(i)->k, 0.01f, -FLT_MAX, FLT_MAX, "%.2f");
-
-                    m_World->objects.at(i)->x0 = m_World->objects.at(i)->x1 - 2 * m_RectPosition.x();
-                    m_World->objects.at(i)->x1 = 2 * m_RectPosition.x() + m_World->objects.at(i)->x0;
-                    m_World->objects.at(i)->y0 = m_World->objects.at(i)->y1 - 2 * m_RectPosition.y();
-                    m_World->objects.at(i)->y1 = 2 * m_RectPosition.y() + m_World->objects.at(i)->y0;
+                    m_World->objects.at(i)->x0 = m_RectPosition.x() - (m_RectWidth/2);
+                    m_World->objects.at(i)->x1 = m_RectPosition.x() + (m_RectWidth/2);
+                    m_World->objects.at(i)->y0 = m_RectPosition.y() - (m_RectHeight/2);
+                    m_World->objects.at(i)->y1 = m_RectPosition.y() + (m_RectHeight/2);
                     m_World->objects.at(i)->k = m_RectPosition.z();
                 }
 
