@@ -4,7 +4,7 @@
 
 #include "Hittables/HittableList.cuh"
 #include "Hittables/Material.cuh"
-#include "Hittables/Sphere.cuh"
+#include "Hittables/Hittable.cuh"
 
 #include "Utils/SharedStructs.h"
 #include "Utils/helper_cuda.h"
@@ -39,8 +39,8 @@ private:
     void InitGLBuffers();
     void RunCudaInit();
     void GenerateWorld();
-    void AddSphere();
-    void DeleteSphere(Sphere* sphere);
+    void AddHittable();
+    void DeleteHittable(Hittable* hittable);
     void RunCudaUpdate();
     bool OnImGuiResize();
 
@@ -61,22 +61,22 @@ private:
     curandState* m_DrandState;    // allocate random state
     curandState* m_DrandState2;
 
+    InputStruct m_Inputs;
+
     // Hittables
-    // Sphere** m_HittableList;
-    // const unsigned int m_NumHittables = 20;
-    // Sphere** m_World;
     HittableList* m_World;
+    bool m_UseHittableSphere = true;
+    bool m_UseHittableXYRect = false;
+    bool m_UseHittableXZRect = false;
+    bool m_UseHittableYZRect = false;
+    int m_HittableID = 0;
+    Vec3 m_SpherePosition = Vec3(0.0f, 1.0f, 0.0f);
+    float m_SphereRadius = 0.5f;
+    Vec3 m_RectPosition = Vec3(0.0f, 0.0f, 0.0f);
 
     // RayTracing
     unsigned int m_SamplesPerPixel = 50;
     unsigned int m_MaxDepth = 12;
-
-    InputStruct m_Inputs;
-
-    // Sphere Properties
-    int m_SphereID = 0;
-    Vec3 m_SpherePosition = Vec3(0.0f, 1.0f, 0.0f);
-    float m_SphereRadius = 0.5f;
 
     // Material Properties
     bool m_UseLambertian = true;

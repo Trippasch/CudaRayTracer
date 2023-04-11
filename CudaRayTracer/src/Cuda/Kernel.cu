@@ -5,7 +5,7 @@
 #include <float.h>
 
 #include "../Hittables/HittableList.cuh"
-#include "../Hittables/Sphere.cuh"
+#include "../Hittables/Hittable.cuh"
 #include "../Hittables/Material.cuh"
 #include "../Utils/SharedStructs.h"
 #include "../Utils/Math.cu"
@@ -29,7 +29,7 @@ __device__ inline Vec3 IntToRgb(int val)
     return Vec3(r, g, b);
 }
 
-__device__ bool Hit(const Ray& r, float t_min, float t_max, HitRecord& rec, Sphere** world, unsigned int world_size)
+__device__ bool Hit(const Ray& r, float t_min, float t_max, HitRecord& rec, Hittable** world, unsigned int world_size)
 {
     HitRecord temp_rec;
     bool hit_anything = false;
@@ -46,7 +46,7 @@ __device__ bool Hit(const Ray& r, float t_min, float t_max, HitRecord& rec, Sphe
     return hit_anything;
 }
 
-__device__ inline Vec3 color(const Ray& r, Sphere** world, unsigned int world_size, int max_depth, curandState* local_rand_state) {
+__device__ inline Vec3 color(const Ray& r, Hittable** world, unsigned int world_size, int max_depth, curandState* local_rand_state) {
     Ray cur_ray = r;
     Vec3 cur_attenuation = Vec3(1.0f, 1.0f, 1.0f);
 
@@ -104,7 +104,7 @@ __device__ inline void GetXYZCoords(int& x, int& y, int& z)
 
 __global__
 // __launch_bounds__(MY_KERNEL_MAX_THREADS, MY_KERNEL_MIN_BLOCKS)
-void Kernel(unsigned int* pos, unsigned int width, unsigned int height, const unsigned int samples_per_pixel, const unsigned int max_depth, Sphere** world, unsigned int world_size, curandState* rand_state, InputStruct inputs)
+void Kernel(unsigned int* pos, unsigned int width, unsigned int height, const unsigned int samples_per_pixel, const unsigned int max_depth, Hittable** world, unsigned int world_size, curandState* rand_state, InputStruct inputs)
 {
     extern __shared__ uchar4 sdata[];
 
@@ -225,8 +225,8 @@ void LaunchKernel(unsigned int* pos, unsigned int image_width, unsigned int imag
     dim3 grid(image_width / block.x, image_height / block.y, 1);
     size_t sbytes = 0;
 
-    Sphere** d_world;
-    cudaMallocManaged((void**)&d_world, world->objects.size() * sizeof(Sphere*));
+    Hittable** d_world;
+    cudaMallocManaged((void**)&d_world, world->objects.size() * sizeof(Hittable*));
 
     for (int i = 0; i < world->objects.size(); i++) {
         d_world[i] = world->objects[i];

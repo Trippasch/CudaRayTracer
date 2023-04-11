@@ -2,18 +2,18 @@
 
 #include <vector>
 
-#include "Sphere.cuh"
+#include "Hittable.cuh"
 
 class HittableList
 {
 public:
-    std::vector<Sphere *> objects;
+    std::vector<Hittable *> objects;
 
 public:
     __host__ HittableList() {}
-    __host__ HittableList(Sphere *object) { Add(object); }
+    __host__ HittableList(Hittable *object) { Add(object); }
 
-    __host__ inline void Add(Sphere *object)
+    __host__ inline void Add(Hittable *object)
     {
         objects.push_back(object);
     }
