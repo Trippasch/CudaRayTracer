@@ -199,8 +199,8 @@ void CudaLayer::OnImGuiRender()
                 }
                 else {
                     ImGui::DragFloat3("Position", (float *)&m_World->objects.at(i)->center, 0.01f, -FLT_MAX, FLT_MAX, "%.2f");
-                    ImGui::DragFloat("Width", (float *)&m_World->objects.at(i)->rect_width, 0.01f, 0, FLT_MAX, "%.2f");
-                    ImGui::DragFloat("Height", (float *)&m_World->objects.at(i)->rect_height, 0.01f, 0, FLT_MAX, "%.2f");
+                    ImGui::DragFloat("Width", (float *)&m_World->objects.at(i)->width, 0.01f, 0, FLT_MAX, "%.2f");
+                    ImGui::DragFloat("Height", (float *)&m_World->objects.at(i)->height, 0.01f, 0, FLT_MAX, "%.2f");
                 }
 
                 if (ImGui::TreeNodeEx("Material", base_flags)) {

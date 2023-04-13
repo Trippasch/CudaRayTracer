@@ -73,19 +73,19 @@ public:
 
     __device__ inline bool Scatter(const Ray& r, const HitRecord& rec, Vec3& attenuation, Ray& scattered, curandState* local_rand_state) const
     {
-        if (material == 0) {
+        if (material == Mat::lambertian) {
             Vec3 target = rec.p + rec.normal + RandomInUnitSphere(local_rand_state);
             scattered = Ray(rec.p, target - rec.p);
             attenuation = albedo->value(rec.u, rec.v, rec.p);
             return true;
         }
-        else if (material == 1) {
+        else if (material == Mat::metal) {
             Vec3 reflected = Reflect(UnitVector(r.Direction()), rec.normal);
             scattered = Ray(rec.p, reflected + fuzz*RandomInUnitSphere(local_rand_state));
             attenuation = albedo->value(rec.u, rec.v, rec.p);
             return (Dot(scattered.Direction(), rec.normal) > 0);
         }
-        else if (material == 2) {
+        else if (material == Mat::dielectric) {
             Vec3 outward_normal;
             Vec3 reflected = Reflect(r.Direction(), rec.normal);
             float ni_over_nt;
@@ -114,7 +114,7 @@ public:
                 scattered = Ray(rec.p, refracted);
             return true;
         }
-        else if (material == 3) {
+        else if (material == Mat::diffuse_light) {
             return false;
         }
     }

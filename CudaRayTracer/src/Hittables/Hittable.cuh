@@ -20,7 +20,6 @@ typedef struct HitRecord
     }
 } HitRecord;
 
-
 enum Hitt {
     sphere = 0,
     xy_rect,
@@ -35,20 +34,20 @@ public:
 
     Vec3 center;
     float radius;
-    float rect_width;
-    float rect_height;
+    float width;
+    float height;
     Material* mat_ptr;
 
 public:
-    __host__ Hittable(Vec3 cen, float r, Material* m, Hitt h)
-        : center(cen), radius(r), mat_ptr(m), hittable(h) {}
+    __host__ Hittable(Vec3 cen, float r, Material* m, Hitt t)
+        : center(cen), radius(r), mat_ptr(m), hittable(t) {}
 
-    __host__ Hittable(Vec3 cen, float width, float height, Material* m, Hitt h)
-        : center(cen), rect_width(width), rect_height(height), mat_ptr(m), hittable(h) {}
+    __host__ Hittable(Vec3 cen, float w, float h, Material* m, Hitt t)
+        : center(cen), width(w), height(h), mat_ptr(m), hittable(t) {}
 
     __device__ inline bool Hit(const Ray& r, float t_min, float t_max, HitRecord& rec) const
     {
-        if (hittable == 0) {
+        if (hittable == Hitt::sphere) {
             Vec3 oc = r.Origin() - center;
             float a = Dot(r.Direction(), r.Direction());
             float b = Dot(oc, r.Direction());
@@ -78,12 +77,12 @@ public:
 
             return false;
         }
-        else if (hittable == 1) {
+        else if (hittable == Hitt::xy_rect) {
             float x0, x1, y0, y1, k;
-            x0 = center.x() - (rect_width/2);
-            x1 = center.x() + (rect_width/2);
-            y0 = center.y() - (rect_height/2);
-            y1 = center.y() + (rect_height/2);
+            x0 = center.x() - (width/2);
+            x1 = center.x() + (width/2);
+            y0 = center.y() - (height/2);
+            y1 = center.y() + (height/2);
             k = center.z();
 
             float t = (k - r.Origin().z()) / r.Direction().z();
@@ -106,12 +105,12 @@ public:
 
             return true;
         }
-        else if (hittable == 2) {
+        else if (hittable == Hitt::xz_rect) {
             float x0, x1, z0, z1, k;
-            x0 = center.x() - (rect_width/2);
-            x1 = center.x() + (rect_width/2);
-            z0 = center.z() - (rect_height/2);
-            z1 = center.z() + (rect_height/2);
+            x0 = center.x() - (width/2);
+            x1 = center.x() + (width/2);
+            z0 = center.z() - (height/2);
+            z1 = center.z() + (height/2);
             k = center.y();
 
             float t = (k - r.Origin().y()) / r.Direction().y();
@@ -134,12 +133,12 @@ public:
 
             return true;
         }
-        else if (hittable == 3) {
+        else if (hittable == Hitt::yz_rect) {
             float y0, y1, z0, z1, k;
-            y0 = center.y() - (rect_height/2);
-            y1 = center.y() + (rect_height/2);
-            z0 = center.z() - (rect_width/2);
-            z1 = center.z() + (rect_width/2);
+            y0 = center.y() - (height/2);
+            y1 = center.y() + (height/2);
+            z0 = center.z() - (width/2);
+            z1 = center.z() + (width/2);
             k = center.x();
 
             float t = (k - r.Origin().x()) / r.Direction().x();

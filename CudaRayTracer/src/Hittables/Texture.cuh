@@ -32,10 +32,10 @@ public:
 
     __device__ inline Vec3 value(float u, float v, const Vec3& p) const
     {
-        if (texture == 0) {
+        if (texture == Tex::constant_texture) {
             return color;
         }
-        else if (texture == 1) {
+        else if (texture == Tex::checker_texture) {
             float sines = sin(10 * p.x()) * sin(10 * p.y()) * sin(10 * p.z());
             if (sines < 0) {
                 return odd->value(u, v, p);
@@ -44,7 +44,7 @@ public:
                 return even->value(u, v, p);
             }
         }
-        else if (texture == 2) {
+        else if (texture == Tex::image_texture) {
             if (data == nullptr)
                 return Vec3(0, 1, 1);
 
