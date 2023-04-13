@@ -35,15 +35,16 @@ public:
 
     Vec3 center;
     float radius;
-    float x0, x1, y0, y1, z0, z1, k;
+    float rect_width;
+    float rect_height;
     Material* mat_ptr;
 
 public:
     __host__ Hittable(Vec3 cen, float r, Material* m, Hitt h)
         : center(cen), radius(r), mat_ptr(m), hittable(h) {}
 
-    __host__ Hittable(float xx0, float xx1, float yy0, float yy1, float zz0, float zz1, float kk, Material* m, Hitt h)
-        : x0(xx0), x1(xx1), y0(yy0), y1(yy1), z0(zz0), z1(zz1), k(kk), mat_ptr(m), hittable(h) {}
+    __host__ Hittable(Vec3 cen, float width, float height, Material* m, Hitt h)
+        : center(cen), rect_width(width), rect_height(height), mat_ptr(m), hittable(h) {}
 
     __device__ inline bool Hit(const Ray& r, float t_min, float t_max, HitRecord& rec) const
     {
@@ -78,6 +79,13 @@ public:
             return false;
         }
         else if (hittable == 1) {
+            float x0, x1, y0, y1, k;
+            x0 = center.x() - (rect_width/2);
+            x1 = center.x() + (rect_width/2);
+            y0 = center.y() - (rect_height/2);
+            y1 = center.y() + (rect_height/2);
+            k = center.z();
+
             float t = (k - r.Origin().z()) / r.Direction().z();
 
             if (t < t_min || t > t_max)
@@ -99,6 +107,13 @@ public:
             return true;
         }
         else if (hittable == 2) {
+            float x0, x1, z0, z1, k;
+            x0 = center.x() - (rect_width/2);
+            x1 = center.x() + (rect_width/2);
+            z0 = center.z() - (rect_height/2);
+            z1 = center.z() + (rect_height/2);
+            k = center.y();
+
             float t = (k - r.Origin().y()) / r.Direction().y();
 
             if (t < t_min || t > t_max)
@@ -120,6 +135,13 @@ public:
             return true;
         }
         else if (hittable == 3) {
+            float y0, y1, z0, z1, k;
+            y0 = center.y() - (rect_height/2);
+            y1 = center.y() + (rect_height/2);
+            z0 = center.z() - (rect_width/2);
+            z1 = center.z() + (rect_width/2);
+            k = center.x();
+
             float t = (k - r.Origin().x()) / r.Direction().x();
 
             if (t < t_min || t > t_max)
@@ -151,3 +173,21 @@ private:
         v = theta / PI;
     }
 };
+
+__forceinline__ __host__ const char *GetTextForEnum(int enumVal)
+{
+    switch(enumVal)
+    {
+    case Hitt::sphere:
+        return "Sphere ";
+    case Hitt::xy_rect:
+        return "XY Rectangle ";
+    case Hitt::xz_rect:
+        return "XZ Rectangle ";
+    case Hitt::yz_rect:
+        return "YZ Rectangle ";
+
+    default:
+        return "Not recognized.. ";
+    }
+}

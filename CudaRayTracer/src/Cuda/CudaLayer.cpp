@@ -68,9 +68,9 @@ void CudaLayer::OnAttach()
 
 void CudaLayer::OnDetach()
 {
-    // for (auto obj : m_World->objects) {
-    //     DeleteSphere(obj);
-    // }
+    for (auto obj : m_World->objects) {
+        DeleteHittable(obj);
+    }
 
     // LaunchFreeWorld(m_HittableList, m_World, m_NumHittables);
     checkCudaErrors(cudaFree(m_CudaDevRenderBuffer));
@@ -191,22 +191,16 @@ void CudaLayer::OnImGuiRender()
 
     if (ImGui::CollapsingHeader("Hittables Settings", base_flags)) {
         for (int i = 0; i < m_World->objects.size(); i++) {
-            if (ImGui::TreeNodeEx(("Hittable " + std::to_string(i)).c_str())) {
+            if (ImGui::TreeNodeEx((GetTextForEnum(m_World->objects.at(i)->hittable) + std::to_string(i)).c_str())) {
 
                 if (m_World->objects.at(i)->hittable == Hitt::sphere) {
                     ImGui::DragFloat3("Position", (float *)&m_World->objects.at(i)->center, 0.01f, -FLT_MAX, FLT_MAX, "%.2f");
                     ImGui::DragFloat("Radius", (float *)&m_World->objects.at(i)->radius, 0.01f, -FLT_MAX, FLT_MAX, "%.2f");
                 }
-                else if (m_World->objects.at(i)->hittable == Hitt::xy_rect) {
-                    ImGui::DragFloat3("Position", (float *)&m_RectPosition, 0.01f, -FLT_MAX, FLT_MAX, "%.2f");
-                    ImGui::DragFloat("Width", (float *)&m_RectWidth, 0.01f, 0, FLT_MAX, "%.2f");
-                    ImGui::DragFloat("Height", (float *)&m_RectHeight, 0.01f, 0, FLT_MAX, "%.2f");
-
-                    m_World->objects.at(i)->x0 = m_RectPosition.x() - (m_RectWidth/2);
-                    m_World->objects.at(i)->x1 = m_RectPosition.x() + (m_RectWidth/2);
-                    m_World->objects.at(i)->y0 = m_RectPosition.y() - (m_RectHeight/2);
-                    m_World->objects.at(i)->y1 = m_RectPosition.y() + (m_RectHeight/2);
-                    m_World->objects.at(i)->k = m_RectPosition.z();
+                else {
+                    ImGui::DragFloat3("Position", (float *)&m_World->objects.at(i)->center, 0.01f, -FLT_MAX, FLT_MAX, "%.2f");
+                    ImGui::DragFloat("Width", (float *)&m_World->objects.at(i)->rect_width, 0.01f, 0, FLT_MAX, "%.2f");
+                    ImGui::DragFloat("Height", (float *)&m_World->objects.at(i)->rect_height, 0.01f, 0, FLT_MAX, "%.2f");
                 }
 
                 if (ImGui::TreeNodeEx("Material", base_flags)) {
@@ -406,12 +400,12 @@ void CudaLayer::OnImGuiRender()
         ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
 
         if (ImGui::BeginPopupModal("Delete Hittable", NULL, ImGuiWindowFlags_AlwaysAutoResize)) {
-            ImGui::Text("Enther the hittable ID you want to delete");
+            ImGui::Text("Enter the hittable ID you want to delete");
             ImGui::InputInt("Hittable ID", &m_HittableID);
 
             for (int i = 0; i < m_World->objects.size(); i++) {
                 if (m_HittableID == i) {
-                    if (ImGui::Button("Delete Sphere")) {
+                    if (ImGui::Button("Delete")) {
                         DeleteHittable(m_World->objects.at(m_HittableID));
                         m_World->objects.erase(m_World->objects.begin() + m_HittableID);
                         ImGui::CloseCurrentPopup();
@@ -504,13 +498,13 @@ void CudaLayer::RunCudaInit()
 
 void CudaLayer::GenerateWorld()
 {
-    Hittable* groundSphere;
-    checkCudaErrors(cudaMallocManaged(&groundSphere, sizeof(Hittable)));
-    checkCudaErrors(cudaMallocManaged(&groundSphere->mat_ptr, sizeof(Material)));
-    checkCudaErrors(cudaMallocManaged(&groundSphere->mat_ptr->albedo, sizeof(Texture)));
-    checkCudaErrors(cudaMallocManaged(&groundSphere->mat_ptr->albedo->odd, sizeof(Texture)));
-    checkCudaErrors(cudaMallocManaged(&groundSphere->mat_ptr->albedo->even, sizeof(Texture)));
-    m_World->Add(new(groundSphere) Hittable(Vec3(0.0f, -1000.5f, 0.0f), 1000.0f, new(groundSphere->mat_ptr) Material(new(groundSphere->mat_ptr->albedo) Texture(new(groundSphere->mat_ptr->albedo->odd) Texture(Vec3(0.2f, 0.3f, 0.1f), Tex::constant_texture), new(groundSphere->mat_ptr->albedo->even) Texture(Vec3(0.9f, 0.9f, 0.9f), Tex::constant_texture), Tex::checker_texture), Mat::lambertian), Hitt::sphere));
+    Hittable* ground;
+    checkCudaErrors(cudaMallocManaged(&ground, sizeof(Hittable)));
+    checkCudaErrors(cudaMallocManaged(&ground->mat_ptr, sizeof(Material)));
+    checkCudaErrors(cudaMallocManaged(&ground->mat_ptr->albedo, sizeof(Texture)));
+    checkCudaErrors(cudaMallocManaged(&ground->mat_ptr->albedo->odd, sizeof(Texture)));
+    checkCudaErrors(cudaMallocManaged(&ground->mat_ptr->albedo->even, sizeof(Texture)));
+    m_World->Add(new(ground) Hittable(Vec3(0.0f, -0.5f, 0.0f), 1000.0f, 1000.0f, new(ground->mat_ptr) Material(new(ground->mat_ptr->albedo) Texture(new(ground->mat_ptr->albedo->odd) Texture(Vec3(0.2f, 0.3f, 0.1f), Tex::constant_texture), new(ground->mat_ptr->albedo->even) Texture(Vec3(0.9f, 0.9f, 0.9f), Tex::constant_texture), Tex::checker_texture), Mat::lambertian), Hitt::xz_rect));
 
     Hittable* skybox_sphere;
     checkCudaErrors(cudaMallocManaged(&skybox_sphere, sizeof(Hittable)));
@@ -576,7 +570,7 @@ void CudaLayer::GenerateWorld()
     checkCudaErrors(cudaMallocManaged(&rect->mat_ptr->albedo, sizeof(Texture)));
     checkCudaErrors(cudaMallocManaged(&rect->mat_ptr->albedo->odd, sizeof(Texture)));
     checkCudaErrors(cudaMallocManaged(&rect->mat_ptr->albedo->even, sizeof(Texture)));
-    m_World->Add(new(rect) Hittable(-3.0f, 3.0f, -0.5f, 3.0f, 0.0f, 0.0f, -3.0f, new(rect->mat_ptr) Material(new(rect->mat_ptr->albedo) Texture(Vec3(1.0f, 0.0f, 0.0f), Tex::constant_texture), 7, Mat::diffuse_light), Hitt::xy_rect));
+    m_World->Add(new(rect) Hittable(Vec3(0.0f, 1.0f, -3.0f), 6.0f, 3.0f, new(rect->mat_ptr) Material(new(rect->mat_ptr->albedo) Texture(Vec3(1.0f, 0.0f, 0.0f), Tex::constant_texture), 7, Mat::diffuse_light), Hitt::xy_rect));
 }
 
 void CudaLayer::AddHittable()
@@ -591,49 +585,154 @@ void CudaLayer::AddHittable()
     if (m_UseHittableSphere) {
         if (m_UseLambertian) {
             if (m_UseConstantTexture) {
-                m_World->Add(new(new_hittable) Hittable(m_SpherePosition, m_SphereRadius, new(new_hittable->mat_ptr) Material(new(new_hittable->mat_ptr->albedo) Texture(m_newColor, Tex::constant_texture), Mat::lambertian), Hitt::sphere));
+                m_World->Add(new(new_hittable) Hittable(m_HittablePosition, m_SphereRadius, new(new_hittable->mat_ptr) Material(new(new_hittable->mat_ptr->albedo) Texture(m_newColor, Tex::constant_texture), Mat::lambertian), Hitt::sphere));
             }
             else if (m_UseCheckerTexture) {
-                m_World->Add(new(new_hittable) Hittable(m_SpherePosition, m_SphereRadius, new(new_hittable->mat_ptr) Material(new(new_hittable->mat_ptr->albedo) Texture(new(new_hittable->mat_ptr->albedo->odd) Texture(Vec3(0.0f, 0.0f, 0.0f), Tex::constant_texture), new(new_hittable->mat_ptr->albedo->even) Texture(Vec3(1.0f, 1.0f, 1.0f), Tex::constant_texture), Tex::checker_texture), Mat::lambertian), Hitt::sphere));
+                m_World->Add(new(new_hittable) Hittable(m_HittablePosition, m_SphereRadius, new(new_hittable->mat_ptr) Material(new(new_hittable->mat_ptr->albedo) Texture(new(new_hittable->mat_ptr->albedo->odd) Texture(Vec3(0.0f, 0.0f, 0.0f), Tex::constant_texture), new(new_hittable->mat_ptr->albedo->even) Texture(Vec3(1.0f, 1.0f, 1.0f), Tex::constant_texture), Tex::checker_texture), Mat::lambertian), Hitt::sphere));
             }
             else if (m_UseImageTexture) {
-                m_World->Add(new(new_hittable) Hittable(m_SpherePosition, m_SphereRadius, new(new_hittable->mat_ptr) Material(new(new_hittable->mat_ptr->albedo) Texture(new_hittable->mat_ptr->albedo->data, m_TextureImageWidth, m_TextureImageHeight, Tex::image_texture), Mat::lambertian), Hitt::sphere));
+                m_World->Add(new(new_hittable) Hittable(m_HittablePosition, m_SphereRadius, new(new_hittable->mat_ptr) Material(new(new_hittable->mat_ptr->albedo) Texture(new_hittable->mat_ptr->albedo->data, m_TextureImageWidth, m_TextureImageHeight, Tex::image_texture), Mat::lambertian), Hitt::sphere));
             }
         }
         else if (m_UseMetal) {
             if (m_UseConstantTexture) {
-                m_World->Add(new(new_hittable) Hittable(m_SpherePosition, m_SphereRadius, new(new_hittable->mat_ptr) Material(new(new_hittable->mat_ptr->albedo) Texture(m_newColor, Tex::constant_texture), m_Fuzz, Mat::metal), Hitt::sphere));
+                m_World->Add(new(new_hittable) Hittable(m_HittablePosition, m_SphereRadius, new(new_hittable->mat_ptr) Material(new(new_hittable->mat_ptr->albedo) Texture(m_newColor, Tex::constant_texture), m_Fuzz, Mat::metal), Hitt::sphere));
             }
             else if (m_UseCheckerTexture) {
-                m_World->Add(new(new_hittable) Hittable(m_SpherePosition, m_SphereRadius, new(new_hittable->mat_ptr) Material(new(new_hittable->mat_ptr->albedo) Texture(new(new_hittable->mat_ptr->albedo->odd) Texture(Vec3(0.0f, 0.0f, 0.0f), Tex::constant_texture), new(new_hittable->mat_ptr->albedo->even) Texture(Vec3(1.0f, 1.0f, 1.0f), Tex::constant_texture), Tex::checker_texture), m_Fuzz, Mat::metal), Hitt::sphere));
+                m_World->Add(new(new_hittable) Hittable(m_HittablePosition, m_SphereRadius, new(new_hittable->mat_ptr) Material(new(new_hittable->mat_ptr->albedo) Texture(new(new_hittable->mat_ptr->albedo->odd) Texture(Vec3(0.0f, 0.0f, 0.0f), Tex::constant_texture), new(new_hittable->mat_ptr->albedo->even) Texture(Vec3(1.0f, 1.0f, 1.0f), Tex::constant_texture), Tex::checker_texture), m_Fuzz, Mat::metal), Hitt::sphere));
             }
             else if (m_UseImageTexture) {
-                m_World->Add(new(new_hittable) Hittable(m_SpherePosition, m_SphereRadius, new(new_hittable->mat_ptr) Material(new(new_hittable->mat_ptr->albedo) Texture(new_hittable->mat_ptr->albedo->data, m_TextureImageWidth, m_TextureImageHeight, Tex::image_texture), m_Fuzz, Mat::metal), Hitt::sphere));
+                m_World->Add(new(new_hittable) Hittable(m_HittablePosition, m_SphereRadius, new(new_hittable->mat_ptr) Material(new(new_hittable->mat_ptr->albedo) Texture(new_hittable->mat_ptr->albedo->data, m_TextureImageWidth, m_TextureImageHeight, Tex::image_texture), m_Fuzz, Mat::metal), Hitt::sphere));
             }
         }
         else if (m_UseDiffuseLight) {
             if (m_UseConstantTexture) {
-                m_World->Add(new(new_hittable) Hittable(m_SpherePosition, m_SphereRadius, new(new_hittable->mat_ptr) Material(new(new_hittable->mat_ptr->albedo) Texture(m_newColor, Tex::constant_texture), m_LightIntensity, Mat::diffuse_light), Hitt::sphere));
+                m_World->Add(new(new_hittable) Hittable(m_HittablePosition, m_SphereRadius, new(new_hittable->mat_ptr) Material(new(new_hittable->mat_ptr->albedo) Texture(m_newColor, Tex::constant_texture), m_LightIntensity, Mat::diffuse_light), Hitt::sphere));
             }
             else if (m_UseCheckerTexture) {
-                m_World->Add(new(new_hittable) Hittable(m_SpherePosition, m_SphereRadius, new(new_hittable->mat_ptr) Material(new(new_hittable->mat_ptr->albedo) Texture(new(new_hittable->mat_ptr->albedo->odd) Texture(Vec3(0.0f, 0.0f, 0.0f), Tex::constant_texture), new(new_hittable->mat_ptr->albedo->even) Texture(Vec3(1.0f, 1.0f, 1.0f), Tex::constant_texture), Tex::checker_texture), m_LightIntensity, Mat::diffuse_light), Hitt::sphere));
+                m_World->Add(new(new_hittable) Hittable(m_HittablePosition, m_SphereRadius, new(new_hittable->mat_ptr) Material(new(new_hittable->mat_ptr->albedo) Texture(new(new_hittable->mat_ptr->albedo->odd) Texture(Vec3(0.0f, 0.0f, 0.0f), Tex::constant_texture), new(new_hittable->mat_ptr->albedo->even) Texture(Vec3(1.0f, 1.0f, 1.0f), Tex::constant_texture), Tex::checker_texture), m_LightIntensity, Mat::diffuse_light), Hitt::sphere));
             }
             else if (m_UseImageTexture) {
-                m_World->Add(new(new_hittable) Hittable(m_SpherePosition, m_SphereRadius, new(new_hittable->mat_ptr) Material(new(new_hittable->mat_ptr->albedo) Texture(new_hittable->mat_ptr->albedo->data, m_TextureImageWidth, m_TextureImageHeight, Tex::image_texture), m_LightIntensity, Mat::diffuse_light), Hitt::sphere));
+                m_World->Add(new(new_hittable) Hittable(m_HittablePosition, m_SphereRadius, new(new_hittable->mat_ptr) Material(new(new_hittable->mat_ptr->albedo) Texture(new_hittable->mat_ptr->albedo->data, m_TextureImageWidth, m_TextureImageHeight, Tex::image_texture), m_LightIntensity, Mat::diffuse_light), Hitt::sphere));
             }
         }
         else if (m_UseDielectric) {
-            m_World->Add(new(new_hittable) Hittable(m_SpherePosition, m_SphereRadius, new(new_hittable->mat_ptr) Material(m_IR, Mat::dielectric), Hitt::sphere));
+            m_World->Add(new(new_hittable) Hittable(m_HittablePosition, m_SphereRadius, new(new_hittable->mat_ptr) Material(m_IR, Mat::dielectric), Hitt::sphere));
         }
     }
     else if (m_UseHittableXYRect) {
-
+        if (m_UseLambertian) {
+            if (m_UseConstantTexture) {
+                m_World->Add(new(new_hittable) Hittable(m_HittablePosition, m_RectWidth, m_RectHeight, new(new_hittable->mat_ptr) Material(new(new_hittable->mat_ptr->albedo) Texture(m_newColor, Tex::constant_texture), Mat::lambertian), Hitt::xy_rect));
+            }
+            else if (m_UseCheckerTexture) {
+                m_World->Add(new(new_hittable) Hittable(m_HittablePosition, m_RectWidth, m_RectHeight, new(new_hittable->mat_ptr) Material(new(new_hittable->mat_ptr->albedo) Texture(new(new_hittable->mat_ptr->albedo->odd) Texture(Vec3(0.0f, 0.0f, 0.0f), Tex::constant_texture), new(new_hittable->mat_ptr->albedo->even) Texture(Vec3(1.0f, 1.0f, 1.0f), Tex::constant_texture), Tex::checker_texture), Mat::lambertian), Hitt::xy_rect));
+            }
+            else if (m_UseImageTexture) {
+                m_World->Add(new(new_hittable) Hittable(m_HittablePosition, m_RectWidth, m_RectHeight, new(new_hittable->mat_ptr) Material(new(new_hittable->mat_ptr->albedo) Texture(new_hittable->mat_ptr->albedo->data, m_TextureImageWidth, m_TextureImageHeight, Tex::image_texture), Mat::lambertian), Hitt::xy_rect));
+            }
+        }
+        else if (m_UseMetal) {
+            if (m_UseConstantTexture) {
+                m_World->Add(new(new_hittable) Hittable(m_HittablePosition, m_RectWidth, m_RectHeight, new(new_hittable->mat_ptr) Material(new(new_hittable->mat_ptr->albedo) Texture(m_newColor, Tex::constant_texture), m_Fuzz, Mat::metal), Hitt::xy_rect));
+            }
+            else if (m_UseCheckerTexture) {
+                m_World->Add(new(new_hittable) Hittable(m_HittablePosition, m_RectWidth, m_RectHeight, new(new_hittable->mat_ptr) Material(new(new_hittable->mat_ptr->albedo) Texture(new(new_hittable->mat_ptr->albedo->odd) Texture(Vec3(0.0f, 0.0f, 0.0f), Tex::constant_texture), new(new_hittable->mat_ptr->albedo->even) Texture(Vec3(1.0f, 1.0f, 1.0f), Tex::constant_texture), Tex::checker_texture), m_Fuzz, Mat::metal), Hitt::xy_rect));
+            }
+            else if (m_UseImageTexture) {
+                m_World->Add(new(new_hittable) Hittable(m_HittablePosition, m_RectWidth, m_RectHeight, new(new_hittable->mat_ptr) Material(new(new_hittable->mat_ptr->albedo) Texture(new_hittable->mat_ptr->albedo->data, m_TextureImageWidth, m_TextureImageHeight, Tex::image_texture), m_Fuzz, Mat::metal), Hitt::xy_rect));
+            }
+        }
+        else if (m_UseDiffuseLight) {
+            if (m_UseConstantTexture) {
+                m_World->Add(new(new_hittable) Hittable(m_HittablePosition, m_RectWidth, m_RectHeight, new(new_hittable->mat_ptr) Material(new(new_hittable->mat_ptr->albedo) Texture(m_newColor, Tex::constant_texture), m_LightIntensity, Mat::diffuse_light), Hitt::xy_rect));
+            }
+            else if (m_UseCheckerTexture) {
+                m_World->Add(new(new_hittable) Hittable(m_HittablePosition, m_RectWidth, m_RectHeight, new(new_hittable->mat_ptr) Material(new(new_hittable->mat_ptr->albedo) Texture(new(new_hittable->mat_ptr->albedo->odd) Texture(Vec3(0.0f, 0.0f, 0.0f), Tex::constant_texture), new(new_hittable->mat_ptr->albedo->even) Texture(Vec3(1.0f, 1.0f, 1.0f), Tex::constant_texture), Tex::checker_texture), m_LightIntensity, Mat::diffuse_light), Hitt::xy_rect));
+            }
+            else if (m_UseImageTexture) {
+                m_World->Add(new(new_hittable) Hittable(m_HittablePosition, m_RectWidth, m_RectHeight, new(new_hittable->mat_ptr) Material(new(new_hittable->mat_ptr->albedo) Texture(new_hittable->mat_ptr->albedo->data, m_TextureImageWidth, m_TextureImageHeight, Tex::image_texture), m_LightIntensity, Mat::diffuse_light), Hitt::xy_rect));
+            }
+        }
+        else if (m_UseDielectric) {
+            m_World->Add(new(new_hittable) Hittable(m_HittablePosition, m_RectWidth, m_RectHeight, new(new_hittable->mat_ptr) Material(m_IR, Mat::dielectric), Hitt::xy_rect));
+        }
     }
     else if (m_UseHittableXZRect) {
-
+        if (m_UseLambertian) {
+            if (m_UseConstantTexture) {
+                m_World->Add(new(new_hittable) Hittable(m_HittablePosition, m_RectWidth, m_RectHeight, new(new_hittable->mat_ptr) Material(new(new_hittable->mat_ptr->albedo) Texture(m_newColor, Tex::constant_texture), Mat::lambertian), Hitt::xz_rect));
+            }
+            else if (m_UseCheckerTexture) {
+                m_World->Add(new(new_hittable) Hittable(m_HittablePosition, m_RectWidth, m_RectHeight, new(new_hittable->mat_ptr) Material(new(new_hittable->mat_ptr->albedo) Texture(new(new_hittable->mat_ptr->albedo->odd) Texture(Vec3(0.0f, 0.0f, 0.0f), Tex::constant_texture), new(new_hittable->mat_ptr->albedo->even) Texture(Vec3(1.0f, 1.0f, 1.0f), Tex::constant_texture), Tex::checker_texture), Mat::lambertian), Hitt::xz_rect));
+            }
+            else if (m_UseImageTexture) {
+                m_World->Add(new(new_hittable) Hittable(m_HittablePosition, m_RectWidth, m_RectHeight, new(new_hittable->mat_ptr) Material(new(new_hittable->mat_ptr->albedo) Texture(new_hittable->mat_ptr->albedo->data, m_TextureImageWidth, m_TextureImageHeight, Tex::image_texture), Mat::lambertian), Hitt::xz_rect));
+            }
+        }
+        else if (m_UseMetal) {
+            if (m_UseConstantTexture) {
+                m_World->Add(new(new_hittable) Hittable(m_HittablePosition, m_RectWidth, m_RectHeight, new(new_hittable->mat_ptr) Material(new(new_hittable->mat_ptr->albedo) Texture(m_newColor, Tex::constant_texture), m_Fuzz, Mat::metal), Hitt::xz_rect));
+            }
+            else if (m_UseCheckerTexture) {
+                m_World->Add(new(new_hittable) Hittable(m_HittablePosition, m_RectWidth, m_RectHeight, new(new_hittable->mat_ptr) Material(new(new_hittable->mat_ptr->albedo) Texture(new(new_hittable->mat_ptr->albedo->odd) Texture(Vec3(0.0f, 0.0f, 0.0f), Tex::constant_texture), new(new_hittable->mat_ptr->albedo->even) Texture(Vec3(1.0f, 1.0f, 1.0f), Tex::constant_texture), Tex::checker_texture), m_Fuzz, Mat::metal), Hitt::xz_rect));
+            }
+            else if (m_UseImageTexture) {
+                m_World->Add(new(new_hittable) Hittable(m_HittablePosition, m_RectWidth, m_RectHeight, new(new_hittable->mat_ptr) Material(new(new_hittable->mat_ptr->albedo) Texture(new_hittable->mat_ptr->albedo->data, m_TextureImageWidth, m_TextureImageHeight, Tex::image_texture), m_Fuzz, Mat::metal), Hitt::xz_rect));
+            }
+        }
+        else if (m_UseDiffuseLight) {
+            if (m_UseConstantTexture) {
+                m_World->Add(new(new_hittable) Hittable(m_HittablePosition, m_RectWidth, m_RectHeight, new(new_hittable->mat_ptr) Material(new(new_hittable->mat_ptr->albedo) Texture(m_newColor, Tex::constant_texture), m_LightIntensity, Mat::diffuse_light), Hitt::xz_rect));
+            }
+            else if (m_UseCheckerTexture) {
+                m_World->Add(new(new_hittable) Hittable(m_HittablePosition, m_RectWidth, m_RectHeight, new(new_hittable->mat_ptr) Material(new(new_hittable->mat_ptr->albedo) Texture(new(new_hittable->mat_ptr->albedo->odd) Texture(Vec3(0.0f, 0.0f, 0.0f), Tex::constant_texture), new(new_hittable->mat_ptr->albedo->even) Texture(Vec3(1.0f, 1.0f, 1.0f), Tex::constant_texture), Tex::checker_texture), m_LightIntensity, Mat::diffuse_light), Hitt::xz_rect));
+            }
+            else if (m_UseImageTexture) {
+                m_World->Add(new(new_hittable) Hittable(m_HittablePosition, m_RectWidth, m_RectHeight, new(new_hittable->mat_ptr) Material(new(new_hittable->mat_ptr->albedo) Texture(new_hittable->mat_ptr->albedo->data, m_TextureImageWidth, m_TextureImageHeight, Tex::image_texture), m_LightIntensity, Mat::diffuse_light), Hitt::xz_rect));
+            }
+        }
+        else if (m_UseDielectric) {
+            m_World->Add(new(new_hittable) Hittable(m_HittablePosition, m_RectWidth, m_RectHeight, new(new_hittable->mat_ptr) Material(m_IR, Mat::dielectric), Hitt::xz_rect));
+        }
     }
     else if (m_UseHittableYZRect) {
-
+        if (m_UseLambertian) {
+            if (m_UseConstantTexture) {
+                m_World->Add(new(new_hittable) Hittable(m_HittablePosition, m_RectWidth, m_RectHeight, new(new_hittable->mat_ptr) Material(new(new_hittable->mat_ptr->albedo) Texture(m_newColor, Tex::constant_texture), Mat::lambertian), Hitt::yz_rect));
+            }
+            else if (m_UseCheckerTexture) {
+                m_World->Add(new(new_hittable) Hittable(m_HittablePosition, m_RectWidth, m_RectHeight, new(new_hittable->mat_ptr) Material(new(new_hittable->mat_ptr->albedo) Texture(new(new_hittable->mat_ptr->albedo->odd) Texture(Vec3(0.0f, 0.0f, 0.0f), Tex::constant_texture), new(new_hittable->mat_ptr->albedo->even) Texture(Vec3(1.0f, 1.0f, 1.0f), Tex::constant_texture), Tex::checker_texture), Mat::lambertian), Hitt::yz_rect));
+            }
+            else if (m_UseImageTexture) {
+                m_World->Add(new(new_hittable) Hittable(m_HittablePosition, m_RectWidth, m_RectHeight, new(new_hittable->mat_ptr) Material(new(new_hittable->mat_ptr->albedo) Texture(new_hittable->mat_ptr->albedo->data, m_TextureImageWidth, m_TextureImageHeight, Tex::image_texture), Mat::lambertian), Hitt::yz_rect));
+            }
+        }
+        else if (m_UseMetal) {
+            if (m_UseConstantTexture) {
+                m_World->Add(new(new_hittable) Hittable(m_HittablePosition, m_RectWidth, m_RectHeight, new(new_hittable->mat_ptr) Material(new(new_hittable->mat_ptr->albedo) Texture(m_newColor, Tex::constant_texture), m_Fuzz, Mat::metal), Hitt::yz_rect));
+            }
+            else if (m_UseCheckerTexture) {
+                m_World->Add(new(new_hittable) Hittable(m_HittablePosition, m_RectWidth, m_RectHeight, new(new_hittable->mat_ptr) Material(new(new_hittable->mat_ptr->albedo) Texture(new(new_hittable->mat_ptr->albedo->odd) Texture(Vec3(0.0f, 0.0f, 0.0f), Tex::constant_texture), new(new_hittable->mat_ptr->albedo->even) Texture(Vec3(1.0f, 1.0f, 1.0f), Tex::constant_texture), Tex::checker_texture), m_Fuzz, Mat::metal), Hitt::yz_rect));
+            }
+            else if (m_UseImageTexture) {
+                m_World->Add(new(new_hittable) Hittable(m_HittablePosition, m_RectWidth, m_RectHeight, new(new_hittable->mat_ptr) Material(new(new_hittable->mat_ptr->albedo) Texture(new_hittable->mat_ptr->albedo->data, m_TextureImageWidth, m_TextureImageHeight, Tex::image_texture), m_Fuzz, Mat::metal), Hitt::yz_rect));
+            }
+        }
+        else if (m_UseDiffuseLight) {
+            if (m_UseConstantTexture) {
+                m_World->Add(new(new_hittable) Hittable(m_HittablePosition, m_RectWidth, m_RectHeight, new(new_hittable->mat_ptr) Material(new(new_hittable->mat_ptr->albedo) Texture(m_newColor, Tex::constant_texture), m_LightIntensity, Mat::diffuse_light), Hitt::yz_rect));
+            }
+            else if (m_UseCheckerTexture) {
+                m_World->Add(new(new_hittable) Hittable(m_HittablePosition, m_RectWidth, m_RectHeight, new(new_hittable->mat_ptr) Material(new(new_hittable->mat_ptr->albedo) Texture(new(new_hittable->mat_ptr->albedo->odd) Texture(Vec3(0.0f, 0.0f, 0.0f), Tex::constant_texture), new(new_hittable->mat_ptr->albedo->even) Texture(Vec3(1.0f, 1.0f, 1.0f), Tex::constant_texture), Tex::checker_texture), m_LightIntensity, Mat::diffuse_light), Hitt::yz_rect));
+            }
+            else if (m_UseImageTexture) {
+                m_World->Add(new(new_hittable) Hittable(m_HittablePosition, m_RectWidth, m_RectHeight, new(new_hittable->mat_ptr) Material(new(new_hittable->mat_ptr->albedo) Texture(new_hittable->mat_ptr->albedo->data, m_TextureImageWidth, m_TextureImageHeight, Tex::image_texture), m_LightIntensity, Mat::diffuse_light), Hitt::yz_rect));
+            }
+        }
+        else if (m_UseDielectric) {
+            m_World->Add(new(new_hittable) Hittable(m_HittablePosition, m_RectWidth, m_RectHeight, new(new_hittable->mat_ptr) Material(m_IR, Mat::dielectric), Hitt::yz_rect));
+        }
     }
 }
 

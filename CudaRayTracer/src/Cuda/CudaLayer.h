@@ -70,11 +70,10 @@ private:
     bool m_UseHittableXZRect = false;
     bool m_UseHittableYZRect = false;
     int m_HittableID = 0;
-    Vec3 m_SpherePosition = Vec3(0.0f, 1.0f, 0.0f);
+    Vec3 m_HittablePosition = Vec3(0.0f, 1.0f, 0.0f);
     float m_SphereRadius = 0.5f;
-    Vec3 m_RectPosition = Vec3(0.0f, 1.25f, -3.0f);
-    float m_RectWidth = 6.0f;
-    float m_RectHeight = 3.5f;
+    float m_RectWidth = 2.0f;
+    float m_RectHeight = 2.0f;
 
     // RayTracing
     unsigned int m_SamplesPerPixel = 50;
