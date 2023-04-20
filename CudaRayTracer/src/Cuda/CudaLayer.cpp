@@ -237,8 +237,10 @@ void CudaLayer::OnImGuiRender()
                             }
                             else if (m_World->objects.at(i)->mat_ptr->albedo->texture == Tex::image_texture) {
 
-                                if (ImGui::Button("Open..."))
+                                if (ImGui::Button("Open...")) {
+                                    m_ButtonID = i;
                                     ImGuiFileDialog::Instance()->OpenDialog("ChooseFileDlgKey", "Choose File", ".jpg,.jpeg,.png", ".", 1, nullptr, ImGuiFileDialogFlags_Modal);
+                                }
 
                                 // display
                                 if (ImGuiFileDialog::Instance()->Display("ChooseFileDlgKey")) {
@@ -247,30 +249,44 @@ void CudaLayer::OnImGuiRender()
 
                                         m_TextureImageFilename = ("assets/textures/" + ImGuiFileDialog::Instance()->GetCurrentFileName()).c_str();
 
-                                        if (m_World->objects.at(i)->mat_ptr->albedo->data != nullptr) {
-                                            checkCudaErrors(cudaFree(m_World->objects.at(i)->mat_ptr->albedo->data));
+                                        if (m_World->objects.at(m_ButtonID)->mat_ptr->albedo->data != nullptr) {
+                                            checkCudaErrors(cudaFree(m_World->objects.at(m_ButtonID)->mat_ptr->albedo->data));
                                         }
 
                                         m_TextureImageData = LoadImage(m_TextureImageFilename, m_TextureImageData, &m_TextureImageWidth, &m_TextureImageHeight, &m_TextureImageNR);
-                                        checkCudaErrors(cudaMallocManaged(&m_World->objects.at(i)->mat_ptr->albedo->data, m_TextureImageWidth * m_TextureImageHeight * m_TextureImageNR * sizeof(unsigned char)));
-                                        checkCudaErrors(cudaMemcpy(m_World->objects.at(i)->mat_ptr->albedo->data, m_TextureImageData, m_TextureImageWidth * m_TextureImageHeight * m_TextureImageNR * sizeof(unsigned char), cudaMemcpyHostToDevice));
+                                        checkCudaErrors(cudaMallocManaged(&m_World->objects.at(m_ButtonID)->mat_ptr->albedo->data, m_TextureImageWidth * m_TextureImageHeight * m_TextureImageNR * sizeof(unsigned char)));
+                                        checkCudaErrors(cudaMemcpy(m_World->objects.at(m_ButtonID)->mat_ptr->albedo->data, m_TextureImageData, m_TextureImageWidth * m_TextureImageHeight * m_TextureImageNR * sizeof(unsigned char), cudaMemcpyHostToDevice));
                                         STBI_FREE(m_TextureImageData);
 
-                                        m_World->objects.at(i)->mat_ptr->albedo->width = m_TextureImageWidth; 
-                                        m_World->objects.at(i)->mat_ptr->albedo->height = m_TextureImageHeight; 
+                                        m_World->objects.at(m_ButtonID)->mat_ptr->albedo->width = m_TextureImageWidth; 
+                                        m_World->objects.at(m_ButtonID)->mat_ptr->albedo->height = m_TextureImageHeight; 
 
-                                        m_World->objects.at(i) = new(m_World->objects.at(i)) Hittable(m_World->objects.at(i)->center, m_World->objects.at(i)->radius, new(m_World->objects.at(i)->mat_ptr) Material(new(m_World->objects.at(i)->mat_ptr->albedo) Texture(m_World->objects.at(i)->mat_ptr->albedo->data, m_TextureImageWidth, m_TextureImageHeight, Tex::image_texture), m_World->objects.at(i)->mat_ptr->material), Hitt::sphere);
+                                        if (m_World->objects.at(m_ButtonID)->hittable == Hitt::sphere) {
+                                            m_World->objects.at(m_ButtonID) = new(m_World->objects.at(m_ButtonID)) Hittable(m_World->objects.at(m_ButtonID)->center, m_World->objects.at(m_ButtonID)->radius, new(m_World->objects.at(m_ButtonID)->mat_ptr) Material(new(m_World->objects.at(m_ButtonID)->mat_ptr->albedo) Texture(m_World->objects.at(m_ButtonID)->mat_ptr->albedo->data, m_TextureImageWidth, m_TextureImageHeight, Tex::image_texture), m_World->objects.at(m_ButtonID)->mat_ptr->material), Hitt::sphere);
+                                        }
+                                        else if (m_World->objects.at(m_ButtonID)->hittable == Hitt::xy_rect) {
+                                            m_World->objects.at(m_ButtonID) = new(m_World->objects.at(m_ButtonID)) Hittable(m_World->objects.at(m_ButtonID)->center, m_World->objects.at(m_ButtonID)->width, m_World->objects.at(m_ButtonID)->height, new(m_World->objects.at(m_ButtonID)->mat_ptr) Material(new(m_World->objects.at(m_ButtonID)->mat_ptr->albedo) Texture(m_World->objects.at(m_ButtonID)->mat_ptr->albedo->data, m_TextureImageWidth, m_TextureImageHeight, Tex::image_texture), m_World->objects.at(m_ButtonID)->mat_ptr->material), Hitt::xy_rect);
+                                        }
+                                        else if (m_World->objects.at(m_ButtonID)->hittable == Hitt::xz_rect) {
+                                            m_World->objects.at(m_ButtonID) = new(m_World->objects.at(m_ButtonID)) Hittable(m_World->objects.at(m_ButtonID)->center, m_World->objects.at(m_ButtonID)->width, m_World->objects.at(m_ButtonID)->height, new(m_World->objects.at(m_ButtonID)->mat_ptr) Material(new(m_World->objects.at(m_ButtonID)->mat_ptr->albedo) Texture(m_World->objects.at(m_ButtonID)->mat_ptr->albedo->data, m_TextureImageWidth, m_TextureImageHeight, Tex::image_texture), m_World->objects.at(m_ButtonID)->mat_ptr->material), Hitt::xz_rect);
+                                        }
+                                        else if (m_World->objects.at(m_ButtonID)->hittable == Hitt::yz_rect) {
+                                            m_World->objects.at(m_ButtonID) = new(m_World->objects.at(m_ButtonID)) Hittable(m_World->objects.at(m_ButtonID)->center, m_World->objects.at(m_ButtonID)->width, m_World->objects.at(m_ButtonID)->height, new(m_World->objects.at(m_ButtonID)->mat_ptr) Material(new(m_World->objects.at(m_ButtonID)->mat_ptr->albedo) Texture(m_World->objects.at(m_ButtonID)->mat_ptr->albedo->data, m_TextureImageWidth, m_TextureImageHeight, Tex::image_texture), m_World->objects.at(m_ButtonID)->mat_ptr->material), Hitt::yz_rect);
+                                        }
+
+                                        // don't forget to set the path for the object
+                                        m_World->objects.at(m_ButtonID)->mat_ptr->albedo->path = m_TextureImageFilename;
                                     }
 
                                     // close
                                     ImGuiFileDialog::Instance()->Close();
                                 }
 
-                                if (m_World->objects.at(i)->mat_ptr->albedo->data == nullptr) {
-                                    ImGui::Text("None");
+                                if (m_World->objects.at(i)->mat_ptr->albedo->path != nullptr) {
+                                    ImGui::Text(m_World->objects.at(i)->mat_ptr->albedo->path);
                                 }
                                 else {
-                                    ImGui::Text(m_TextureImageFilename);
+                                    ImGui::Text("None");
                                 }
                             }
 
@@ -518,6 +534,8 @@ void CudaLayer::GenerateWorld()
     checkCudaErrors(cudaMemcpy(skybox_sphere->mat_ptr->albedo->data, m_TextureImageData, m_TextureImageWidth * m_TextureImageHeight * m_TextureImageNR * sizeof(unsigned char), cudaMemcpyHostToDevice));
     STBI_FREE(m_TextureImageData);
     m_World->Add(new(skybox_sphere) Hittable(Vec3(0.0f, 0.0f, 0.0f), 1000.0f, new(skybox_sphere->mat_ptr) Material(new(skybox_sphere->mat_ptr->albedo) Texture(skybox_sphere->mat_ptr->albedo->data, m_TextureImageWidth, m_TextureImageHeight, Tex::image_texture), Mat::lambertian), Hitt::sphere));
+    // don't forget to set the path for the object
+    skybox_sphere->mat_ptr->albedo->path = m_TextureImageFilename;
 
     Hittable* sphere1;
     checkCudaErrors(cudaMallocManaged(&sphere1, sizeof(Hittable)));
@@ -563,6 +581,8 @@ void CudaLayer::GenerateWorld()
     checkCudaErrors(cudaMemcpy(light_sphere->mat_ptr->albedo->data, m_TextureImageData, m_TextureImageWidth * m_TextureImageHeight * m_TextureImageNR * sizeof(unsigned char), cudaMemcpyHostToDevice));
     STBI_FREE(m_TextureImageData);
     m_World->Add(new(light_sphere) Hittable(Vec3(0.0f, 2.0f, 0.0f), 0.5f, new(light_sphere->mat_ptr) Material(new(light_sphere->mat_ptr->albedo) Texture(light_sphere->mat_ptr->albedo->data, m_TextureImageWidth, m_TextureImageHeight, Tex::image_texture), m_LightIntensity, Mat::diffuse_light), Hitt::sphere));
+    // don't forget to set the path for the object
+    light_sphere->mat_ptr->albedo->path = m_TextureImageFilename;
 
     Hittable* rect;
     checkCudaErrors(cudaMallocManaged(&rect, sizeof(Hittable)));
@@ -579,6 +599,10 @@ void CudaLayer::AddHittable()
     checkCudaErrors(cudaMallocManaged(&new_hittable, sizeof(Hittable)));
     checkCudaErrors(cudaMallocManaged(&new_hittable->mat_ptr, sizeof(Material)));
     checkCudaErrors(cudaMallocManaged(&new_hittable->mat_ptr->albedo, sizeof(Texture)));
+
+    // FIXME: works for now... not a good solution
+    new_hittable->mat_ptr->albedo->data = nullptr;
+
     checkCudaErrors(cudaMallocManaged(&new_hittable->mat_ptr->albedo->odd, sizeof(Texture)));
     checkCudaErrors(cudaMallocManaged(&new_hittable->mat_ptr->albedo->even, sizeof(Texture)));
 

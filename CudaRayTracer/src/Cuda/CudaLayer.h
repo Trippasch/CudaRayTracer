@@ -101,6 +101,9 @@ private:
     unsigned char* m_TextureImageData = nullptr;
     const char* m_TextureImageFilename = nullptr;
 
+    // hittable id when openning the file dialog
+    int m_ButtonID = -1;
+
     // Camera
     std::unique_ptr<Camera> m_Camera;
 };
