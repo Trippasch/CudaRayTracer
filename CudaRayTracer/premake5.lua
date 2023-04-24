@@ -92,6 +92,6 @@ project "CudaRayTracer"
     filter "configurations:Dist"
         defines { "RT_DIST" }
         runtime "Release"
-        optimize "On"
+        optimize "Speed"
         cudaFastMath "On"                       -- Enable fast math for release
         symbols "Off"

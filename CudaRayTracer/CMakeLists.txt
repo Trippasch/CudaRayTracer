@@ -28,5 +28,10 @@ target_include_directories(${PROJECT_NAME} PRIVATE ${CUDAToolkit_INCLUDE_DIRS})
 link_directories(${CUDAToolkit_LIBRARY_DIR})
 target_link_libraries(${PROJECT_NAME} glfw glad spdlog stb_image ImGui cudart)
 
-target_compile_definitions(${PROJECT_NAME} PRIVATE "RT_DEBUG" "GLFW_INCLUDE_NONE" "_CRT_SECURE_NO_WARNINGS")
+# Create the debug build mode
+set(CMAKE_CUDA_FLAGS_DEBUG "${CMAKE_CUDA_FLAGS_DEBUG} -g -G")
+target_compile_definitions(${PROJECT_NAME} PRIVATE "$<$<CONFIG:DEBUG>:RT_DEBUG>" "GLFW_INCLUDE_NONE" "_CRT_SECURE_NO_WARNINGS")
 
+# Create the release build mode
+set(CMAKE_CUDA_FLAGS_RELEASE "${CMAKE_CUDA_FLAGS_RELEASE} -O3 -use_fast_math")
+target_compile_definitions(${PROJECT_NAME} PRIVATE "$<$<CONFIG:RELEASE>:RT_RELEASE>" "GLFW_INCLUDE_NONE" "_CRT_SECURE_NO_WARNINGS")
