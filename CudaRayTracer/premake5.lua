@@ -38,6 +38,7 @@ project "CudaRayTracer"
     }
 
     -- cudaMaxRegCount "63"
+    cudaRelocatableCode "On"
 
     cudaCompilerOptions {
         "-t0",                                  -- Compile in parallel

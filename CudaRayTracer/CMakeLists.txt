@@ -10,11 +10,11 @@ endif()
 file(GLOB_RECURSE CXX_SRC src/*.cpp src/*.h)
 file(GLOB_RECURSE CUDA_SRC src/*.cu src/*.cuh)
 
-add_executable(${PROJECT_NAME} ${CXX_SRC} ${CUDA_SRC} ${CMAKE_SOURCE_DIR}/vendor/ImGui/backends/imgui_impl_glfw.cpp ${CMAKE_SOURCE_DIR}/vendor/ImGui/backends/imgui_impl_opengl3.cpp)
+add_executable(${PROJECT_NAME} ${CXX_SRC} ${CUDA_SRC})
 
 set_target_properties(${PROJECT_NAME} PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
-set_target_properties(${PROJECT_NAME} PROPERTIES CUDA_ARCHITECTURES 86)
-set_target_properties(${PROJECT_NAME} PROPERTIES CUDA_GENERATE_CODE "arch=compute_86,code=[compute_86,sm_86]")
+set_target_properties(${PROJECT_NAME} PROPERTIES CUDA_ARCHITECTURES native)
+set_target_properties(${PROJECT_NAME} PROPERTIES CUDA_GENERATE_CODE native)
 
 # Include Directories
 target_include_directories(${PROJECT_NAME} PRIVATE ${CMAKE_SOURCE_DIR}/vendor/GLFW/include ${CMAKE_SOURCE_DIR}/vendor/Glad/include)

@@ -4,6 +4,7 @@
 #include <iostream>
 #include <curand_kernel.h>
 #include <cuda_runtime.h>
+#include <thrust/extrema.h>
 
 #define PI 3.141592654f
 #define DEG(rad) rad*57.2957795
@@ -91,7 +92,7 @@ __host__ __device__ inline Vec3 operator*(const Vec3 &v, float t) {
 }
 
 __host__ __device__ inline float Dot(const Vec3 &v1, const Vec3 &v2) {
-    return v1.e[0] *v2.e[0] + v1.e[1] *v2.e[1]  + v1.e[2] *v2.e[2];
+    return v1.e[0] *v2.e[0] + v1.e[1] *v2.e[1] + v1.e[2] *v2.e[2];
 }
 
 __host__ __device__ inline Vec3 Cross(const Vec3 &v1, const Vec3 &v2) {
@@ -232,6 +233,12 @@ __host__ __device__ inline bool Refract(const Vec3& v, const Vec3& n, float eati
 }
 
 // clamp x to range [a, b]
-__device__ float Clamp(float x, float a, float b);
+__device__ inline float Clamp(float x, float a, float b)
+{
+    return thrust::max(a, thrust::min(b, x));
+}
 
-__device__ int Clamp(int x, int a, int b);
+__device__ inline int Clamp(int x, int a, int b)
+{
+    return thrust::max(a, thrust::min(b, x));
+}
