@@ -2,6 +2,7 @@
 CudaRayTracer is a simple real-time brute-force path tracer based on the [Ray Tracing in One Weekend Series](https://raytracing.github.io/) accelerated with [CUDA](https://developer.nvidia.com/cuda-downloads).
 ## Getting Started
 <ins>**1. Download the CUDA toolkit:**</ins>
+
 Start by downloading the CUDA toolkit if you haven't done that already from [here](https://developer.nvidia.com/cuda-downloads).
 
 <ins>**2. Downloading the repository:**</ins>
