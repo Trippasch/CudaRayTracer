@@ -242,6 +242,10 @@ void CudaLayer::OnImGuiRender()
                                     ImGuiFileDialog::Instance()->OpenDialog("ChooseFileDlgKey", "Choose File", ".jpg,.jpeg,.png", ".", 1, nullptr, ImGuiFileDialogFlags_Modal);
                                 }
 
+                                // Always center this window when appearing
+                                ImVec2 center = ImGui::GetMainViewport()->GetCenter();
+                                ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
+
                                 // display
                                 if (ImGuiFileDialog::Instance()->Display("ChooseFileDlgKey")) {
                                     // action if OK
