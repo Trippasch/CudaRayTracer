@@ -1,6 +1,19 @@
 cmake_minimum_required(VERSION 3.20 FATAL_ERROR)
 
-project(CudaRayTracer LANGUAGES CXX CUDA)
+if(UNIX)
+    # Linux-specific configuration
+    message(STATUS "Linux Config")
+    set(CMAKE_C_COMPILER "/usr/bin/gcc")
+    set(CMAKE_CXX_COMPILER "/usr/bin/g++")
+elseif(WIN32)
+    message(STATUS "Windows Config")
+else()
+    message(FATAL_ERROR "Unsupported operating system: ${CMAKE_SYSTEM_NAME}")
+endif()
+
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
+project(CudaRayTracer LANGUAGES C CXX CUDA)
 
 if (NOT DEFINED CMAKE_CXX_STANDARD)
     set(CMAKE_CXX_STANDARD 17)
@@ -14,8 +27,6 @@ endif()
 
 set(CUDAToolkit_VERSION "12.0" CACHE STRING "Minimum version of the CUDA Toolkit")
 find_package(CUDAToolkit ${CUDAToolkit_VERSION} REQUIRED)
-
-option(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 # GLFW
 set(GLFW_BUILD_DOCS OFF CACHE BOOL "" FORCE)

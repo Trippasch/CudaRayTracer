@@ -35,3 +35,7 @@ target_compile_definitions(${PROJECT_NAME} PRIVATE "$<$<CONFIG:DEBUG>:RT_DEBUG>"
 # Create the release build mode
 set(CMAKE_CUDA_FLAGS_RELEASE "${CMAKE_CUDA_FLAGS_RELEASE} -O3 -use_fast_math")
 target_compile_definitions(${PROJECT_NAME} PRIVATE "$<$<CONFIG:RELEASE>:RT_RELEASE>" "GLFW_INCLUDE_NONE" "_CRT_SECURE_NO_WARNINGS")
+
+# Create the dist build mode
+set(CMAKE_CUDA_FLAGS_DIST "${CMAKE_CUDA_FLAGS_DIST} -O3 -g0 -use_fast_math")
+target_compile_definitions(${PROJECT_NAME} PRIVATE "$<$<CONFIG:DIST>:RT_DIST>" "GLFW_INCLUDE_NONE" "_CRT_SECURE_NO_WARNINGS")

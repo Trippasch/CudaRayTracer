@@ -16,3 +16,4 @@ Makefile
 
 # Exclude
 !vendor/bin
+.cache/
