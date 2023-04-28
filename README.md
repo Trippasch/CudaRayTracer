@@ -15,9 +15,20 @@ If the repository was cloned non-recursively previously, use ```git submodule up
 
 <ins>**3. Generate Project files:**</ins>
 
+<ins>**3.1. Premake:**</ins>
+
 For Windows run the [GenerateProjects.bat](https://github.com/Trippasch/CudaRayTracer/blob/master/scripts/windows/GenerateProjects.bat) file. This will generate the visual studio (2022) solution to compile and run the project.
 
 For Linux run the [GenerateProjects.sh](https://github.com/Trippasch/CudaRayTracer/blob/master/scripts/linux/GenerateProjects.sh) file. This will generate makefiles to compile and run the project. The compiler used inside the script is LLVM's clang but you can change it to gcc as well.
+
+<ins>**3.2. CMake:**</ins>
+
+For Windows run the command: ```cmake -S . -B build``` on the project's root folder to generate the build files.
+Then, you can either run the Visual Studio solution to build the project or run ```cmake --build .\build --config=release -j``` to build the application on release mode.
+
+For Linux run the command: ```cmake -DCMAKE_BUILD_TYPE=Release -S . -B build/release/``` and ```cmake --build build/release -j``` to build the application on release mode.
+
+**Remember to run the application from the project's root folder to load the correct paths.
 
 <ins>**4. Clean Project files:**</ins>
 
