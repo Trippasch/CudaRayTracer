@@ -23,7 +23,7 @@ For Linux run the [GenerateProjects.sh](https://github.com/Trippasch/CudaRayTrac
 
 * CMake
 
-For Windows run the command: ```cmake -S . -B build``` on the project root folder to generate the build files.
+For Windows run the command: ```cmake -S . -B build``` on the project's root folder to generate the build files.
 Then, you can either run the Visual Studio solution to build the project or run ```cmake --build .\build --config=release -j``` to build the application on release mode.
 
 For Linux run the command: ```cmake -DCMAKE_BUILD_TYPE=Release -S . -B build/release/``` and ```cmake --build build/release -j``` to build the application on release mode.
