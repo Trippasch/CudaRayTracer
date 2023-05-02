@@ -3,8 +3,8 @@ cmake_minimum_required(VERSION 3.20 FATAL_ERROR)
 if(UNIX)
     # Linux-specific configuration
     message(STATUS "Linux Config")
-    set(CMAKE_C_COMPILER "/usr/bin/clang")
-    set(CMAKE_CXX_COMPILER "/usr/bin/clang++")
+    set(CMAKE_C_COMPILER "/usr/bin/gcc")
+    set(CMAKE_CXX_COMPILER "/usr/bin/g++")
 elseif(WIN32)
     message(STATUS "Windows Config")
 else()
@@ -41,6 +41,7 @@ add_library(glad STATIC ${GLAD_SRC})
 target_include_directories(glad PRIVATE ${GLAD_DIR}/include)
 
 # spdlog
+set(SPDLOG_BUILD_EXAMPLE OFF)
 add_subdirectory(${CMAKE_SOURCE_DIR}/vendor/spdlog)
 
 # stb_image
