@@ -17,3 +17,4 @@ Makefile
 # Exclude
 !vendor/bin
 .cache/
+compile_commands.json
