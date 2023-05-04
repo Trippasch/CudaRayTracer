@@ -79,7 +79,7 @@ end
 
 local function addCompilerProps(cfg)
     writeTableAsOneString('NVCCCOMPILEFLAGS', cfg.cudaCompilerOptions)
-    writeBooleanWithFlag('NVCCCOMPILEFLAGS', '-rdc', cfg.cudaRelocatableCode)
+    writeBoolean('NVCCCOMPILEFLAGS', '-rdc', cfg.cudaRelocatableCode)
     writeBoolean('NVCCCOMPILEFLAGS', '-ewp', cfg.cudaExtensibleWholeProgram)
     writeBoolean('NVCCCOMPILEFLAGS', '--use_fast_math', cfg.cudaFastMath)
     
