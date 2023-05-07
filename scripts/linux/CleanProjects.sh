@@ -5,6 +5,9 @@ echo "Cleaning projects..."
 echo "find . -name 'Makefile' -delete"
 find ./ -name 'Makefile' -not -path "./vendor/ImGui/examples/*" -delete
 
+echo "rm -rf ./build"
+rm -rf ./build
+
 echo "rm -rf ./bin ./vendor/Glad/bin ./vendor/GLFW/bin ./vendor/ImGui/bin"
 rm -rf ./bin ./vendor/Glad/bin ./vendor/GLFW/bin ./vendor/ImGui/bin 
 

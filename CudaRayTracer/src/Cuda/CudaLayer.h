@@ -15,7 +15,7 @@
 
 // Cuda
 #include <cuda_runtime.h>
-#include <curand_kernel.h> 
+#include <curand_kernel.h>
 #include <cuda_gl_interop.h>
 
 class CudaLayer : public Layer
