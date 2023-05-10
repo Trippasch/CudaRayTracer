@@ -6,8 +6,11 @@ class VertexBuffer
 {
 private:
     GLuint m_RendererID;
+
 public:
-    VertexBuffer() : m_RendererID(0) {}
+    VertexBuffer() : m_RendererID(0)
+    {
+    }
     VertexBuffer(const GLvoid* data, GLuint size, GLenum mode);
     ~VertexBuffer();
 

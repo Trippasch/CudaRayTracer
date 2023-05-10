@@ -2,19 +2,19 @@
 
 #include <glad/glad.h>
 
-#include <imgui.h>
 #include <backends/imgui_impl_glfw.h>
 #include <backends/imgui_impl_opengl3.h>
+#include <imgui.h>
 
-#include "Core/Log.h"
 #include "Core/Core.h"
+#include "Core/Log.h"
 
-#include "Utils/glfw_tools.h"
 #include "Utils/gl_tools.h"
+#include "Utils/glfw_tools.h"
 
 static bool s_GLFWInitialized = false;
 
-static void GLFWErrorCallback(int error, const char *description)
+static void GLFWErrorCallback(int error, const char* description)
 {
     RT_ERROR("GLFW Error {0}: {1}", error, description);
 }
@@ -61,8 +61,8 @@ void Window::Init(const WindowProps& props)
     RT_ASSERT(m_Window, "Could not create GLFW window");
 
     /* Set the window's position */
-    GLFWmonitor *monitor = glfwGetPrimaryMonitor();
-    const GLFWvidmode *mode = glfwGetVideoMode(monitor);
+    GLFWmonitor* monitor = glfwGetPrimaryMonitor();
+    const GLFWvidmode* mode = glfwGetVideoMode(monitor);
     glfwSetWindowPos(m_Window, (mode->width - m_Data.Width) / 2, (mode->height - m_Data.Height) / 2);
 
     /* Make the window's context curren */
@@ -78,8 +78,7 @@ void Window::Init(const WindowProps& props)
     glfwSetWindowUserPointer(m_Window, this);
 
     // Set GLFW callbacks
-    glfwSetKeyCallback(m_Window, [](GLFWwindow* window, int key, int scancode, int action, int mods)
-    {
+    glfwSetKeyCallback(m_Window, [](GLFWwindow* window, int key, int scancode, int action, int mods) {
         Window& w = *(Window*)glfwGetWindowUserPointer(window);
 
         if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
@@ -87,13 +86,16 @@ void Window::Init(const WindowProps& props)
             glfwSetWindowShouldClose(window, true);
         }
 
-        if (glfwGetKey(window, GLFW_KEY_F11) == GLFW_PRESS) {
+        if (glfwGetKey(window, GLFW_KEY_F11) == GLFW_PRESS)
+        {
 
-            GLFWmonitor *monitor = glfwGetWindowMonitor(window);
-            if (monitor != nullptr) {
+            GLFWmonitor* monitor = glfwGetWindowMonitor(window);
+            if (monitor != nullptr)
+            {
                 glfwSetWindowMonitor(window, nullptr, w.GetXPos(), w.GetYPos(), w.GetWidth(), w.GetHeight(), 0);
             }
-            else {
+            else
+            {
                 int xpos, ypos, width, height;
                 glfwGetWindowPos(window, &xpos, &ypos);
                 glfwGetWindowSize(window, &width, &height);
@@ -101,15 +103,14 @@ void Window::Init(const WindowProps& props)
                 w.SetHeight(height);
                 w.SetXPos(xpos);
                 w.SetYPos(ypos);
-                GLFWmonitor *monitor = glfwGetPrimaryMonitor();
+                GLFWmonitor* monitor = glfwGetPrimaryMonitor();
                 const GLFWvidmode* mode = glfwGetVideoMode(monitor);
                 glfwSetWindowMonitor(window, monitor, 0, 0, mode->width, mode->height, mode->refreshRate);
             }
         }
     });
 
-    glfwSetFramebufferSizeCallback(m_Window, [](GLFWwindow* window, int width, int height)
-    {
+    glfwSetFramebufferSizeCallback(m_Window, [](GLFWwindow* window, int width, int height) {
         RT_TRACE("Resizing window to {0}x{1}", width, height);
     });
 }

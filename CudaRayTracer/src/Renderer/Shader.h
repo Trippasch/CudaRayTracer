@@ -15,7 +15,9 @@ struct ShaderProgramSource
 class Shader
 {
 public:
-    Shader() : m_RendererID(0), m_FilePath(""), m_UniformLocationCache(0) {}
+    Shader() : m_RendererID(0), m_FilePath(""), m_UniformLocationCache(0)
+    {
+    }
     Shader(const std::string& filepath);
     ~Shader();
 
@@ -36,5 +38,4 @@ private:
     GLuint CreateShader(const std::string& vertexShader, const std::string& fragmentShader);
 
     int GetUniformLocation(const std::string& name);
-
 };

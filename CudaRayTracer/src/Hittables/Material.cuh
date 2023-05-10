@@ -3,7 +3,8 @@
 #include "Hittables/Hittable.cuh"
 #include "Hittables/Texture.cuh"
 
-enum Mat {
+enum Mat
+{
     lambertian = 0,
     metal,
     dielectric,
@@ -20,72 +21,92 @@ public:
     Mat material;
 
 public:
-    __host__ Material() {}
-    __host__ Material(Texture* a, Mat m) : albedo(a), material(m) {
-        if (albedo->texture == Tex::constant_texture) {
+    __host__ Material()
+    {
+    }
+    __host__ Material(Texture* a, Mat m) : albedo(a), material(m)
+    {
+        if (albedo->texture == Tex::constant_texture)
+        {
             albedo->even->color = Vec3(1.0f, 1.0f, 1.0f);
             albedo->odd->color = Vec3(0.0f, 0.0f, 0.0f);
         }
-        else if (albedo->texture == Tex::checker_texture) {
+        else if (albedo->texture == Tex::checker_texture)
+        {
             albedo->color = Vec3(1.0f, 1.0f, 1.0f);
         }
-        else if (albedo->texture == Tex::image_texture) {
+        else if (albedo->texture == Tex::image_texture)
+        {
             albedo->even->color = Vec3(1.0f, 1.0f, 1.0f);
             albedo->odd->color = Vec3(0.0f, 0.0f, 0.0f);
             albedo->color = Vec3(1.0f, 1.0f, 1.0f);
         }
     }
-    __host__ Material(Texture* a, float f, Mat m) : albedo(a), fuzz(f < 1 ? f : 1), material(m) {
-        if (albedo->texture == Tex::constant_texture) {
+    __host__ Material(Texture* a, float f, Mat m) : albedo(a), fuzz(f < 1 ? f : 1), material(m)
+    {
+        if (albedo->texture == Tex::constant_texture)
+        {
             albedo->even->color = Vec3(1.0f, 1.0f, 1.0f);
             albedo->odd->color = Vec3(0.0f, 0.0f, 0.0f);
         }
-        else if (albedo->texture == Tex::checker_texture) {
+        else if (albedo->texture == Tex::checker_texture)
+        {
             albedo->color = Vec3(1.0f, 1.0f, 1.0f);
         }
-        else if (albedo->texture == Tex::image_texture) {
+        else if (albedo->texture == Tex::image_texture)
+        {
             albedo->even->color = Vec3(1.0f, 1.0f, 1.0f);
             albedo->odd->color = Vec3(0.0f, 0.0f, 0.0f);
             albedo->color = Vec3(1.0f, 1.0f, 1.0f);
         }
     }
-    __host__ Material(float index_of_refraction , Mat m) : ir(index_of_refraction), material(m) {
-        if (albedo->texture == Tex::constant_texture) {
+    __host__ Material(float index_of_refraction, Mat m) : ir(index_of_refraction), material(m)
+    {
+        if (albedo->texture == Tex::constant_texture)
+        {
             albedo->even->color = Vec3(1.0f, 1.0f, 1.0f);
             albedo->odd->color = Vec3(0.0f, 0.0f, 0.0f);
         }
         albedo->color = Vec3(1.0f, 1.0f, 1.0f);
     }
-    __host__ Material(Texture* a, int l, Mat m) : albedo(a), light_intensity(l), material(m) {
-        if (albedo->texture == Tex::constant_texture) {
+    __host__ Material(Texture* a, int l, Mat m) : albedo(a), light_intensity(l), material(m)
+    {
+        if (albedo->texture == Tex::constant_texture)
+        {
             albedo->even->color = Vec3(1.0f, 1.0f, 1.0f);
             albedo->odd->color = Vec3(0.0f, 0.0f, 0.0f);
         }
-        else if (albedo->texture == Tex::checker_texture) {
+        else if (albedo->texture == Tex::checker_texture)
+        {
             albedo->color = Vec3(1.0f, 1.0f, 1.0f);
         }
-        else if (albedo->texture == Tex::image_texture) {
+        else if (albedo->texture == Tex::image_texture)
+        {
             albedo->even->color = Vec3(1.0f, 1.0f, 1.0f);
             albedo->odd->color = Vec3(0.0f, 0.0f, 0.0f);
             albedo->color = Vec3(1.0f, 1.0f, 1.0f);
         }
     }
 
-    __device__ inline bool Scatter(const Ray& r, const HitRecord& rec, Vec3& attenuation, Ray& scattered, curandState* local_rand_state) const
+    __device__ inline bool Scatter(const Ray& r, const HitRecord& rec, Vec3& attenuation, Ray& scattered,
+                                   curandState* local_rand_state) const
     {
-        if (material == Mat::lambertian) {
+        if (material == Mat::lambertian)
+        {
             Vec3 target = rec.p + rec.normal + RandomInUnitSphere(local_rand_state);
             scattered = Ray(rec.p, target - rec.p);
             attenuation = albedo->value(rec.u, rec.v, rec.p);
             return true;
         }
-        else if (material == Mat::metal) {
+        else if (material == Mat::metal)
+        {
             Vec3 reflected = Reflect(UnitVector(r.Direction()), rec.normal);
-            scattered = Ray(rec.p, reflected + fuzz*RandomInUnitSphere(local_rand_state));
+            scattered = Ray(rec.p, reflected + fuzz * RandomInUnitSphere(local_rand_state));
             attenuation = albedo->value(rec.u, rec.v, rec.p);
             return (Dot(scattered.Direction(), rec.normal) > 0);
         }
-        else if (material == Mat::dielectric) {
+        else if (material == Mat::dielectric)
+        {
             Vec3 outward_normal;
             Vec3 reflected = Reflect(r.Direction(), rec.normal);
             float ni_over_nt;
@@ -93,13 +114,15 @@ public:
             Vec3 refracted;
             float reflect_prob;
             float cosine;
-            if (Dot(r.Direction(), rec.normal) > 0.0f) {
+            if (Dot(r.Direction(), rec.normal) > 0.0f)
+            {
                 outward_normal = -rec.normal;
                 ni_over_nt = ir;
                 cosine = Dot(r.Direction(), rec.normal) / r.Direction().Length();
-                cosine = sqrt(1.0f - ir*ir*(1-cosine*cosine));
+                cosine = sqrt(1.0f - ir * ir * (1 - cosine * cosine));
             }
-            else {
+            else
+            {
                 outward_normal = rec.normal;
                 ni_over_nt = 1.0f / ir;
                 cosine = -Dot(r.Direction(), rec.normal) / r.Direction().Length();
@@ -114,7 +137,8 @@ public:
                 scattered = Ray(rec.p, refracted);
             return true;
         }
-        else if (material == Mat::diffuse_light) {
+        else if (material == Mat::diffuse_light)
+        {
             return false;
         }
 

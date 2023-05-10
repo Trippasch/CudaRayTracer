@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Core/Log.h"
+
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
 
@@ -10,7 +12,8 @@ inline unsigned char* LoadImage(const char* filename, unsigned char* data, int* 
 {
     data = stbi_load(filename, width, height, nr, 0);
 
-    if (!data) {
+    if (!data)
+    {
         RT_ERROR("ERROR: Could not load texture image file {0}", filename);
         width = height = 0;
     }

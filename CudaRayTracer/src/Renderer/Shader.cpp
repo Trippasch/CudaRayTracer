@@ -1,15 +1,14 @@
 #include "Renderer/Shader.h"
 
 #include <fstream>
-#include <sstream>
 #include <glm/gtc/type_ptr.hpp>
+#include <sstream>
 
 #include "Core/Log.h"
 
 // #include "helper_gl.h"
 
-Shader::Shader(const std::string& filepath)
-    : m_FilePath(filepath), m_RendererID(0)
+Shader::Shader(const std::string& filepath) : m_FilePath(filepath), m_RendererID(0)
 {
     ShaderProgramSource source = ParseShader(filepath);
     m_RendererID = CreateShader(source.VertexSource, source.FragmentSource);
@@ -53,7 +52,9 @@ ShaderProgramSource Shader::ParseShader(const std::string& filepath)
 
     enum class ShaderType
     {
-        NONE = -1, VERTEX = 0, FRAGMENT = 1
+        NONE = -1,
+        VERTEX = 0,
+        FRAGMENT = 1
     };
 
     ShaderType type = ShaderType::NONE;
@@ -79,7 +80,7 @@ ShaderProgramSource Shader::ParseShader(const std::string& filepath)
         }
     }
 
-    return { ss[0].str(), ss[1].str() };
+    return {ss[0].str(), ss[1].str()};
 }
 
 GLuint Shader::CompileShader(GLenum type, const std::string& source)

@@ -11,11 +11,23 @@ class Camera
 public:
     Camera(int width, int height, glm::vec3 position);
 
-    inline float GetWidth() { return this->m_Width; }
-    inline void SetWidth(float width) { this->m_Width = width; }
+    inline float GetWidth()
+    {
+        return this->m_Width;
+    }
+    inline void SetWidth(float width)
+    {
+        this->m_Width = width;
+    }
 
-    inline float GetHeight() { return this->m_Height; }
-    inline void SetHeight(float height) { this->m_Height = height; }
+    inline float GetHeight()
+    {
+        return this->m_Height;
+    }
+    inline void SetHeight(float height)
+    {
+        this->m_Height = height;
+    }
 
     glm::mat4 Matrix(float fovDeg, float nearPlane, float farPlane);
 

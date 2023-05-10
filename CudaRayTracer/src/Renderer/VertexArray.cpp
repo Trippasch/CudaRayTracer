@@ -14,7 +14,8 @@ VertexArray::~VertexArray()
     // SDK_CHECK_ERROR_GL();
 }
 
-void VertexArray::LinkAttrib(std::unique_ptr<VertexBuffer>& vbo, GLuint layout, GLuint numComponents, GLenum type, GLsizeiptr stride, void* offset) const
+void VertexArray::LinkAttrib(std::unique_ptr<VertexBuffer>& vbo, GLuint layout, GLuint numComponents, GLenum type,
+                             GLsizeiptr stride, void* offset) const
 {
     vbo->Bind();
     glEnableVertexAttribArray(layout);

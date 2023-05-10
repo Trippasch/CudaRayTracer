@@ -86,7 +86,8 @@ void Camera::Inputs(GLFWwindow* window)
         float ypos = static_cast<float>(mouseY);
 
         // Prevents camera from jumping on the first click
-        if (m_FirstClick) {
+        if (m_FirstClick)
+        {
             m_LastX = xpos;
             m_LastY = ypos;
             m_FirstClick = false;
@@ -107,7 +108,7 @@ void Camera::Inputs(GLFWwindow* window)
             m_Pitch = 89.0f;
         if (m_Pitch < -89.0f)
             m_Pitch = -89.0f;
-        
+
         glm::vec3 direction;
         direction.x = cos(glm::radians(m_Yaw)) * cos(glm::radians(m_Pitch));
         direction.y = sin(glm::radians(m_Pitch));

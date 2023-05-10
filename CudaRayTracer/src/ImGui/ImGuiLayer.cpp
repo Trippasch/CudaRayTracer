@@ -1,8 +1,8 @@
 #include "ImGui/ImGuiLayer.h"
 
-#include <imgui.h>
 #include <backends/imgui_impl_glfw.h>
 #include <backends/imgui_impl_opengl3.h>
+#include <imgui.h>
 
 #include "Core/Application.h"
 
@@ -10,8 +10,7 @@
 
 // #include "ImGuizmo.h"
 
-ImGuiLayer::ImGuiLayer()
-    : Layer("ImGuiLayer")
+ImGuiLayer::ImGuiLayer() : Layer("ImGuiLayer")
 {
 }
 
@@ -20,11 +19,11 @@ void ImGuiLayer::OnAttach()
     // Setup Dear ImGui context
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
-    ImGuiIO &io = ImGui::GetIO();
+    ImGuiIO& io = ImGui::GetIO();
     (void)io;
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard; // Enable Keyboard Controls
     // io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
-    io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;   // Enable Docking
+    io.ConfigFlags |= ImGuiConfigFlags_DockingEnable; // Enable Docking
     // io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable; // Enable Multi-Viewport / Platform Windows
     // io.ConfigFlags |= ImGuiConfigFlags_ViewportsNoTaskBarIcons;
     // io.ConfigFlags |= ImGuiConfigFlags_ViewportsNoMerge;
@@ -36,8 +35,9 @@ void ImGuiLayer::OnAttach()
     // Setup Dear ImGui style
     ImGui::StyleColorsDark();
 
-    // When viewports are enabled we tweak WindowRounding/WindowBg so platform windows can look identical to regular ones.
-    ImGuiStyle &style = ImGui::GetStyle();
+    // When viewports are enabled we tweak WindowRounding/WindowBg so platform windows can look identical to regular
+    // ones.
+    ImGuiStyle& style = ImGui::GetStyle();
     if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
     {
         style.WindowRounding = 0.0f;
@@ -47,8 +47,8 @@ void ImGuiLayer::OnAttach()
     // SetDarkThemeColors();
     SetDraculaTheme();
 
-    Application &app = Application::Get();
-    GLFWwindow *window = static_cast<GLFWwindow *>(app.GetWindow().GetNativeWindow());
+    Application& app = Application::Get();
+    GLFWwindow* window = static_cast<GLFWwindow*>(app.GetWindow().GetNativeWindow());
 
     // Setup Platform/Renderer bindings
     ImGui_ImplGlfw_InitForOpenGL(window, true);
@@ -77,13 +77,14 @@ void ImGuiLayer::OnImGuiRender()
     // because it would be confusing to have two docking targets within each others.
     ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoDocking;
 
-    const ImGuiViewport *viewport = ImGui::GetMainViewport();
+    const ImGuiViewport* viewport = ImGui::GetMainViewport();
     ImGui::SetNextWindowPos(viewport->WorkPos);
     ImGui::SetNextWindowSize(viewport->WorkSize);
     ImGui::SetNextWindowViewport(viewport->ID);
     ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
     ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
-    window_flags |= ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove;
+    window_flags |=
+        ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove;
     window_flags |= ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNavFocus;
 
     // When using ImGuiDockNodeFlags_PassthruCentralNode, DockSpace() will render our background
@@ -103,7 +104,7 @@ void ImGuiLayer::OnImGuiRender()
     ImGui::PopStyleVar(2);
 
     // Submit the DockSpace
-    ImGuiIO &io = ImGui::GetIO();
+    ImGuiIO& io = ImGui::GetIO();
     if (io.ConfigFlags & ImGuiConfigFlags_DockingEnable)
     {
         ImGuiID dockspace_id = ImGui::GetID("MyDockSpace");
@@ -118,8 +119,8 @@ void ImGuiLayer::OnImGuiRender()
 
 void ImGuiLayer::End()
 {
-    ImGuiIO &io = ImGui::GetIO();
-    Application &app = Application::Get();
+    ImGuiIO& io = ImGui::GetIO();
+    Application& app = Application::Get();
     io.DisplaySize = ImVec2((float)app.GetWindow().GetWidth(), (float)app.GetWindow().GetHeight());
 
     // Rendering
@@ -128,7 +129,7 @@ void ImGuiLayer::End()
 
     if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
     {
-        GLFWwindow *backup_current_context = glfwGetCurrentContext();
+        GLFWwindow* backup_current_context = glfwGetCurrentContext();
         ImGui::UpdatePlatformWindows();
         ImGui::RenderPlatformWindowsDefault();
         glfwMakeContextCurrent(backup_current_context);
@@ -137,7 +138,7 @@ void ImGuiLayer::End()
 
 void ImGuiLayer::SetDraculaTheme()
 {
-    auto &colors = ImGui::GetStyle().Colors;
+    auto& colors = ImGui::GetStyle().Colors;
     colors[ImGuiCol_WindowBg] = ImVec4{0.1f, 0.1f, 0.13f, 1.0f};
     colors[ImGuiCol_MenuBarBg] = ImVec4{0.16f, 0.16f, 0.21f, 1.0f};
 
@@ -213,7 +214,7 @@ void ImGuiLayer::SetDraculaTheme()
     // Docking
     colors[ImGuiCol_DockingPreview] = ImVec4{0.44f, 0.37f, 0.61f, 1.0f};
 
-    auto &style = ImGui::GetStyle();
+    auto& style = ImGui::GetStyle();
     style.TabRounding = 4;
     style.ScrollbarRounding = 9;
     style.WindowRounding = 7;
@@ -225,7 +226,7 @@ void ImGuiLayer::SetDraculaTheme()
 
 void ImGuiLayer::SetDarkThemeColors()
 {
-    auto &colors = ImGui::GetStyle().Colors;
+    auto& colors = ImGui::GetStyle().Colors;
     colors[ImGuiCol_WindowBg] = ImVec4{0.1f, 0.105f, 0.11f, 1.0f};
 
     // Headers

@@ -4,7 +4,8 @@
 
 #include "Utils/Math.cuh"
 
-enum Tex {
+enum Tex
+{
     constant_texture = 0,
     checker_texture,
     image_texture,
@@ -17,15 +18,21 @@ public:
     Texture* odd;
     Texture* even;
     Tex texture;
-    unsigned char *data = nullptr;
-    const char *path = nullptr;
+    unsigned char* data = nullptr;
+    const char* path = nullptr;
     int width, height;
     const static int bytes_per_pixel = 3;
 
 public:
-    __host__ Texture() : color(Vec3(1.0f, 1.0f, 1.0f)), texture(Tex::constant_texture) {}
-    __host__ Texture(Vec3 c, Tex t) : color(c), texture(t) {}
-    __host__ Texture(Texture* t0, Texture* t1, Tex t) : even(t0), odd(t1), texture(t) {}
+    __host__ Texture() : color(Vec3(1.0f, 1.0f, 1.0f)), texture(Tex::constant_texture)
+    {
+    }
+    __host__ Texture(Vec3 c, Tex t) : color(c), texture(t)
+    {
+    }
+    __host__ Texture(Texture* t0, Texture* t1, Tex t) : even(t0), odd(t1), texture(t)
+    {
+    }
     __host__ Texture(unsigned char* d, int w, int h, Tex t) : data(d), width(w), height(h), texture(t)
     {
         bytes_per_scanline = bytes_per_pixel * width;
@@ -33,19 +40,24 @@ public:
 
     __device__ inline Vec3 value(float u, float v, const Vec3& p) const
     {
-        if (texture == Tex::constant_texture) {
+        if (texture == Tex::constant_texture)
+        {
             return color;
         }
-        else if (texture == Tex::checker_texture) {
+        else if (texture == Tex::checker_texture)
+        {
             float sines = sin(10 * p.x()) * sin(10 * p.y()) * sin(10 * p.z());
-            if (sines < 0) {
+            if (sines < 0)
+            {
                 return odd->value(u, v, p);
             }
-            else {
+            else
+            {
                 return even->value(u, v, p);
             }
         }
-        else if (texture == Tex::image_texture) {
+        else if (texture == Tex::image_texture)
+        {
             if (data == nullptr)
                 return Vec3(0, 1, 1);
 
