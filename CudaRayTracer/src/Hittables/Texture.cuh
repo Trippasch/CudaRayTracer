@@ -1,8 +1,8 @@
 #pragma once
 
-#include "../Core/Log.h"
+#include "Core/Log.h"
 
-#include "../Utils/Math.cuh"
+#include "Utils/Math.cuh"
 
 enum Tex {
     constant_texture = 0,

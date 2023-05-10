@@ -1,7 +1,7 @@
 #pragma once
 
-#include "Hittable.cuh"
-#include "Texture.cuh"
+#include "Hittables/Hittable.cuh"
+#include "Hittables/Texture.cuh"
 
 enum Mat {
     lambertian = 0,
@@ -117,6 +117,8 @@ public:
         else if (material == Mat::diffuse_light) {
             return false;
         }
+
+        return false;
     }
 
     __device__ inline Vec3 Emitted(float u, float v, const Vec3& p) const

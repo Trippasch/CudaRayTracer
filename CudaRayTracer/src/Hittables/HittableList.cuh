@@ -2,7 +2,7 @@
 
 #include <vector>
 
-#include "Hittable.cuh"
+#include "Hittables/Hittable.cuh"
 
 class HittableList
 {

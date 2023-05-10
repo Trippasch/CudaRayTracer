@@ -4,10 +4,10 @@
 #include <stdio.h>
 #include <float.h>
 
-#include "../Hittables/HittableList.cuh"
-#include "../Hittables/Hittable.cuh"
-#include "../Hittables/Material.cuh"
-#include "../Utils/SharedStructs.h"
+#include "Hittables/HittableList.cuh"
+#include "Hittables/Hittable.cuh"
+#include "Hittables/Material.cuh"
+#include "Utils/SharedStructs.h"
 
 // convert floating point rgb color to 8-bit integer
 __device__ inline int RgbToInt(float r, float g, float b)
