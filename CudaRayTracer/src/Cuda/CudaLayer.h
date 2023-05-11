@@ -39,8 +39,8 @@ private:
     void InitGLBuffers();
     void RunCudaInit();
     void GenerateWorld();
-    void AddHittable();
-    void DeleteHittable(Hittable* hittable);
+    // void AddHittable();
+    // void DeleteHittable(Hittable* hittable);
     void RunCudaUpdate();
     bool OnImGuiResize();
 
@@ -64,7 +64,7 @@ private:
     InputStruct m_Inputs;
 
     // Hittables
-    HittableList* m_World;
+    Hittable* m_World;
     bool m_UseHittableSphere = true;
     bool m_UseHittableXYRect = false;
     bool m_UseHittableXZRect = false;

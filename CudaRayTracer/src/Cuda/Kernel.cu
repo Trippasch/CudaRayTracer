@@ -28,31 +28,31 @@ __device__ inline Vec3 IntToRgb(int val)
     return Vec3(r, g, b);
 }
 
-__device__ bool Hit(const Ray& r, float t_min, float t_max, HitRecord& rec, Hittable** world, unsigned int world_size)
-{
-    HitRecord temp_rec;
-    bool hit_anything = false;
-    float closest_so_far = t_max;
+// __device__ bool Hit(const Ray& r, float t_min, float t_max, HitRecord& rec, Hittable** world, unsigned int world_size)
+// {
+//     HitRecord temp_rec;
+//     bool hit_anything = false;
+//     float closest_so_far = t_max;
 
-    for (int i = 0; i < world_size; i++) {
-        if (world[i]->Hit(r, t_min, closest_so_far, temp_rec)) {
-            hit_anything = true;
-            closest_so_far = temp_rec.t;
-            rec = temp_rec;
-        }
-    }
+//     for (int i = 0; i < world_size; i++) {
+//         if (world[i]->Hit(r, t_min, closest_so_far, temp_rec)) {
+//             hit_anything = true;
+//             closest_so_far = temp_rec.t;
+//             rec = temp_rec;
+//         }
+//     }
 
-    return hit_anything;
-}
+//     return hit_anything;
+// }
 
-__device__ inline Vec3 color(const Ray& r, Hittable** world, unsigned int world_size, int max_depth, curandState* local_rand_state) {
+__device__ inline Vec3 color(const Ray& r, Hittable* world, int max_depth, curandState* local_rand_state) {
     Ray cur_ray = r;
     Vec3 cur_attenuation = Vec3(1.0f, 1.0f, 1.0f);
 
     for (int i = 0; i < max_depth; i++) {
         HitRecord rec;
         Vec3 emitted = Vec3(0.0f, 0.0f, 0.0f);
-        if (Hit(cur_ray, 0.001f, FLT_MAX, rec, world, world_size)) {
+        if (world->Object->bvh_node->Hit(cur_ray, 0.001f, FLT_MAX, rec)) {
             Ray scattered;
             Vec3 attenuation;
 
@@ -103,7 +103,7 @@ __device__ inline void GetXYZCoords(int& x, int& y, int& z)
 
 __global__
 // __launch_bounds__(MY_KERNEL_MAX_THREADS, MY_KERNEL_MIN_BLOCKS)
-void Kernel(unsigned int* pos, unsigned int width, unsigned int height, const unsigned int samples_per_pixel, const unsigned int max_depth, Hittable** world, unsigned int world_size, curandState* rand_state, InputStruct inputs)
+void Kernel(unsigned int* pos, unsigned int width, unsigned int height, const unsigned int samples_per_pixel, const unsigned int max_depth, Hittable* world, curandState* rand_state, InputStruct inputs)
 {
     extern __shared__ uchar4 sdata[];
 
@@ -136,7 +136,7 @@ void Kernel(unsigned int* pos, unsigned int width, unsigned int height, const un
         Vec3 dirVector = Normalize(secondPlanePos - startPos);
 
         Ray r = Ray(startPos, dirVector);
-        col = col + color(r, world, world_size, max_depth, &local_rand_state);
+        col = col + color(r, world, max_depth, &local_rand_state);
     }
     rand_state[pixel_index] = local_rand_state;
 
@@ -217,24 +217,24 @@ __global__ void RenderInit(unsigned int window_width, unsigned int window_height
 // }
 
 extern "C"
-void LaunchKernel(unsigned int* pos, unsigned int image_width, unsigned int image_height, const unsigned int samples_per_pixel, const unsigned int max_depth, HittableList* world, curandState* d_rand_state, InputStruct inputs)
+void LaunchKernel(unsigned int* pos, unsigned int image_width, unsigned int image_height, const unsigned int samples_per_pixel, const unsigned int max_depth, Hittable* world, curandState* d_rand_state, InputStruct inputs)
 {
     // Calculate grid size
     dim3 block(16, 16, 1);
     dim3 grid(image_width / block.x, image_height / block.y, 1);
     size_t sbytes = 0;
 
-    Hittable** d_world;
-    cudaMallocManaged((void**)&d_world, world->objects.size() * sizeof(Hittable*));
+    // HittableList* d_world;
+    // cudaMallocManaged((void**)&d_world, world->objects.size() * sizeof(HittableList));
 
-    for (int i = 0; i < world->objects.size(); i++) {
-        d_world[i] = world->objects[i];
-    }
+    // for (int i = 0; i < world->objects.size(); i++) {
+    //     d_world[i] = world->objects[i];
+    // }
 
-    Kernel << < grid, block, sbytes >> > (pos, image_width, image_height, samples_per_pixel, max_depth, d_world, world->objects.size(), d_rand_state, inputs);
+    Kernel << < grid, block, sbytes >> > (pos, image_width, image_height, samples_per_pixel, max_depth, world, d_rand_state, inputs);
     cudaDeviceSynchronize();
 
-    cudaFree(d_world);
+    // cudaFree(d_world);
 }
 
 extern "C"
