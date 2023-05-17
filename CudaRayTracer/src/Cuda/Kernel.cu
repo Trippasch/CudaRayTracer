@@ -1,11 +1,11 @@
 #include <cuda_runtime.h>
 #include <device_launch_parameters.h>
-#include <stdlib.h>
-#include <stdio.h>
 #include <float.h>
+#include <stdio.h>
+#include <stdlib.h>
 
-#include "Hittables/HittableList.cuh"
 #include "Hittables/Hittable.cuh"
+#include "Hittables/HittableList.cuh"
 #include "Hittables/Material.cuh"
 #include "Utils/SharedStructs.h"
 
@@ -28,7 +28,8 @@ __device__ inline Vec3 IntToRgb(int val)
     return Vec3(r, g, b);
 }
 
-// __device__ bool Hit(const Ray& r, float t_min, float t_max, HitRecord& rec, Hittable** world, unsigned int world_size)
+// __device__ bool Hit(const Ray& r, float t_min, float t_max, HitRecord& rec, Hittable** world, unsigned int
+// world_size)
 // {
 //     HitRecord temp_rec;
 //     bool hit_anything = false;
@@ -45,7 +46,8 @@ __device__ inline Vec3 IntToRgb(int val)
 //     return hit_anything;
 // }
 
-__device__ inline Vec3 color(const Ray& r, Hittable* world, int max_depth, curandState* local_rand_state) {
+__device__ inline Vec3 color(const Ray& r, Hittable* world, int max_depth, curandState* local_rand_state)
+{
     Ray cur_ray = r;
     Vec3 cur_attenuation = Vec3(1.0f, 1.0f, 1.0f);
 
@@ -92,18 +94,20 @@ __device__ inline void GetXYZCoords(int& x, int& y, int& z)
     z = blockIdx.z + bt * tz;
 }
 
-// #define THREADS_PER_BLOCK          256
-// #if __CUDA_ARCH__ >= 200
-//     #define MY_KERNEL_MAX_THREADS  (2 * THREADS_PER_BLOCK)
-//     #define MY_KERNEL_MIN_BLOCKS   3
-// #else
-//     #define MY_KERNEL_MAX_THREADS  THREADS_PER_BLOCK
-//     #define MY_KERNEL_MIN_BLOCKS   2
-// #endif
+#define THREADS_PER_BLOCK          512
+#if __CUDA_ARCH__ >= 200
+    #define MY_KERNEL_MAX_THREADS  (2 * THREADS_PER_BLOCK)
+    #define MY_KERNEL_MIN_BLOCKS   3
+#else
+    #define MY_KERNEL_MAX_THREADS  THREADS_PER_BLOCK
+    #define MY_KERNEL_MIN_BLOCKS   2
+#endif
 
 __global__
-// __launch_bounds__(MY_KERNEL_MAX_THREADS, MY_KERNEL_MIN_BLOCKS)
-void Kernel(unsigned int* pos, unsigned int width, unsigned int height, const unsigned int samples_per_pixel, const unsigned int max_depth, Hittable* world, curandState* rand_state, InputStruct inputs)
+    __launch_bounds__(MY_KERNEL_MAX_THREADS, MY_KERNEL_MIN_BLOCKS)
+    void
+    Kernel(unsigned int* pos, unsigned int width, unsigned int height, const unsigned int samples_per_pixel,
+           const unsigned int max_depth, Hittable* world, curandState* rand_state, InputStruct inputs)
 {
     extern __shared__ uchar4 sdata[];
 
@@ -132,7 +136,7 @@ void Kernel(unsigned int* pos, unsigned int width, unsigned int height, const un
         float v = (float)((center.y() - y) + curand_uniform(&local_rand_state)) / (float)(width);
         Vec3 distFromCenter = (u * rightV) + (v * upV);
         Vec3 startPos = (inputs.near_plane * distFromCenter) + origin + (inputs.fov * forwardV);
-        Vec3 secondPlanePos = (inputs.far_plane * distFromCenter) + ((1.0f/inputs.fov * 10.0f) * forwardV) + origin;
+        Vec3 secondPlanePos = (inputs.far_plane * distFromCenter) + ((1.0f / inputs.fov * 10.0f) * forwardV) + origin;
         Vec3 dirVector = Normalize(secondPlanePos - startPos);
 
         Ray r = Ray(startPos, dirVector);
@@ -141,9 +145,9 @@ void Kernel(unsigned int* pos, unsigned int width, unsigned int height, const un
     rand_state[pixel_index] = local_rand_state;
 
     col = col / (float)(samples_per_pixel);
-    col.e[0] = 255.0f * sqrt(col.x());
-    col.e[1] = 255.0f * sqrt(col.y());
-    col.e[2] = 255.0f * sqrt(col.z());
+    col.e[0] = 255.0f * sqrtf(col.x());
+    col.e[1] = 255.0f * sqrtf(col.y());
+    col.e[2] = 255.0f * sqrtf(col.z());
 
     // write output vertex
     pos[pixel_index] = RgbToInt(col.x(), col.y(), col.z());
@@ -186,7 +190,8 @@ __global__ void RenderInit(unsigned int window_width, unsigned int window_height
 //                }
 //                else if (choose_mat < 0.95f) {
 //                    d_list[i++] = new Sphere(center, 0.2,
-//                        new Material(Vec3(0.5f * (1.0f + RND), 0.5f * (1.0f + RND), 0.5f * (1.0f + RND)), 0.5f * RND, Mat::metal));
+//                        new Material(Vec3(0.5f * (1.0f + RND), 0.5f * (1.0f + RND), 0.5f * (1.0f + RND)), 0.5f * RND,
+//                        Mat::metal));
 //                }
 //                else {
 //                    d_list[i++] = new Sphere(center, 0.2, new Material(1.5, Mat::dielectric));
@@ -216,8 +221,9 @@ __global__ void RenderInit(unsigned int window_width, unsigned int window_height
 //     delete* d_world;
 // }
 
-extern "C"
-void LaunchKernel(unsigned int* pos, unsigned int image_width, unsigned int image_height, const unsigned int samples_per_pixel, const unsigned int max_depth, Hittable* world, curandState* d_rand_state, InputStruct inputs)
+extern "C" void LaunchKernel(unsigned int* pos, unsigned int image_width, unsigned int image_height,
+                             const unsigned int samples_per_pixel, const unsigned int max_depth, Hittable* world,
+                             curandState* d_rand_state, InputStruct inputs)
 {
     // Calculate grid size
     dim3 block(16, 16, 1);
@@ -231,23 +237,23 @@ void LaunchKernel(unsigned int* pos, unsigned int image_width, unsigned int imag
     //     d_world[i] = world->objects[i];
     // }
 
-    Kernel << < grid, block, sbytes >> > (pos, image_width, image_height, samples_per_pixel, max_depth, world, d_rand_state, inputs);
+    Kernel<<<grid, block, sbytes>>>(pos, image_width, image_height, samples_per_pixel, max_depth, world, d_rand_state,
+                                    inputs);
     cudaDeviceSynchronize();
 
     // cudaFree(d_world);
 }
 
-extern "C"
-void LaunchRandInit(curandState* d_rand_state2)
+extern "C" void LaunchRandInit(curandState* d_rand_state2)
 {
-    RandInit << < 1, 1 >> > (d_rand_state2);
+    RandInit<<<1, 1>>>(d_rand_state2);
     cudaDeviceSynchronize();
 }
 
-extern "C"
-void LaunchRenderInit(dim3 grid, dim3 block, unsigned int window_width, unsigned int window_height, curandState* d_rand_state)
+extern "C" void LaunchRenderInit(dim3 grid, dim3 block, unsigned int window_width, unsigned int window_height,
+                                 curandState* d_rand_state)
 {
-    RenderInit << < grid, block >> > (window_width, window_height, d_rand_state);
+    RenderInit<<<grid, block>>>(window_width, window_height, d_rand_state);
     cudaDeviceSynchronize();
 }
 

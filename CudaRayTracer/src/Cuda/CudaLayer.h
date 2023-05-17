@@ -2,9 +2,9 @@
 
 #include "Core/Layer.h"
 
+#include "Hittables/Hittable.cuh"
 #include "Hittables/HittableList.cuh"
 #include "Hittables/Material.cuh"
-#include "Hittables/Hittable.cuh"
 
 #include "Utils/SharedStructs.h"
 #include "Utils/helper_cuda.h"
@@ -14,9 +14,9 @@
 #include <glad/glad.h>
 
 // Cuda
+#include <cuda_gl_interop.h>
 #include <cuda_runtime.h>
 #include <curand_kernel.h>
-#include <cuda_gl_interop.h>
 
 class CudaLayer : public Layer
 {
@@ -29,10 +29,22 @@ public:
     virtual void OnDetach() override;
     virtual void OnImGuiRender() override;
 
-    inline int GetImageWidth() const { return m_ImageWidth; }
-    inline int GetImageHeight() const { return m_ImageHeight; }
-    inline void SetImageWidth(int width) { m_ImageWidth = width; }
-    inline void SetImageHeight(int height) { m_ImageHeight = height; }
+    inline int GetImageWidth() const
+    {
+        return m_ImageWidth;
+    }
+    inline int GetImageHeight() const
+    {
+        return m_ImageHeight;
+    }
+    inline void SetImageWidth(int width)
+    {
+        m_ImageWidth = width;
+    }
+    inline void SetImageHeight(int height)
+    {
+        m_ImageHeight = height;
+    }
 
 private:
     void InitCudaBuffers();
@@ -58,13 +70,16 @@ private:
     struct cudaGraphicsResource* m_CudaTexResource;
     void* m_CudaDevRenderBuffer;
     GLuint m_Texture;
-    curandState* m_DrandState;    // allocate random state
+    curandState* m_DrandState; // allocate random state
     curandState* m_DrandState2;
 
     InputStruct m_Inputs;
 
     // Hittables
     Hittable* m_World;
+    Hittable** m_List;
+    char* memory;
+
     bool m_UseHittableSphere = true;
     bool m_UseHittableXYRect = false;
     bool m_UseHittableXZRect = false;
