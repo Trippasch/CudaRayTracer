@@ -94,17 +94,15 @@ __device__ inline void GetXYZCoords(int& x, int& y, int& z)
     z = blockIdx.z + bt * tz;
 }
 
-#define THREADS_PER_BLOCK          512
+#define THREADS_PER_BLOCK          256
 #if __CUDA_ARCH__ >= 200
-    #define MY_KERNEL_MAX_THREADS  (2 * THREADS_PER_BLOCK)
-    #define MY_KERNEL_MIN_BLOCKS   3
+    #define MY_KERNEL_MAX_THREADS  (4 * THREADS_PER_BLOCK)
 #else
     #define MY_KERNEL_MAX_THREADS  THREADS_PER_BLOCK
-    #define MY_KERNEL_MIN_BLOCKS   2
 #endif
 
 __global__
-    __launch_bounds__(MY_KERNEL_MAX_THREADS, MY_KERNEL_MIN_BLOCKS)
+    __launch_bounds__(MY_KERNEL_MAX_THREADS)
     void
     Kernel(unsigned int* pos, unsigned int width, unsigned int height, const unsigned int samples_per_pixel,
            const unsigned int max_depth, Hittable* world, curandState* rand_state, InputStruct inputs)
