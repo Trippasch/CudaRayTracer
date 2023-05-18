@@ -58,8 +58,8 @@ private:
 
 private:
     // Image
-    unsigned int m_ImageWidth = 800;
-    unsigned int m_ImageHeight = 600;
+    unsigned int m_ImageWidth = 832;
+    unsigned int m_ImageHeight = 698;
 
     // Cuda Image
     unsigned int m_NumTexels = m_ImageWidth * m_ImageHeight;

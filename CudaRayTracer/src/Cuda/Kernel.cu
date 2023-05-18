@@ -50,35 +50,48 @@ __device__ inline Vec3 color(const Ray& r, Hittable* world, int max_depth, curan
 {
     Ray cur_ray = r;
     Vec3 cur_attenuation = Vec3(1.0f, 1.0f, 1.0f);
+    Vec3 background = Vec3(0.0f, 0.0f, 0.0f);
 
     for (int i = 0; i < max_depth; i++) {
         HitRecord rec;
-        Vec3 emitted = Vec3(0.0f, 0.0f, 0.0f);
         if (world->Object->bvh_node->Hit(cur_ray, 0.001f, FLT_MAX, rec)) {
+            Vec3 emitted = Vec3(0.0f, 0.0f, 0.0f);
             Ray scattered;
             Vec3 attenuation;
 
-            if (rec.mat_ptr->material == Mat::diffuse_light) {
-                emitted = (rec.mat_ptr)->Emitted(rec.u, rec.v, rec.p);
-            }
-
-            if ((rec.mat_ptr)->Scatter(cur_ray, rec, attenuation, scattered, local_rand_state)) {
-                cur_attenuation = attenuation * cur_attenuation;
-                cur_ray = scattered;
-            }
-            else {
-                return emitted * cur_attenuation;
+            switch (rec.mat_ptr->type) {
+            case MaterialType::LAMBERTIAN:
+                if (!rec.mat_ptr->Object->lambertian->Scatter(cur_ray, rec, attenuation, scattered, local_rand_state)) {
+                    return emitted * cur_attenuation;
+                }
+                break;
+            case MaterialType::METAL:
+                if (!rec.mat_ptr->Object->metal->Scatter(cur_ray, rec, attenuation, scattered, local_rand_state)) {
+                    return emitted * cur_attenuation;
+                }
+                break;
+            case MaterialType::DIELECTRIC:
+                if (!rec.mat_ptr->Object->dielectric->Scatter(cur_ray, rec, attenuation, scattered, local_rand_state)) {
+                    return emitted * cur_attenuation;
+                }
+                break;
+            case MaterialType::DIFFUSELIGHT:
+                emitted = rec.mat_ptr->Object->diffuse_light->Emitted(rec.u, rec.v, rec.p);
+                break;
+            default:
+                return background;
             }
         }
-        else {
-            // return Vec3(0.0f, 0.0f, 0.0f);
+        else
+        {
             Vec3 unit_direction = UnitVector(cur_ray.Direction());
             float t = 0.5f * (unit_direction.y() + 1.0f);
             Vec3 c = (1.0f - t) * Vec3(1.0f, 1.0f, 1.0f) + t * Vec3(0.5f, 0.7f, 1.0f);
             return cur_attenuation * c;
         }
     }
-    return Vec3(0.0f, 0.0f, 0.0f); // exceeded recursion
+
+    return background; // exceeded recursion
 }
 
 __device__ inline void GetXYZCoords(int& x, int& y, int& z)
@@ -94,20 +107,23 @@ __device__ inline void GetXYZCoords(int& x, int& y, int& z)
     z = blockIdx.z + bt * tz;
 }
 
-#define THREADS_PER_BLOCK          256
+#define THREADS_PER_BLOCK 256
 #if __CUDA_ARCH__ >= 200
-    #define MY_KERNEL_MAX_THREADS  (4 * THREADS_PER_BLOCK)
+#define MY_KERNEL_MAX_THREADS (4 * THREADS_PER_BLOCK)
 #else
-    #define MY_KERNEL_MAX_THREADS  THREADS_PER_BLOCK
+#define MY_KERNEL_MAX_THREADS THREADS_PER_BLOCK
 #endif
 
-__global__
-    __launch_bounds__(MY_KERNEL_MAX_THREADS)
-    void
-    Kernel(unsigned int* pos, unsigned int width, unsigned int height, const unsigned int samples_per_pixel,
-           const unsigned int max_depth, Hittable* world, curandState* rand_state, InputStruct inputs)
+__global__ __launch_bounds__(MY_KERNEL_MAX_THREADS) void Kernel(unsigned int* pos, unsigned int width,
+                                                                unsigned int height,
+                                                                const unsigned int samples_per_pixel,
+                                                                const unsigned int max_depth, Hittable* world,
+                                                                curandState* rand_state, InputStruct inputs)
 {
-    extern __shared__ uchar4 sdata[];
+    // extern __shared__ uchar4 sdata[];
+    // Define shared memory for the rand_state array.
+    // Each thread in the block will have one curandState element.
+    // extern __shared__ curandState shared_rand_state[];
 
     int x, y, z;
     GetXYZCoords(x, y, z);
@@ -117,7 +133,12 @@ __global__
 
     unsigned int pixel_index = (y * width + x);
 
+    // Copy from global to shared memory
+    // shared_rand_state[threadIdx.y * blockDim.x + threadIdx.x] = rand_state[pixel_index];
     curandState local_rand_state = rand_state[pixel_index];
+    // Make sure all threads have finished copying
+    // __syncthreads();
+    // curandState local_rand_state = shared_rand_state[threadIdx.y * blockDim.x + threadIdx.x];
 
     Vec3 col = Vec3(0.0f, 0.0f, 0.0f);
 
@@ -226,7 +247,9 @@ extern "C" void LaunchKernel(unsigned int* pos, unsigned int image_width, unsign
     // Calculate grid size
     dim3 block(16, 16, 1);
     dim3 grid(image_width / block.x, image_height / block.y, 1);
-    size_t sbytes = 0;
+    // Calculate the size of shared memory:
+    // number of threads per block * size of each curandState element
+    // size_t sbytes = block.x * block.y * sizeof(curandState);
 
     // HittableList* d_world;
     // cudaMallocManaged((void**)&d_world, world->objects.size() * sizeof(HittableList));
@@ -235,8 +258,7 @@ extern "C" void LaunchKernel(unsigned int* pos, unsigned int image_width, unsign
     //     d_world[i] = world->objects[i];
     // }
 
-    Kernel<<<grid, block, sbytes>>>(pos, image_width, image_height, samples_per_pixel, max_depth, world, d_rand_state,
-                                    inputs);
+    Kernel<<<grid, block>>>(pos, image_width, image_height, samples_per_pixel, max_depth, world, d_rand_state, inputs);
     cudaDeviceSynchronize();
 
     // cudaFree(d_world);

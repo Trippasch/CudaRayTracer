@@ -350,17 +350,6 @@ public:
 
             left->Object->bvh_node = new (left->Object->bvh_node) BVHNode(objects, start, mid_index);
             right->Object->bvh_node = new (right->Object->bvh_node) BVHNode(objects, mid_index, end);
-
-            // checkCudaErrors(cudaMallocManaged(&left, sizeof(Hittable)));
-            // left->type = BVHNODE;
-            // checkCudaErrors(cudaMallocManaged(&right, sizeof(Hittable)));
-            // right->type = BVHNODE;
-            // checkCudaErrors(cudaMallocManaged(&left->Object, sizeof(Hittable::ObjectUnion)));
-            // checkCudaErrors(cudaMallocManaged(&right->Object, sizeof(Hittable::ObjectUnion)));
-            // checkCudaErrors(cudaMallocManaged(&left->Object->bvh_node, sizeof(BVHNode)));
-            // checkCudaErrors(cudaMallocManaged(&right->Object->bvh_node, sizeof(BVHNode)));
-            // left->Object->bvh_node = new (left->Object->bvh_node) BVHNode(objects, start, mid_index);
-            // right->Object->bvh_node = new (right->Object->bvh_node) BVHNode(objects, mid_index, end);
         }
 
         AABB box_left, box_right;
@@ -453,7 +442,98 @@ public:
         // box = SurroundingBox(box_left, box_right);
     }
 
-    __device__ inline bool Hit(const Ray& r, float t_min, float t_max, HitRecord& rec)
+    // __device__ inline bool Hit(const Ray& r, float t_min, float t_max, HitRecord& rec)
+    // {
+    //     if (!box.Hit(r, t_min, t_max)) {
+    //         return false;
+    //     }
+
+    //     struct StackNode
+    //     {
+    //         const BVHNode* node;
+    //         float t_min, t_max;
+    //     };
+
+    //     StackNode stack[16];
+    //     int top = -1;
+
+    //     stack[++top] = {this, t_min, t_max};
+
+    //     bool hit_something = false;
+
+    //     while (top >= 0) {
+    //         StackNode current = stack[top--];
+
+    //         if (!current.node->box.Hit(r, current.t_min, current.t_max)) {
+    //             continue;
+    //         }
+
+    //         const Hittable* left = current.node->left;
+    //         const Hittable* right = current.node->right;
+
+    //         Hittable::ObjectUnion* left_object = left ? left->Object : nullptr;
+    //         Hittable::ObjectUnion* right_object = right ? right->Object : nullptr;
+
+    //         if (left && left->type == BVHNODE) {
+    //             stack[++top] = {left_object->bvh_node, current.t_min, hit_something ? rec.t : current.t_max};
+    //         }
+    //         else if (left) {
+    //             bool hit_left = false;
+
+    //             switch (left->type) {
+    //             case HittableType::SPHERE:
+    //                 hit_left = left_object->sphere->Hit(r, current.t_min, hit_something ? rec.t : current.t_max,
+    //                 rec); break;
+    //             case HittableType::XYRECT:
+    //                 hit_left = left_object->xy_rect->Hit(r, current.t_min, hit_something ? rec.t : current.t_max,
+    //                 rec); break;
+    //             case HittableType::XZRECT:
+    //                 hit_left = left_object->xz_rect->Hit(r, current.t_min, hit_something ? rec.t : current.t_max,
+    //                 rec); break;
+    //             case HittableType::YZRECT:
+    //                 hit_left = left_object->yz_rect->Hit(r, current.t_min, hit_something ? rec.t : current.t_max,
+    //                 rec); break;
+    //             }
+
+    //             if (hit_left) {
+    //                 hit_something = true;
+    //             }
+    //         }
+
+    //         if (right && right->type == BVHNODE) {
+    //             stack[++top] = {right_object->bvh_node, current.t_min, hit_something ? rec.t : current.t_max};
+    //         }
+    //         else if (right) {
+    //             bool hit_right = false;
+
+    //             switch (right->type) {
+    //             case HittableType::SPHERE:
+    //                 hit_right = right_object->sphere->Hit(r, current.t_min, hit_something ? rec.t : current.t_max,
+    //                 rec); break;
+    //             case HittableType::XYRECT:
+    //                 hit_right =
+    //                     right_object->xy_rect->Hit(r, current.t_min, hit_something ? rec.t : current.t_max, rec);
+    //                 break;
+    //             case HittableType::XZRECT:
+    //                 hit_right =
+    //                     right_object->xz_rect->Hit(r, current.t_min, hit_something ? rec.t : current.t_max, rec);
+    //                 break;
+    //             case HittableType::YZRECT:
+    //                 hit_right =
+    //                     right_object->yz_rect->Hit(r, current.t_min, hit_something ? rec.t : current.t_max, rec);
+    //                 break;
+    //             }
+
+    //             if (hit_right) {
+    //                 hit_something = true;
+    //             }
+    //         }
+    //     }
+
+    //     return hit_something;
+    // }
+
+    __device__ inline bool Hit(const Ray& r, float t_min, float t_max, HitRecord& rec) const
     {
         if (!box.Hit(r, t_min, t_max)) {
             return false;
@@ -465,15 +545,18 @@ public:
             float t_min, t_max;
         };
 
-        StackNode stack[128];
+        StackNode stack[16]; // Reduced stack size cause of register spilling
         int top = -1;
 
         stack[++top] = {this, t_min, t_max};
 
         bool hit_something = false;
+        StackNode current;
+        const Hittable* obj;
+        Hittable::ObjectUnion* obj_object;
 
         while (top >= 0) {
-            StackNode current = stack[top--];
+            current = stack[top--];
 
             if (!current.node->box.Hit(r, current.t_min, current.t_max)) {
                 continue;
@@ -482,119 +565,23 @@ public:
             const Hittable* left = current.node->left;
             const Hittable* right = current.node->right;
 
-            Hittable::ObjectUnion* left_object = left ? left->Object : nullptr;
-            Hittable::ObjectUnion* right_object = right ? right->Object : nullptr;
-
             if (left && left->type == BVHNODE) {
-                stack[++top] = {left_object->bvh_node, current.t_min, hit_something ? rec.t : current.t_max};
+                obj = left;
+                obj_object = obj->Object;
+                stack[++top] = {obj_object->bvh_node, current.t_min, hit_something ? rec.t : current.t_max};
             }
             else if (left) {
-                bool hit_left = false;
-
-                switch (left->type) {
-                case HittableType::SPHERE:
-                    hit_left = left_object->sphere->Hit(r, current.t_min, hit_something ? rec.t : current.t_max, rec);
-                    break;
-                case HittableType::XYRECT:
-                    hit_left = left_object->xy_rect->Hit(r, current.t_min, hit_something ? rec.t : current.t_max, rec);
-                    break;
-                case HittableType::XZRECT:
-                    hit_left = left_object->xz_rect->Hit(r, current.t_min, hit_something ? rec.t : current.t_max, rec);
-                    break;
-                case HittableType::YZRECT:
-                    hit_left = left_object->yz_rect->Hit(r, current.t_min, hit_something ? rec.t : current.t_max, rec);
-                    break;
-                }
-
-                if (hit_left) {
-                    hit_something = true;
-                }
+                hit_something |= PerformHit(r, current.t_min, hit_something ? rec.t : current.t_max, rec, left);
             }
 
             if (right && right->type == BVHNODE) {
-                stack[++top] = {right_object->bvh_node, current.t_min, hit_something ? rec.t : current.t_max};
+                obj = right;
+                obj_object = obj->Object;
+                stack[++top] = {obj_object->bvh_node, current.t_min, hit_something ? rec.t : current.t_max};
             }
             else if (right) {
-                bool hit_right = false;
-
-                switch (right->type) {
-                case HittableType::SPHERE:
-                    hit_right = right_object->sphere->Hit(r, current.t_min, hit_something ? rec.t : current.t_max, rec);
-                    break;
-                case HittableType::XYRECT:
-                    hit_right =
-                        right_object->xy_rect->Hit(r, current.t_min, hit_something ? rec.t : current.t_max, rec);
-                    break;
-                case HittableType::XZRECT:
-                    hit_right =
-                        right_object->xz_rect->Hit(r, current.t_min, hit_something ? rec.t : current.t_max, rec);
-                    break;
-                case HittableType::YZRECT:
-                    hit_right =
-                        right_object->yz_rect->Hit(r, current.t_min, hit_something ? rec.t : current.t_max, rec);
-                    break;
-                }
-
-                if (hit_right) {
-                    hit_something = true;
-                }
+                hit_something |= PerformHit(r, current.t_min, hit_something ? rec.t : current.t_max, rec, right);
             }
-
-            // if (left && left->type == BVHNODE) {
-            //     stack[++top] = {left->Object->bvh_node, current.t_min, hit_something ? rec.t : current.t_max};
-            // }
-            // else {
-            //     bool hit_left = false;
-
-            //     if (left->type == HittableType::SPHERE) {
-            //         hit_left = left->Object->sphere->Hit(r, current.t_min, hit_something ? rec.t : current.t_max,
-            //         rec);
-            //     }
-            //     // else if (left->type == HittableType::XYRECT) {
-            //     //     hit_left = left->Object->xy_rect->Hit(r, current.t_min, hit_something ? rec.t : current.t_max,
-            //     rec);
-            //     // }
-            //     // else if (left->type == HittableType::XZRECT) {
-            //     //     hit_left = left->Object->xz_rect->Hit(r, current.t_min, hit_something ? rec.t : current.t_max,
-            //     rec);
-            //     // }
-            //     // else {
-            //     //     hit_left = left->Object->yz_rect->Hit(r, current.t_min, hit_something ? rec.t : current.t_max,
-            //     rec);
-            //     // }
-
-            //     if (hit_left) {
-            //         hit_something = true;
-            //     }
-            // }
-
-            // if (right && right->type == BVHNODE) {
-            //     stack[++top] = {right->Object->bvh_node, current.t_min, hit_something ? rec.t : current.t_max};
-            // }
-            // else {
-            //     bool hit_right = false;
-
-            //     if (right->type == HittableType::SPHERE) {
-            //         hit_right =
-            //             right->Object->sphere->Hit(r, current.t_min, hit_something ? rec.t : current.t_max, rec);
-            //     }
-            //     // else if (right->type == HittableType::XYRECT) {
-            //     //     hit_right =
-            //     //         right->Object->xy_rect->Hit(r, current.t_min, hit_something ? rec.t : current.t_max, rec);
-            //     // }
-            //     // else if (right->type == HittableType::XZRECT) {
-            //     //     hit_right =
-            //     //         right->Object->xz_rect->Hit(r, current.t_min, hit_something ? rec.t : current.t_max, rec);
-            //     // }
-            //     // else {
-            //     //     hit_right =
-            //     //         right->Object->yz_rect->Hit(r, current.t_min, hit_something ? rec.t : current.t_max, rec);
-            //     // }
-
-            //     if (hit_right) {
-            //         hit_something = true;
-            //     }
-            // }
         }
 
         return hit_something;
@@ -622,6 +609,23 @@ public:
 
 private:
     char* memory;
+
+    __device__ inline bool PerformHit(const Ray& r, float t_min, float t_max, HitRecord& rec, const Hittable* obj) const
+    {
+        Hittable::ObjectUnion* obj_object = obj->Object;
+        switch (obj->type) {
+        case HittableType::SPHERE:
+            return obj_object->sphere->Hit(r, t_min, t_max, rec);
+        case HittableType::XYRECT:
+            return obj_object->xy_rect->Hit(r, t_min, t_max, rec);
+        case HittableType::XZRECT:
+            return obj_object->xz_rect->Hit(r, t_min, t_max, rec);
+        case HittableType::YZRECT:
+            return obj_object->yz_rect->Hit(r, t_min, t_max, rec);
+        default:
+            return false;
+        }
+    }
 
     __host__ static inline bool BoxCompare(const Hittable* a, const Hittable* b, int axis)
     {
