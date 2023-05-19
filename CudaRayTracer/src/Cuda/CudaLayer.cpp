@@ -681,11 +681,11 @@ void CudaLayer::GenerateWorld()
     // Coalesced memory
     // Calculate total size of memory needed
     size_t totalMaterialSize = sizeof(Material) + sizeof(Material::ObjectUnion) + sizeof(Lambertian);
-    size_t totalTextureSize = sizeof(Texture) + sizeof(Texture::ObjectUnion) + sizeof(Constant);
+    // size_t totalTextureSize = sizeof(Texture) + sizeof(Texture::ObjectUnion) + sizeof(Constant);
     size_t totalForSize =
-        (sizeof(Hittable) + sizeof(Hittable::ObjectUnion) + sizeof(Sphere) + totalMaterialSize + totalTextureSize);
+        sizeof(Hittable) + sizeof(Hittable::ObjectUnion) + sizeof(Sphere) + totalMaterialSize;
     size_t totalListSize = (size * sizeof(Hittable*)) + sizeof(Hittable) + sizeof(Hittable::ObjectUnion) +
-                           sizeof(XZRect) + totalMaterialSize + totalTextureSize + ((size - 1) * totalForSize);
+                           sizeof(XZRect) + totalMaterialSize + ((size - 1) * totalForSize);
     size_t totalWorldSize = sizeof(Hittable) + sizeof(Hittable::ObjectUnion) + sizeof(BVHNode);
 
     size_t totalSize = totalListSize + totalWorldSize;
@@ -706,21 +706,29 @@ void CudaLayer::GenerateWorld()
         (Lambertian*)(m_List[0]->Object->xz_rect->mat_ptr->Object + 1);
     m_List[0]->Object->xz_rect->mat_ptr->Object->lambertian->albedo =
         (Texture*)(m_List[0]->Object->xz_rect->mat_ptr->Object->lambertian + 1);
-    m_List[0]->Object->xz_rect->mat_ptr->Object->lambertian->albedo->Object =
-        (Texture::ObjectUnion*)(m_List[0]->Object->xz_rect->mat_ptr->Object->lambertian->albedo + 1);
-    m_List[0]->Object->xz_rect->mat_ptr->Object->lambertian->albedo->Object->constant =
-        (Constant*)(m_List[0]->Object->xz_rect->mat_ptr->Object->lambertian->albedo->Object + 1);
+    m_List[0]->Object->xz_rect->mat_ptr->Object->lambertian->albedo->odd =
+        (Texture*)(m_List[0]->Object->xz_rect->mat_ptr->Object->lambertian->albedo + 1);
+    m_List[0]->Object->xz_rect->mat_ptr->Object->lambertian->albedo->even =
+        (Texture*)(m_List[0]->Object->xz_rect->mat_ptr->Object->lambertian->albedo->odd + 1);
+
+    // m_List[0]->Object->xz_rect->mat_ptr->Object->lambertian->albedo->Object =
+    //     (Texture::ObjectUnion*)(m_List[0]->Object->xz_rect->mat_ptr->Object->lambertian->albedo + 1);
+    // m_List[0]->Object->xz_rect->mat_ptr->Object->lambertian->albedo->Object->constant =
+    //     (Constant*)(m_List[0]->Object->xz_rect->mat_ptr->Object->lambertian->albedo->Object + 1);
 
     m_List[0]->type = HittableType::XZRECT;
 
-    new (m_List[0]->Object->xz_rect->mat_ptr->Object->lambertian->albedo) Constant(Vec3(0.1f, 0.2f, 0.3f));
-    m_List[0]->Object->xz_rect->mat_ptr->Object->lambertian->albedo->type = TextureType::CONSTANT;
-
+    new (m_List[0]->Object->xz_rect->mat_ptr->Object->lambertian->albedo->odd)
+        Texture(Vec3(0.2f, 0.3f, 0.1f), Tex::constant_texture);
+    new (m_List[0]->Object->xz_rect->mat_ptr->Object->lambertian->albedo->even)
+        Texture(Vec3(0.9f, 0.9f, 0.9f), Tex::constant_texture);
+    new (m_List[0]->Object->xz_rect->mat_ptr->Object->lambertian->albedo)
+        Texture(m_List[0]->Object->xz_rect->mat_ptr->Object->lambertian->albedo->odd,
+                m_List[0]->Object->xz_rect->mat_ptr->Object->lambertian->albedo->even, Tex::checker_texture);
     new (m_List[0]->Object->xz_rect->mat_ptr)
         Lambertian(m_List[0]->Object->xz_rect->mat_ptr->Object->lambertian->albedo);
     // Set the type of the Material after constructing it, so the assignment won't be overwritten.
     m_List[0]->Object->xz_rect->mat_ptr->type = MaterialType::LAMBERTIAN;
-
     m_List[0]->Object->xz_rect = new (m_List[0]->Object->xz_rect)
         XZRect(Vec3(0.0f, -0.5f, 0.0f), 1000.0f, 1000.0f, m_List[0]->Object->xz_rect->mat_ptr);
 
@@ -736,21 +744,19 @@ void CudaLayer::GenerateWorld()
             (Lambertian*)(m_List[i]->Object->sphere->mat_ptr->Object + 1);
         m_List[i]->Object->sphere->mat_ptr->Object->lambertian->albedo =
             (Texture*)(m_List[i]->Object->sphere->mat_ptr->Object->lambertian + 1);
-        m_List[i]->Object->sphere->mat_ptr->Object->lambertian->albedo->Object =
-            (Texture::ObjectUnion*)(m_List[i]->Object->sphere->mat_ptr->Object->lambertian->albedo + 1);
-        m_List[i]->Object->sphere->mat_ptr->Object->lambertian->albedo->Object->constant =
-            (Constant*)(m_List[i]->Object->sphere->mat_ptr->Object->lambertian->albedo->Object + 1);
+        m_List[i]->Object->sphere->mat_ptr->Object->lambertian->albedo->odd =
+            (Texture*)(m_List[i]->Object->sphere->mat_ptr->Object->lambertian->albedo + 1);
+        m_List[i]->Object->sphere->mat_ptr->Object->lambertian->albedo->even =
+            (Texture*)(m_List[i]->Object->sphere->mat_ptr->Object->lambertian->albedo->odd + 1);
 
         m_List[i]->type = HittableType::SPHERE;
 
-        new (m_List[i]->Object->sphere->mat_ptr->Object->lambertian->albedo) Constant(Vec3(0.2f, 0.3f, 0.1f));
-        m_List[i]->Object->sphere->mat_ptr->Object->lambertian->albedo->type = TextureType::CONSTANT;
-
+        new (m_List[i]->Object->sphere->mat_ptr->Object->lambertian->albedo)
+            Texture(Vec3(0.2f, 0.3f, 0.1f), Tex::constant_texture);
         new (m_List[i]->Object->sphere->mat_ptr)
             Lambertian(m_List[i]->Object->sphere->mat_ptr->Object->lambertian->albedo);
         // Set the type of the Material after constructing it, so the assignment won't be overwritten.
         m_List[i]->Object->sphere->mat_ptr->type = MaterialType::LAMBERTIAN;
-
         m_List[i]->Object->sphere = new (m_List[i]->Object->sphere)
             Sphere(Vec3(0.0f + (i * 2), 0.5f, 0.0f), 1.0f, m_List[i]->Object->sphere->mat_ptr);
     }
