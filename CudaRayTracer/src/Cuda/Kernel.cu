@@ -59,7 +59,7 @@ __device__ inline Vec3 color(const Ray& r, Hittable* world, int max_depth, curan
             Ray scattered;
             Vec3 attenuation;
 
-            switch (0) {
+            switch (rec.mat_ptr->type) {
             case MaterialType::LAMBERTIAN:
                 if (!rec.mat_ptr->Object->lambertian->Scatter(cur_ray, rec, attenuation, scattered, local_rand_state)) {
                     return emitted * cur_attenuation;
@@ -77,7 +77,7 @@ __device__ inline Vec3 color(const Ray& r, Hittable* world, int max_depth, curan
                 break;
             case MaterialType::DIFFUSELIGHT:
                 emitted = rec.mat_ptr->Object->diffuse_light->Emitted(rec.u, rec.v, rec.p);
-                break;
+                return emitted * cur_attenuation;
             default:
                 return background;
             }

@@ -1,24 +1,25 @@
 import os
 from invoke import task
 
-
 @task
 def config(context, build_type="Release"):
     print(f"Configuring project with CMake (build_type: {build_type})...")
-    build_dir = f"build/{build_type}"
-    os.makedirs(build_dir, exist_ok=True)
 
     if os.name == "nt":
+        build_dir = f"build/"
+        os.makedirs(build_dir, exist_ok=True)
         cmd = [
             "cmake",
-            "-G \"MinGW Makefiles\"",
-            f"-DCMAKE_BUILD_TYPE={build_type}",
+            # "-G \"MinGW Makefiles\"",
+            # f"-DCMAKE_BUILD_TYPE={build_type}",
             "-S",
             ".",
             "-B",
             build_dir
         ]
     else:
+        build_dir = f"build/{build_type}"
+        os.makedirs(build_dir, exist_ok=True)
         cmd = [
             "cmake",
             f"-DCMAKE_BUILD_TYPE={build_type}",
@@ -40,14 +41,24 @@ def config(context, build_type="Release"):
 @task
 def build(context, build_type="Release"):
     print("Building project with CMake...")
-    build_dir = f"build/{build_type}"
 
-    cmd = [
-        "cmake",
-        "--build",
-        build_dir,
-        "-j"
-    ]
+    if os.name == "nt":
+        build_dir = f"build/"
+        cmd = [
+            "cmake",
+            "--build",
+            build_dir,
+            f"--config={build_type}",
+            "-j"
+        ]
+    else:
+        build_dir = f"build/{build_type}"
+        cmd = [
+            "cmake",
+            "--build",
+            build_dir,
+            "-j"
+        ]
 
     print(" ".join(cmd))
     context.run(" ".join(cmd))
