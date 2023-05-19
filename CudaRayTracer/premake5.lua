@@ -28,7 +28,7 @@ defines({
 
 -- Add necessary build customization using standard Premake5
 -- This assumes we have installed Visual Studio integration for CUDA
-buildcustomizations('BuildCustomizations/CUDA 12.1')
+buildcustomizations('BuildCustomizations/CUDA 12.0')
 -- For linux
 cudaPath('/opt/cuda')
 
@@ -38,7 +38,7 @@ cudaFiles({ -- Files compiled by NVCC
 })
 
 -- cudaMaxRegCount "63"
--- cudaRelocatableCode "On"
+cudaRelocatableCode "On"
 
 cudaCompilerOptions({
     '-t0', -- Compile in parallel

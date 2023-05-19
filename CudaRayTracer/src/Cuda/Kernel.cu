@@ -59,7 +59,7 @@ __device__ inline Vec3 color(const Ray& r, Hittable* world, int max_depth, curan
             Ray scattered;
             Vec3 attenuation;
 
-            switch (rec.mat_ptr->type) {
+            switch (0) {
             case MaterialType::LAMBERTIAN:
                 if (!rec.mat_ptr->Object->lambertian->Scatter(cur_ray, rec, attenuation, scattered, local_rand_state)) {
                     return emitted * cur_attenuation;
@@ -81,9 +81,11 @@ __device__ inline Vec3 color(const Ray& r, Hittable* world, int max_depth, curan
             default:
                 return background;
             }
+
+            cur_attenuation = attenuation * cur_attenuation;
+            cur_ray = scattered;
         }
-        else
-        {
+        else {
             Vec3 unit_direction = UnitVector(cur_ray.Direction());
             float t = 0.5f * (unit_direction.y() + 1.0f);
             Vec3 c = (1.0f - t) * Vec3(1.0f, 1.0f, 1.0f) + t * Vec3(0.5f, 0.7f, 1.0f);
