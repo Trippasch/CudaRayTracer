@@ -52,9 +52,16 @@ __device__ inline Vec3 color(const Ray& r, Hittable* world, int max_depth, curan
     Vec3 cur_attenuation = Vec3(1.0f, 1.0f, 1.0f);
     Vec3 background = Vec3(0.0f, 0.0f, 0.0f);
 
+    HitRecord rec;
+
     for (int i = 0; i < max_depth; i++) {
-        HitRecord rec;
-        if (world->Object->bvh_node->Hit(cur_ray, 0.001f, FLT_MAX, rec)) {
+        if (!world->Object->bvh_node->Hit(cur_ray, 0.001f, FLT_MAX, rec)) {
+            Vec3 unit_direction = UnitVector(cur_ray.Direction());
+            float t = 0.5f * (unit_direction.y() + 1.0f);
+            Vec3 c = (1.0f - t) * Vec3(1.0f, 1.0f, 1.0f) + t * Vec3(0.5f, 0.7f, 1.0f);
+            return cur_attenuation * c;
+        }
+        else {
             Vec3 emitted = Vec3(0.0f, 0.0f, 0.0f);
             Ray scattered;
             Vec3 attenuation;
@@ -84,12 +91,6 @@ __device__ inline Vec3 color(const Ray& r, Hittable* world, int max_depth, curan
 
             cur_attenuation = attenuation * cur_attenuation;
             cur_ray = scattered;
-        }
-        else {
-            Vec3 unit_direction = UnitVector(cur_ray.Direction());
-            float t = 0.5f * (unit_direction.y() + 1.0f);
-            Vec3 c = (1.0f - t) * Vec3(1.0f, 1.0f, 1.0f) + t * Vec3(0.5f, 0.7f, 1.0f);
-            return cur_attenuation * c;
         }
     }
 

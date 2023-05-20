@@ -38,18 +38,18 @@ public:
 
     __host__ Lambertian(Texture* a) : albedo(a)
     {
-        if (albedo->texture == Tex::constant_texture) {
-            albedo->even->color = Vec3(1.0f, 1.0f, 1.0f);
-            albedo->odd->color = Vec3(0.0f, 0.0f, 0.0f);
-        }
-        else if (albedo->texture == Tex::checker_texture) {
-            albedo->color = Vec3(1.0f, 1.0f, 1.0f);
-        }
-        else if (albedo->texture == Tex::image_texture) {
-            albedo->even->color = Vec3(1.0f, 1.0f, 1.0f);
-            albedo->odd->color = Vec3(0.0f, 0.0f, 0.0f);
-            albedo->color = Vec3(1.0f, 1.0f, 1.0f);
-        }
+        // if (albedo->texture == Tex::constant_texture) {
+        //     albedo->even->color = Vec3(1.0f, 1.0f, 1.0f);
+        //     albedo->odd->color = Vec3(0.0f, 0.0f, 0.0f);
+        // }
+        // else if (albedo->texture == Tex::checker_texture) {
+        //     albedo->color = Vec3(1.0f, 1.0f, 1.0f);
+        // }
+        // else if (albedo->texture == Tex::image_texture) {
+        //     albedo->even->color = Vec3(1.0f, 1.0f, 1.0f);
+        //     albedo->odd->color = Vec3(0.0f, 0.0f, 0.0f);
+        //     albedo->color = Vec3(1.0f, 1.0f, 1.0f);
+        // }
     }
 
     __device__ inline bool Scatter(const Ray& r, const HitRecord& rec, Vec3& attenuation, Ray& scattered,
@@ -57,21 +57,21 @@ public:
     {
         Vec3 target = rec.p + rec.normal + RandomInUnitSphere(local_rand_state);
         scattered = Ray(rec.p, target - rec.p);
-        attenuation = albedo->value(rec.u, rec.v, rec.p);
-        // switch (albedo->type)
-        // {
-        // case TextureType::CONSTANT:
-        //     attenuation = albedo->Object->constant->value(rec.u, rec.v, rec.p);
-        //     break;
-        // case TextureType::CHECKER:
-        //     attenuation = albedo->Object->checker->value(rec.u, rec.v, rec.p);
-        //     break;
-        // case TextureType::IMAGE:
-        //     attenuation = albedo->Object->image->value(rec.u, rec.v, rec.p);
-        //     break;
-        // default:
-        //     break;
-        // }
+        // attenuation = albedo->value(rec.u, rec.v, rec.p);
+        switch (albedo->type)
+        {
+        case TextureType::CONSTANT:
+            attenuation = albedo->Object->constant->value(rec.u, rec.v, rec.p);
+            break;
+        case TextureType::CHECKER:
+            attenuation = albedo->Object->checker->value(rec.u, rec.v, rec.p);
+            break;
+        case TextureType::IMAGE:
+            attenuation = albedo->Object->image->value(rec.u, rec.v, rec.p);
+            break;
+        default:
+            break;
+        }
         return true;
     }
 };
@@ -84,18 +84,18 @@ public:
 
     __host__ Metal(Texture* a, float f) : albedo(a), fuzz(f < 1 ? f : 1)
     {
-        if (albedo->texture == Tex::constant_texture) {
-            albedo->even->color = Vec3(1.0f, 1.0f, 1.0f);
-            albedo->odd->color = Vec3(0.0f, 0.0f, 0.0f);
-        }
-        else if (albedo->texture == Tex::checker_texture) {
-            albedo->color = Vec3(1.0f, 1.0f, 1.0f);
-        }
-        else if (albedo->texture == Tex::image_texture) {
-            albedo->even->color = Vec3(1.0f, 1.0f, 1.0f);
-            albedo->odd->color = Vec3(0.0f, 0.0f, 0.0f);
-            albedo->color = Vec3(1.0f, 1.0f, 1.0f);
-        }
+        // if (albedo->texture == Tex::constant_texture) {
+        //     albedo->even->color = Vec3(1.0f, 1.0f, 1.0f);
+        //     albedo->odd->color = Vec3(0.0f, 0.0f, 0.0f);
+        // }
+        // else if (albedo->texture == Tex::checker_texture) {
+        //     albedo->color = Vec3(1.0f, 1.0f, 1.0f);
+        // }
+        // else if (albedo->texture == Tex::image_texture) {
+        //     albedo->even->color = Vec3(1.0f, 1.0f, 1.0f);
+        //     albedo->odd->color = Vec3(0.0f, 0.0f, 0.0f);
+        //     albedo->color = Vec3(1.0f, 1.0f, 1.0f);
+        // }
     }
 
     __device__ inline bool Scatter(const Ray& r, const HitRecord& rec, Vec3& attenuation, Ray& scattered,
@@ -103,21 +103,21 @@ public:
     {
         Vec3 reflected = Reflect(UnitVector(r.Direction()), rec.normal);
         scattered = Ray(rec.p, reflected + fuzz * RandomInUnitSphere(local_rand_state));
-        attenuation = albedo->value(rec.u, rec.v, rec.p);
-        // switch (albedo->type)
-        // {
-        // case TextureType::CONSTANT:
-        //     attenuation = albedo->Object->constant->value(rec.u, rec.v, rec.p);
-        //     break;
-        // case TextureType::CHECKER:
-        //     attenuation = albedo->Object->checker->value(rec.u, rec.v, rec.p);
-        //     break;
-        // case TextureType::IMAGE:
-        //     attenuation = albedo->Object->image->value(rec.u, rec.v, rec.p);
-        //     break;
-        // default:
-        //     break;
-        // }
+        // attenuation = albedo->value(rec.u, rec.v, rec.p);
+        switch (albedo->type)
+        {
+        case TextureType::CONSTANT:
+            attenuation = albedo->Object->constant->value(rec.u, rec.v, rec.p);
+            break;
+        case TextureType::CHECKER:
+            attenuation = albedo->Object->checker->value(rec.u, rec.v, rec.p);
+            break;
+        case TextureType::IMAGE:
+            attenuation = albedo->Object->image->value(rec.u, rec.v, rec.p);
+            break;
+        default:
+            break;
+        }
         return (Dot(scattered.Direction(), rec.normal) > 0);
     }
 };
@@ -130,11 +130,11 @@ public:
 
     __host__ Dielectric(float index_of_refraction) : ir(index_of_refraction)
     {
-        if (albedo->texture == Tex::constant_texture) {
-            albedo->even->color = Vec3(1.0f, 1.0f, 1.0f);
-            albedo->odd->color = Vec3(0.0f, 0.0f, 0.0f);
-        }
-        albedo->color = Vec3(1.0f, 1.0f, 1.0f);
+        // if (albedo->texture == Tex::constant_texture) {
+        //     albedo->even->color = Vec3(1.0f, 1.0f, 1.0f);
+        //     albedo->odd->color = Vec3(0.0f, 0.0f, 0.0f);
+        // }
+        // albedo->color = Vec3(1.0f, 1.0f, 1.0f);
     }
 
     __device__ inline bool Scatter(const Ray& r, const HitRecord& rec, Vec3& attenuation, Ray& scattered,
@@ -187,18 +187,18 @@ public:
 
     __host__ DiffuseLight(Texture* a, int l) : albedo(a), light_intensity(l)
     {
-        if (albedo->texture == Tex::constant_texture) {
-            albedo->even->color = Vec3(1.0f, 1.0f, 1.0f);
-            albedo->odd->color = Vec3(0.0f, 0.0f, 0.0f);
-        }
-        else if (albedo->texture == Tex::checker_texture) {
-            albedo->color = Vec3(1.0f, 1.0f, 1.0f);
-        }
-        else if (albedo->texture == Tex::image_texture) {
-            albedo->even->color = Vec3(1.0f, 1.0f, 1.0f);
-            albedo->odd->color = Vec3(0.0f, 0.0f, 0.0f);
-            albedo->color = Vec3(1.0f, 1.0f, 1.0f);
-        }
+        // if (albedo->texture == Tex::constant_texture) {
+        //     albedo->even->color = Vec3(1.0f, 1.0f, 1.0f);
+        //     albedo->odd->color = Vec3(0.0f, 0.0f, 0.0f);
+        // }
+        // else if (albedo->texture == Tex::checker_texture) {
+        //     albedo->color = Vec3(1.0f, 1.0f, 1.0f);
+        // }
+        // else if (albedo->texture == Tex::image_texture) {
+        //     albedo->even->color = Vec3(1.0f, 1.0f, 1.0f);
+        //     albedo->odd->color = Vec3(0.0f, 0.0f, 0.0f);
+        //     albedo->color = Vec3(1.0f, 1.0f, 1.0f);
+        // }
     }
 
     __device__ inline bool Scatter(const Ray& r, const HitRecord& rec, Vec3& attenuation, Ray& scattered,
@@ -209,18 +209,18 @@ public:
 
     __device__ inline Vec3 Emitted(float u, float v, const Vec3& p) const
     {
-        return light_intensity * albedo->value(u, v, p);
-        // switch (albedo->type)
-        // {
-        // case TextureType::CONSTANT:
-        //     return light_intensity * albedo->Object->constant->value(u, v, p);
-        // case TextureType::CHECKER:
-        //     return light_intensity * albedo->Object->checker->value(u, v, p);
-        // case TextureType::IMAGE:
-        //     return light_intensity * albedo->Object->image->value(u, v, p);
-        // default:
-        //     break;
-        // }
+        // return light_intensity * albedo->value(u, v, p);
+        switch (albedo->type)
+        {
+        case TextureType::CONSTANT:
+            return light_intensity * albedo->Object->constant->value(u, v, p);
+        case TextureType::CHECKER:
+            return light_intensity * albedo->Object->checker->value(u, v, p);
+        case TextureType::IMAGE:
+            return light_intensity * albedo->Object->image->value(u, v, p);
+        default:
+            break;
+        }
     }
 };
 

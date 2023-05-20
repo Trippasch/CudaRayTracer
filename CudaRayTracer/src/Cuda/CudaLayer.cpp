@@ -680,12 +680,17 @@ void CudaLayer::GenerateWorld()
     size_t size = 3;
     // Coalesced memory
     // Calculate total size of memory needed
-    size_t totalMaterialSize = sizeof(Material) + sizeof(Material::ObjectUnion) + sizeof(Lambertian);
-    // size_t totalTextureSize = sizeof(Texture) + sizeof(Texture::ObjectUnion) + sizeof(Constant);
-    size_t totalForSize =
-        sizeof(Hittable) + sizeof(Hittable::ObjectUnion) + sizeof(Sphere) + totalMaterialSize;
-    size_t totalListSize = (size * sizeof(Hittable*)) + sizeof(Hittable) + sizeof(Hittable::ObjectUnion) +
-                           sizeof(XZRect) + totalMaterialSize + ((size - 1) * totalForSize);
+    size_t lambertianSize = sizeof(Material) + sizeof(Material::ObjectUnion) + sizeof(Lambertian);
+    size_t metalSize = sizeof(Material) + sizeof(Material::ObjectUnion) + sizeof(Metal);
+    size_t constantSize = sizeof(Texture) + sizeof(Texture::ObjectUnion) + sizeof(Constant);
+    size_t checkerSize = sizeof(Texture) + sizeof(Texture::ObjectUnion) + sizeof(Checker);
+    size_t sphereSize = sizeof(Hittable) + sizeof(Hittable::ObjectUnion) + sizeof(Sphere);
+    size_t xzrectSize = sizeof(Hittable) + sizeof(Hittable::ObjectUnion) + sizeof(XZRect);
+
+    size_t groundSize = xzrectSize + lambertianSize + checkerSize;
+    size_t spheresSize = sphereSize + metalSize + constantSize;
+
+    size_t totalListSize = (size * sizeof(Hittable*)) + groundSize + ((size - 1) * spheresSize);
     size_t totalWorldSize = sizeof(Hittable) + sizeof(Hittable::ObjectUnion) + sizeof(BVHNode);
 
     size_t totalSize = totalListSize + totalWorldSize;
@@ -695,37 +700,61 @@ void CudaLayer::GenerateWorld()
 
     m_List = (Hittable**)memory;
 
+    printf("Hittable size %d\n", sizeof(Hittable));
+    printf("ObjectUnion size %d\n", sizeof(Hittable::ObjectUnion));
+    printf("XZRect size %d\n", sizeof(XZRect));
+    printf("Material size %d\n", sizeof(Material));
+    printf("ObjectUnion size %d\n", sizeof(Material::ObjectUnion));
+    printf("Lambertian size %d\n", sizeof(Lambertian));
+    printf("Texture size %d\n", sizeof(Texture));
+    printf("ObjectUnion size %d\n", sizeof(Texture::ObjectUnion));
+    printf("Checker size %d\n", sizeof(Checker));
+    printf("Constant size %d\n", sizeof(Constant));
+
     // Partitioning
     char* basePtr = memory + size * sizeof(Hittable*);
     m_List[0] = (Hittable*)(basePtr);
+    printf("Hittable %p\n", m_List[0]);
     m_List[0]->Object = (Hittable::ObjectUnion*)(m_List[0] + 1);
+    printf("ObjectUnion %p\n", m_List[0]->Object);
     m_List[0]->Object->xz_rect = (XZRect*)(m_List[0]->Object + 1);
+    printf("XZRect %p\n", m_List[0]->Object->xz_rect);
     m_List[0]->Object->xz_rect->mat_ptr = (Material*)(m_List[0]->Object->xz_rect + 1);
+    printf("Material %p\n", m_List[0]->Object->xz_rect->mat_ptr);
     m_List[0]->Object->xz_rect->mat_ptr->Object = (Material::ObjectUnion*)(m_List[0]->Object->xz_rect->mat_ptr + 1);
+    printf("ObjectUnion %p\n", m_List[0]->Object->xz_rect->mat_ptr->Object);
     m_List[0]->Object->xz_rect->mat_ptr->Object->lambertian =
         (Lambertian*)(m_List[0]->Object->xz_rect->mat_ptr->Object + 1);
+    printf("Lambertian %p\n", m_List[0]->Object->xz_rect->mat_ptr->Object->lambertian);
     m_List[0]->Object->xz_rect->mat_ptr->Object->lambertian->albedo =
         (Texture*)(m_List[0]->Object->xz_rect->mat_ptr->Object->lambertian + 1);
-    m_List[0]->Object->xz_rect->mat_ptr->Object->lambertian->albedo->odd =
-        (Texture*)(m_List[0]->Object->xz_rect->mat_ptr->Object->lambertian->albedo + 1);
-    m_List[0]->Object->xz_rect->mat_ptr->Object->lambertian->albedo->even =
-        (Texture*)(m_List[0]->Object->xz_rect->mat_ptr->Object->lambertian->albedo->odd + 1);
-
-    // m_List[0]->Object->xz_rect->mat_ptr->Object->lambertian->albedo->Object =
-    //     (Texture::ObjectUnion*)(m_List[0]->Object->xz_rect->mat_ptr->Object->lambertian->albedo + 1);
-    // m_List[0]->Object->xz_rect->mat_ptr->Object->lambertian->albedo->Object->constant =
-    //     (Constant*)(m_List[0]->Object->xz_rect->mat_ptr->Object->lambertian->albedo->Object + 1);
+    printf("Texture %p\n", m_List[0]->Object->xz_rect->mat_ptr->Object->lambertian->albedo);
+    m_List[0]->Object->xz_rect->mat_ptr->Object->lambertian->albedo->Object =
+        (Texture::ObjectUnion*)(m_List[0]->Object->xz_rect->mat_ptr->Object->lambertian->albedo + 1);
+    printf("ObjectUnion %p\n", m_List[0]->Object->xz_rect->mat_ptr->Object->lambertian->albedo->Object);
+    m_List[0]->Object->xz_rect->mat_ptr->Object->lambertian->albedo->Object->checker =
+        (Checker*)(m_List[0]->Object->xz_rect->mat_ptr->Object->lambertian->albedo->Object + 1);
+    printf("Checker %p\n", m_List[0]->Object->xz_rect->mat_ptr->Object->lambertian->albedo->Object->checker);
+    m_List[0]->Object->xz_rect->mat_ptr->Object->lambertian->albedo->Object->checker->odd =
+        (Constant*)(m_List[0]->Object->xz_rect->mat_ptr->Object->lambertian->albedo->Object->checker + 1);
+    printf("Odd %p\n", m_List[0]->Object->xz_rect->mat_ptr->Object->lambertian->albedo->Object->checker->odd);
+    m_List[0]->Object->xz_rect->mat_ptr->Object->lambertian->albedo->Object->checker->even =
+        (Constant*)(m_List[0]->Object->xz_rect->mat_ptr->Object->lambertian->albedo->Object->checker->odd + 1);
+    printf("Even %p\n", m_List[0]->Object->xz_rect->mat_ptr->Object->lambertian->albedo->Object->checker->even);
 
     m_List[0]->type = HittableType::XZRECT;
 
-    new (m_List[0]->Object->xz_rect->mat_ptr->Object->lambertian->albedo->odd)
-        Texture(Vec3(0.2f, 0.3f, 0.1f), Tex::constant_texture);
-    new (m_List[0]->Object->xz_rect->mat_ptr->Object->lambertian->albedo->even)
-        Texture(Vec3(0.9f, 0.9f, 0.9f), Tex::constant_texture);
-    new (m_List[0]->Object->xz_rect->mat_ptr->Object->lambertian->albedo)
-        Texture(m_List[0]->Object->xz_rect->mat_ptr->Object->lambertian->albedo->odd,
-                m_List[0]->Object->xz_rect->mat_ptr->Object->lambertian->albedo->even, Tex::checker_texture);
-    new (m_List[0]->Object->xz_rect->mat_ptr)
+    new (m_List[0]->Object->xz_rect->mat_ptr->Object->lambertian->albedo->Object->checker->odd)
+        Constant(Vec3(1.0f, 0.0f, 0.0f));
+    new (m_List[0]->Object->xz_rect->mat_ptr->Object->lambertian->albedo->Object->checker->even)
+        Constant(Vec3(1.0f, 0.0f, 0.0f));
+    m_List[0]->Object->xz_rect->mat_ptr->Object->lambertian->albedo->Object->checker->odd->color.Print();
+    m_List[0]->Object->xz_rect->mat_ptr->Object->lambertian->albedo->Object->checker->even->color.Print();
+    new (m_List[0]->Object->xz_rect->mat_ptr->Object->lambertian->albedo->Object->checker)
+        Checker(m_List[0]->Object->xz_rect->mat_ptr->Object->lambertian->albedo->Object->checker->odd,
+                m_List[0]->Object->xz_rect->mat_ptr->Object->lambertian->albedo->Object->checker->even);
+    m_List[0]->Object->xz_rect->mat_ptr->Object->lambertian->albedo->type = TextureType::CHECKER;
+    new (m_List[0]->Object->xz_rect->mat_ptr->Object->lambertian)
         Lambertian(m_List[0]->Object->xz_rect->mat_ptr->Object->lambertian->albedo);
     // Set the type of the Material after constructing it, so the assignment won't be overwritten.
     m_List[0]->Object->xz_rect->mat_ptr->type = MaterialType::LAMBERTIAN;
@@ -734,29 +763,29 @@ void CudaLayer::GenerateWorld()
 
     for (int i = 1; i < size; i++) {
         // Partitioning
-        char* basePtr = memory + size * sizeof(Hittable*) + i * totalForSize;
+        char* basePtr = memory + size * sizeof(Hittable*) + i * spheresSize;
         m_List[i] = (Hittable*)(basePtr);
         m_List[i]->Object = (Hittable::ObjectUnion*)(m_List[i] + 1);
         m_List[i]->Object->sphere = (Sphere*)(m_List[i]->Object + 1);
         m_List[i]->Object->sphere->mat_ptr = (Material*)(m_List[i]->Object->sphere + 1);
         m_List[i]->Object->sphere->mat_ptr->Object = (Material::ObjectUnion*)(m_List[i]->Object->sphere->mat_ptr + 1);
-        m_List[i]->Object->sphere->mat_ptr->Object->lambertian =
-            (Lambertian*)(m_List[i]->Object->sphere->mat_ptr->Object + 1);
-        m_List[i]->Object->sphere->mat_ptr->Object->lambertian->albedo =
-            (Texture*)(m_List[i]->Object->sphere->mat_ptr->Object->lambertian + 1);
-        m_List[i]->Object->sphere->mat_ptr->Object->lambertian->albedo->odd =
-            (Texture*)(m_List[i]->Object->sphere->mat_ptr->Object->lambertian->albedo + 1);
-        m_List[i]->Object->sphere->mat_ptr->Object->lambertian->albedo->even =
-            (Texture*)(m_List[i]->Object->sphere->mat_ptr->Object->lambertian->albedo->odd + 1);
+        m_List[i]->Object->sphere->mat_ptr->Object->metal = (Metal*)(m_List[i]->Object->sphere->mat_ptr->Object + 1);
+        m_List[i]->Object->sphere->mat_ptr->Object->metal->albedo =
+            (Texture*)(m_List[i]->Object->sphere->mat_ptr->Object->metal + 1);
+        m_List[i]->Object->sphere->mat_ptr->Object->metal->albedo->Object =
+            (Texture::ObjectUnion*)(m_List[i]->Object->sphere->mat_ptr->Object->metal->albedo + 1);
+        m_List[i]->Object->sphere->mat_ptr->Object->metal->albedo->Object->constant =
+            (Constant*)(m_List[i]->Object->sphere->mat_ptr->Object->metal->albedo->Object + 1);
 
         m_List[i]->type = HittableType::SPHERE;
 
-        new (m_List[i]->Object->sphere->mat_ptr->Object->lambertian->albedo)
-            Texture(Vec3(0.2f, 0.3f, 0.1f), Tex::constant_texture);
-        new (m_List[i]->Object->sphere->mat_ptr)
-            Lambertian(m_List[i]->Object->sphere->mat_ptr->Object->lambertian->albedo);
+        new (m_List[i]->Object->sphere->mat_ptr->Object->metal->albedo->Object->constant)
+            Constant(Vec3(0.2f, 0.3f, 0.1f));
+        m_List[i]->Object->sphere->mat_ptr->Object->metal->albedo->type = TextureType::CONSTANT;
+        new (m_List[i]->Object->sphere->mat_ptr->Object->metal)
+            Metal(m_List[i]->Object->sphere->mat_ptr->Object->metal->albedo, 0.5f);
         // Set the type of the Material after constructing it, so the assignment won't be overwritten.
-        m_List[i]->Object->sphere->mat_ptr->type = MaterialType::LAMBERTIAN;
+        m_List[i]->Object->sphere->mat_ptr->type = MaterialType::METAL;
         m_List[i]->Object->sphere = new (m_List[i]->Object->sphere)
             Sphere(Vec3(0.0f + (i * 2), 0.5f, 0.0f), 1.0f, m_List[i]->Object->sphere->mat_ptr);
     }
