@@ -78,6 +78,7 @@ private:
     // Hittables
     Hittable* m_World;
     Hittable** m_List;
+    size_t m_ListSize;
     char* memory;
 
     bool m_UseHittableSphere = true;

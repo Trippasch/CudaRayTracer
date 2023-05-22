@@ -197,12 +197,12 @@ void CudaLayer::OnImGuiRender()
         if (ImGui::DragFloat3("Position 1", (float*)&m_List[1]->Object->sphere->center, 0.01f, -FLT_MAX, FLT_MAX,
                               "%.2f")) {
             m_World->Object->bvh_node->Destroy();
-            m_World->Object->bvh_node = new (m_World->Object->bvh_node) BVHNode(m_List, 0, 101);
+            m_World->Object->bvh_node = new (m_World->Object->bvh_node) BVHNode(m_List, 0, m_ListSize);
         }
         if (ImGui::DragFloat("Radius 1", (float*)&m_List[1]->Object->sphere->radius, 0.01f, -FLT_MAX, FLT_MAX,
                              "%.2f")) {
             m_World->Object->bvh_node->Destroy();
-            m_World->Object->bvh_node = new (m_World->Object->bvh_node) BVHNode(m_List, 0, 101);
+            m_World->Object->bvh_node = new (m_World->Object->bvh_node) BVHNode(m_List, 0, m_ListSize);
         }
 
         // for (int i = 0; i < m_World->objects.size(); i++) {
@@ -677,20 +677,20 @@ void CudaLayer::RunCudaInit()
 
 void CudaLayer::GenerateWorld()
 {
-    size_t size = 3;
+    m_ListSize = 101;
     // Coalesced memory
     // Calculate total size of memory needed
     size_t lambertianSize = sizeof(Material) + sizeof(Material::ObjectUnion) + sizeof(Lambertian);
     size_t metalSize = sizeof(Material) + sizeof(Material::ObjectUnion) + sizeof(Metal);
     size_t constantSize = sizeof(Texture) + sizeof(Texture::ObjectUnion) + sizeof(Constant);
-    size_t checkerSize = sizeof(Texture) + sizeof(Texture::ObjectUnion) + sizeof(Checker);
+    size_t checkerSize = sizeof(Texture) + sizeof(Texture::ObjectUnion) + sizeof(Checker) + 2 * sizeof(Constant);
     size_t sphereSize = sizeof(Hittable) + sizeof(Hittable::ObjectUnion) + sizeof(Sphere);
     size_t xzrectSize = sizeof(Hittable) + sizeof(Hittable::ObjectUnion) + sizeof(XZRect);
 
     size_t groundSize = xzrectSize + lambertianSize + checkerSize;
     size_t spheresSize = sphereSize + metalSize + constantSize;
 
-    size_t totalListSize = (size * sizeof(Hittable*)) + groundSize + ((size - 1) * spheresSize);
+    size_t totalListSize = (m_ListSize * sizeof(Hittable*)) + groundSize + ((m_ListSize - 1) * spheresSize);
     size_t totalWorldSize = sizeof(Hittable) + sizeof(Hittable::ObjectUnion) + sizeof(BVHNode);
 
     size_t totalSize = totalListSize + totalWorldSize;
@@ -700,56 +700,32 @@ void CudaLayer::GenerateWorld()
 
     m_List = (Hittable**)memory;
 
-    printf("Hittable size %d\n", sizeof(Hittable));
-    printf("ObjectUnion size %d\n", sizeof(Hittable::ObjectUnion));
-    printf("XZRect size %d\n", sizeof(XZRect));
-    printf("Material size %d\n", sizeof(Material));
-    printf("ObjectUnion size %d\n", sizeof(Material::ObjectUnion));
-    printf("Lambertian size %d\n", sizeof(Lambertian));
-    printf("Texture size %d\n", sizeof(Texture));
-    printf("ObjectUnion size %d\n", sizeof(Texture::ObjectUnion));
-    printf("Checker size %d\n", sizeof(Checker));
-    printf("Constant size %d\n", sizeof(Constant));
-
     // Partitioning
-    char* basePtr = memory + size * sizeof(Hittable*);
+    char* basePtr = memory + m_ListSize * sizeof(Hittable*);
     m_List[0] = (Hittable*)(basePtr);
-    printf("Hittable %p\n", m_List[0]);
     m_List[0]->Object = (Hittable::ObjectUnion*)(m_List[0] + 1);
-    printf("ObjectUnion %p\n", m_List[0]->Object);
     m_List[0]->Object->xz_rect = (XZRect*)(m_List[0]->Object + 1);
-    printf("XZRect %p\n", m_List[0]->Object->xz_rect);
     m_List[0]->Object->xz_rect->mat_ptr = (Material*)(m_List[0]->Object->xz_rect + 1);
-    printf("Material %p\n", m_List[0]->Object->xz_rect->mat_ptr);
     m_List[0]->Object->xz_rect->mat_ptr->Object = (Material::ObjectUnion*)(m_List[0]->Object->xz_rect->mat_ptr + 1);
-    printf("ObjectUnion %p\n", m_List[0]->Object->xz_rect->mat_ptr->Object);
     m_List[0]->Object->xz_rect->mat_ptr->Object->lambertian =
         (Lambertian*)(m_List[0]->Object->xz_rect->mat_ptr->Object + 1);
-    printf("Lambertian %p\n", m_List[0]->Object->xz_rect->mat_ptr->Object->lambertian);
     m_List[0]->Object->xz_rect->mat_ptr->Object->lambertian->albedo =
         (Texture*)(m_List[0]->Object->xz_rect->mat_ptr->Object->lambertian + 1);
-    printf("Texture %p\n", m_List[0]->Object->xz_rect->mat_ptr->Object->lambertian->albedo);
     m_List[0]->Object->xz_rect->mat_ptr->Object->lambertian->albedo->Object =
         (Texture::ObjectUnion*)(m_List[0]->Object->xz_rect->mat_ptr->Object->lambertian->albedo + 1);
-    printf("ObjectUnion %p\n", m_List[0]->Object->xz_rect->mat_ptr->Object->lambertian->albedo->Object);
     m_List[0]->Object->xz_rect->mat_ptr->Object->lambertian->albedo->Object->checker =
         (Checker*)(m_List[0]->Object->xz_rect->mat_ptr->Object->lambertian->albedo->Object + 1);
-    printf("Checker %p\n", m_List[0]->Object->xz_rect->mat_ptr->Object->lambertian->albedo->Object->checker);
     m_List[0]->Object->xz_rect->mat_ptr->Object->lambertian->albedo->Object->checker->odd =
         (Constant*)(m_List[0]->Object->xz_rect->mat_ptr->Object->lambertian->albedo->Object->checker + 1);
-    printf("Odd %p\n", m_List[0]->Object->xz_rect->mat_ptr->Object->lambertian->albedo->Object->checker->odd);
     m_List[0]->Object->xz_rect->mat_ptr->Object->lambertian->albedo->Object->checker->even =
         (Constant*)(m_List[0]->Object->xz_rect->mat_ptr->Object->lambertian->albedo->Object->checker->odd + 1);
-    printf("Even %p\n", m_List[0]->Object->xz_rect->mat_ptr->Object->lambertian->albedo->Object->checker->even);
 
     m_List[0]->type = HittableType::XZRECT;
 
     new (m_List[0]->Object->xz_rect->mat_ptr->Object->lambertian->albedo->Object->checker->odd)
-        Constant(Vec3(1.0f, 0.0f, 0.0f));
+        Constant(Vec3(0.2f, 0.3f, 0.1f));
     new (m_List[0]->Object->xz_rect->mat_ptr->Object->lambertian->albedo->Object->checker->even)
-        Constant(Vec3(1.0f, 0.0f, 0.0f));
-    m_List[0]->Object->xz_rect->mat_ptr->Object->lambertian->albedo->Object->checker->odd->color.Print();
-    m_List[0]->Object->xz_rect->mat_ptr->Object->lambertian->albedo->Object->checker->even->color.Print();
+        Constant(Vec3(0.9f, 0.9f, 0.9f));
     new (m_List[0]->Object->xz_rect->mat_ptr->Object->lambertian->albedo->Object->checker)
         Checker(m_List[0]->Object->xz_rect->mat_ptr->Object->lambertian->albedo->Object->checker->odd,
                 m_List[0]->Object->xz_rect->mat_ptr->Object->lambertian->albedo->Object->checker->even);
@@ -761,9 +737,9 @@ void CudaLayer::GenerateWorld()
     m_List[0]->Object->xz_rect = new (m_List[0]->Object->xz_rect)
         XZRect(Vec3(0.0f, -0.5f, 0.0f), 1000.0f, 1000.0f, m_List[0]->Object->xz_rect->mat_ptr);
 
-    for (int i = 1; i < size; i++) {
+    for (int i = 1; i < m_ListSize; i++) {
         // Partitioning
-        char* basePtr = memory + size * sizeof(Hittable*) + i * spheresSize;
+        char* basePtr = memory + m_ListSize * sizeof(Hittable*) + groundSize + (i - 1) * spheresSize;
         m_List[i] = (Hittable*)(basePtr);
         m_List[i]->Object = (Hittable::ObjectUnion*)(m_List[i] + 1);
         m_List[i]->Object->sphere = (Sphere*)(m_List[i]->Object + 1);
@@ -798,7 +774,7 @@ void CudaLayer::GenerateWorld()
 
     // Initialize the objects
     m_World->type = HittableType::BVHNODE;
-    m_World->Object->bvh_node = new (m_World->Object->bvh_node) BVHNode(m_List, 0, size);
+    m_World->Object->bvh_node = new (m_World->Object->bvh_node) BVHNode(m_List, 0, m_ListSize);
 
     // int i = 1;
     // for (int a = -5; a < 5; a++) {
