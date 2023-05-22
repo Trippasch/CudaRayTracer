@@ -38,17 +38,21 @@ public:
 
     __host__ Lambertian(Texture* a) : albedo(a)
     {
-        // if (albedo->texture == Tex::constant_texture) {
-        //     albedo->even->color = Vec3(1.0f, 1.0f, 1.0f);
-        //     albedo->odd->color = Vec3(0.0f, 0.0f, 0.0f);
-        // }
-        // else if (albedo->texture == Tex::checker_texture) {
-        //     albedo->color = Vec3(1.0f, 1.0f, 1.0f);
-        // }
-        // else if (albedo->texture == Tex::image_texture) {
-        //     albedo->even->color = Vec3(1.0f, 1.0f, 1.0f);
-        //     albedo->odd->color = Vec3(0.0f, 0.0f, 0.0f);
-        //     albedo->color = Vec3(1.0f, 1.0f, 1.0f);
+        // switch (albedo->type) {
+        // case TextureType::CONSTANT:
+        //     albedo->Object->checker->even->color = Vec3(1.0f, 1.0f, 1.0f);
+        //     albedo->Object->checker->odd->color = Vec3(0.0f, 0.0f, 0.0f);
+        //     break;
+        // case TextureType::CHECKER:
+        //     albedo->Object->constant->color = Vec3(1.0f, 1.0f, 1.0f);
+        //     break;
+        // case TextureType::IMAGE:
+        //     albedo->Object->checker->even->color = Vec3(1.0f, 1.0f, 1.0f);
+        //     albedo->Object->checker->odd->color = Vec3(0.0f, 0.0f, 0.0f);
+        //     albedo->Object->constant->color = Vec3(1.0f, 1.0f, 1.0f);
+        //     break;
+        // default:
+        //     break;
         // }
     }
 
@@ -58,8 +62,7 @@ public:
         Vec3 target = rec.p + rec.normal + RandomInUnitSphere(local_rand_state);
         scattered = Ray(rec.p, target - rec.p);
         // attenuation = albedo->value(rec.u, rec.v, rec.p);
-        switch (albedo->type)
-        {
+        switch (albedo->type) {
         case TextureType::CONSTANT:
             attenuation = albedo->Object->constant->value(rec.u, rec.v, rec.p);
             break;
@@ -104,8 +107,7 @@ public:
         Vec3 reflected = Reflect(UnitVector(r.Direction()), rec.normal);
         scattered = Ray(rec.p, reflected + fuzz * RandomInUnitSphere(local_rand_state));
         // attenuation = albedo->value(rec.u, rec.v, rec.p);
-        switch (albedo->type)
-        {
+        switch (albedo->type) {
         case TextureType::CONSTANT:
             attenuation = albedo->Object->constant->value(rec.u, rec.v, rec.p);
             break;
@@ -210,8 +212,7 @@ public:
     __device__ inline Vec3 Emitted(float u, float v, const Vec3& p) const
     {
         // return light_intensity * albedo->value(u, v, p);
-        switch (albedo->type)
-        {
+        switch (albedo->type) {
         case TextureType::CONSTANT:
             return light_intensity * albedo->Object->constant->value(u, v, p);
         case TextureType::CHECKER:

@@ -3,7 +3,6 @@
 #include "Core/Layer.h"
 
 #include "Hittables/Hittable.cuh"
-#include "Hittables/HittableList.cuh"
 #include "Hittables/Material.cuh"
 
 #include "Utils/SharedStructs.h"
@@ -52,13 +51,13 @@ private:
     void RunCudaInit();
     void GenerateWorld();
     // void AddHittable();
-    // void DeleteHittable(Hittable* hittable);
+    void DeleteHittable(Hittable* hittable);
     void RunCudaUpdate();
     bool OnImGuiResize();
 
 private:
     // Image
-    unsigned int m_ImageWidth = 832;
+    unsigned int m_ImageWidth = 800;
     unsigned int m_ImageHeight = 698;
 
     // Cuda Image

@@ -5,7 +5,6 @@
 #include <stdlib.h>
 
 #include "Hittables/Hittable.cuh"
-#include "Hittables/HittableList.cuh"
 #include "Hittables/Material.cuh"
 #include "Utils/SharedStructs.h"
 
