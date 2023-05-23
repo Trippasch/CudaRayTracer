@@ -50,7 +50,7 @@ private:
     void InitGLBuffers();
     void RunCudaInit();
     void GenerateWorld();
-    // void AddHittable();
+    void AddHittable();
     void DeleteHittable(Hittable* hittable);
     void RunCudaUpdate();
     bool OnImGuiResize();
@@ -79,6 +79,7 @@ private:
     Hittable** m_List;
     size_t m_ListSize;
     char* memory;
+    std::vector<Hittable*> m_DeletedHittables;
 
     bool m_UseHittableSphere = true;
     bool m_UseHittableXYRect = false;

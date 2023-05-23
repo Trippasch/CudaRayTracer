@@ -48,6 +48,7 @@ class Hittable
 {
 public:
     HittableType type;
+    bool isActive;
 
     union ObjectUnion {
         Sphere* sphere;
@@ -298,36 +299,37 @@ public:
     __host__ BVHNode(Hittable** list, size_t start, size_t end)
     {
         auto objects = list;
+        // First filter out inactive objects from the list
+        auto activeObjectsEnd =
+            thrust::remove_if(objects + start, objects + end, [](const Hittable* object) { return !object->isActive; });
 
-        // Sort objects by type
-        thrust::sort(objects + start, objects + end,
+        size_t object_span = activeObjectsEnd - (objects + start);
+
+        // Check if there are no active objects in this subset
+        if (object_span == 0) {
+            left = right = nullptr;
+            return;
+        }
+
+        // Now proceed with the original constructor
+        thrust::sort(objects + start, activeObjectsEnd,
                      [](const Hittable* a, const Hittable* b) { return a->type < b->type; });
-
-        size_t object_span = end - start;
 
         if (object_span == 1) {
             left = right = objects[start];
         }
         else if (object_span == 2) {
-            if (objects[start]->type == objects[start + 1]->type) {
-                left = objects[start];
-                right = objects[start + 1];
-            }
-            else {
-                left = objects[start];
-                right = nullptr; // handle the single object of a different type
-            }
+            left = objects[start];
+            right = objects[start + 1];
         }
         else {
             auto mid = thrust::partition(
-                objects + start, objects + end,
+                objects + start, activeObjectsEnd,
                 [type = objects[start]->type](const Hittable* object) { return object->type == type; });
 
             size_t mid_index = mid - objects;
 
-            // Handle the case where all objects of the same type end up in one
-            // child node
-            if (mid_index == start || mid_index == end) {
+            if (mid_index == start || mid_index == activeObjectsEnd - objects) {
                 mid_index = start + object_span / 2;
             }
 
@@ -349,7 +351,8 @@ public:
             right->type = HittableType::BVHNODE;
 
             left->Object->bvh_node = new (left->Object->bvh_node) BVHNode(objects, start, mid_index);
-            right->Object->bvh_node = new (right->Object->bvh_node) BVHNode(objects, mid_index, end);
+            right->Object->bvh_node =
+                new (right->Object->bvh_node) BVHNode(objects, mid_index, activeObjectsEnd - objects);
         }
 
         AABB box_left, box_right;
@@ -595,16 +598,22 @@ public:
 
     __host__ inline void Destroy()
     {
+        bool leftIsNode = false;
+        bool rightIsNode = false;
+
         if (left && left->type == HittableType::BVHNODE) {
             left->Object->bvh_node->Destroy();
+            leftIsNode = true;
         }
 
         if (right && right->type == HittableType::BVHNODE) {
             right->Object->bvh_node->Destroy();
+            rightIsNode = true;
         }
 
-        // Free the memory of this node
-        checkCudaErrors(cudaFree(memory));
+        if (leftIsNode || rightIsNode) {
+            checkCudaErrors(cudaFree(memory));
+        }
     }
 
 private:
@@ -722,319 +731,6 @@ public:
         return true;
     }
 };
-
-// enum Hitt
-// {
-//     sphere = 0,
-//     xy_rect,
-//     xz_rect,
-//     yz_rect,
-//     bvh_node,
-//     // bvh_list
-// };
-
-// class Hittable
-// {
-// public:
-//     Hitt hittable;
-
-//     Vec3 center;
-//     float radius;
-//     float width;
-//     float height;
-//     Material* mat_ptr;
-
-//     AABB box;
-//     Hittable* left;
-//     Hittable* right;
-//     Hittable** list;
-//     size_t size;
-
-// public:
-//     __host__ Hittable(Vec3 cen, float r, Material* m, Hitt t)
-//         : center(cen), radius(r), mat_ptr(m), hittable(t) {}
-
-//     __host__ Hittable(Vec3 cen, float w, float h, Material* m, Hitt t)
-//         : center(cen), width(w), height(h), mat_ptr(m), hittable(t) {}
-
-//     __host__ Hittable(Hittable** list, size_t start, size_t end, Hitt t)
-//         : list(list), size(end), hittable(t)
-//     {
-//         auto objects = list;
-
-//         int axis = RandomIntRange(0, 2);
-//         auto comparator = (axis == 0) ? BoxXCompare
-//                         : (axis == 1) ? BoxYCompare
-//                                     : BoxZCompare;
-
-//         size_t object_span = end - start;
-
-//         if (object_span == 1) {
-//             left = right = objects[start];
-//         }
-//         else if (object_span == 2) {
-//             if (comparator(objects[start], objects[start+1])) {
-//                 left = objects[start];
-//                 right = objects[start+1];
-//             }
-//             else {
-//                 left = objects[start+1];
-//                 right = objects[start];
-//             }
-//         }
-//         else {
-//             thrust::sort(objects + start, objects + end, comparator);
-
-//             auto mid = start + object_span / 2;
-
-//             checkCudaErrors(cudaMallocManaged(&left, sizeof(Hittable)));
-//             checkCudaErrors(cudaMallocManaged(&right, sizeof(Hittable)));
-//             left = new(left) Hittable(objects, start, mid, t);
-//             right = new(right) Hittable(objects, mid, end, t);
-//         }
-
-//         AABB box_left, box_right;
-
-//         if (!left->BoundingBox(box_left) || !right->BoundingBox(box_right)) {
-//             RT_ERROR("No bounding box in bvh_node constructor.");
-//         }
-
-//         box = SurroundingBox(box_left, box_right);
-//     }
-
-//     __device__ inline bool Hit(const Ray& r, float t_min, float t_max,
-//     HitRecord& rec) const
-//     {
-//         if (hittable == Hitt::sphere) {
-//             Vec3 oc = r.Origin() - center;
-//             float a = Dot(r.Direction(), r.Direction());
-//             float b = Dot(oc, r.Direction());
-//             float c = Dot(oc, oc) - radius*radius;
-
-//             float discriminant = b*b - a*c;
-//             if (discriminant > 0) {
-//                 float temp = (-b - sqrt(discriminant)) / a;
-//                 if (temp < t_max && temp > t_min) {
-//                     rec.t = temp;
-//                     rec.p = r.PointAtParameter(rec.t);
-//                     rec.normal = (rec.p - center) / radius;
-//                     GetSphereUV(rec.normal, rec.u, rec.v);
-//                     rec.mat_ptr = mat_ptr;
-//                     return true;
-//                 }
-//                 temp = (-b + sqrt(discriminant)) / a;
-//                 if (temp < t_max && temp > t_min) {
-//                     rec.t = temp;
-//                     rec.p = r.PointAtParameter(rec.t);
-//                     rec.normal = (rec.p - center) / radius;
-//                     GetSphereUV(rec.normal, rec.u, rec.v);
-//                     rec.mat_ptr = mat_ptr;
-//                     return true;
-//                 }
-//             }
-
-//             return false;
-//         }
-//         else if (hittable == Hitt::xy_rect) {
-//             float x0, x1, y0, y1, k;
-//             x0 = center.x() - (width/2);
-//             x1 = center.x() + (width/2);
-//             y0 = center.y() - (height/2);
-//             y1 = center.y() + (height/2);
-//             k = center.z();
-
-//             float t = (k - r.Origin().z()) / r.Direction().z();
-
-//             if (t < t_min || t > t_max)
-//                 return false;
-
-//             float x = r.Origin().x() + t*r.Direction().x();
-//             float y = r.Origin().y() + t*r.Direction().y();
-//             if (x < x0 || x > x1 || y < y0 || y > y1)
-//                 return false;
-
-//             rec.u = (x-x0)/(x1-x0);
-//             rec.v = (y-y0)/(y1-y0);
-//             rec.t = t;
-//             Vec3 outward_normal = Vec3(0.0f, 0.0f, 1.0f);
-//             rec.SetFaceNormal(r, outward_normal);
-//             rec.mat_ptr = mat_ptr;
-//             rec.p = r.PointAtParameter(t);
-
-//             return true;
-//         }
-//         else if (hittable == Hitt::xz_rect) {
-//             float x0, x1, z0, z1, k;
-//             x0 = center.x() - (width/2);
-//             x1 = center.x() + (width/2);
-//             z0 = center.z() - (height/2);
-//             z1 = center.z() + (height/2);
-//             k = center.y();
-
-//             float t = (k - r.Origin().y()) / r.Direction().y();
-
-//             if (t < t_min || t > t_max)
-//                 return false;
-
-//             float x = r.Origin().x() + t*r.Direction().x();
-//             float z = r.Origin().z() + t*r.Direction().z();
-//             if (x < x0 || x > x1 || z < z0 || z > z1)
-//                 return false;
-
-//             rec.u = (x-x0)/(x1-x0);
-//             rec.v = (z-z0)/(z1-z0);
-//             rec.t = t;
-//             Vec3 outward_normal = Vec3(0.0f, 1.0f, 0.0f);
-//             rec.SetFaceNormal(r, outward_normal);
-//             rec.mat_ptr = mat_ptr;
-//             rec.p = r.PointAtParameter(t);
-
-//             return true;
-//         }
-//         else if (hittable == Hitt::yz_rect) {
-//             float y0, y1, z0, z1, k;
-//             y0 = center.y() - (height/2);
-//             y1 = center.y() + (height/2);
-//             z0 = center.z() - (width/2);
-//             z1 = center.z() + (width/2);
-//             k = center.x();
-
-//             float t = (k - r.Origin().x()) / r.Direction().x();
-
-//             if (t < t_min || t > t_max)
-//                 return false;
-
-//             float y = r.Origin().y() + t*r.Direction().y();
-//             float z = r.Origin().z() + t*r.Direction().z();
-//             if (y < y0 || y > y1 || z < z0 || z > z1)
-//                 return false;
-
-//             rec.u = (y-y0)/(y1-y0);
-//             rec.v = (z-z0)/(z1-z0);
-//             rec.t = t;
-//             Vec3 outward_normal = Vec3(1.0f, 0.0f, 0.0f);
-//             rec.SetFaceNormal(r, outward_normal);
-//             rec.mat_ptr = mat_ptr;
-//             rec.p = r.PointAtParameter(t);
-
-//             return true;
-//         }
-//         else if (hittable == Hitt::bvh_node) {
-//             if (!box.Hit(r, t_min, t_max)) {
-//                 return false;
-//             }
-
-//             bool hit_left = left->Hit(r, t_min, t_max, rec);
-//             bool hit_right = right->Hit(r, t_min, hit_left ? rec.t : t_max,
-//             rec);
-
-//             return hit_left || hit_right;
-//         }
-
-//         return false;
-//     }
-
-//     __host__ inline bool BoundingBox(AABB& output_box) const
-//     {
-//         if (hittable == Hitt::bvh_node) {
-//             output_box = box;
-//             return true;
-//         }
-//         // else if (hittable == Hitt::bvh_list) {
-//         //     if (size == 0) return false;
-
-//         //     AABB temp_box;
-//         //     bool first_box = true;
-
-//         //     for (size_t i = 0; i < size; i++) {
-//         //         if (!list[i]->BoundingBox(temp_box)) return false;
-//         //         output_box = first_box ? temp_box :
-//         SurroundingBox(output_box, temp_box);
-//         //         first_box = false;
-//         //     }
-
-//         //     return true;
-//         // }
-//         else if (hittable == Hitt::sphere) {
-//             output_box = AABB(
-//                 center - Vec3(radius, radius, radius),
-//                 center + Vec3(radius, radius, radius));
-//             return true;
-//         }
-//         else if (hittable == Hitt::xy_rect) {
-//             float x0, x1, y0, y1, k;
-//             x0 = center.x() - (width/2);
-//             x1 = center.x() + (width/2);
-//             y0 = center.y() - (height/2);
-//             y1 = center.y() + (height/2);
-//             k = center.z();
-//             output_box = AABB(Vec3(x0, y0, k-0.0001f), Vec3(x1, y1,
-//             k+0.0001f)); return true;
-//         }
-//         else if (hittable == Hitt::xz_rect) {
-//             float x0, x1, z0, z1, k;
-//             x0 = center.x() - (width/2);
-//             x1 = center.x() + (width/2);
-//             z0 = center.z() - (height/2);
-//             z1 = center.z() + (height/2);
-//             k = center.y();
-//             output_box = AABB(Vec3(x0, k-0.0001f, z0), Vec3(x1, k+0.0001f,
-//             z1)); return true;
-//         }
-//         else if (hittable == Hitt::yz_rect) {
-//             float y0, y1, z0, z1, k;
-//             y0 = center.y() - (height/2);
-//             y1 = center.y() + (height/2);
-//             z0 = center.z() - (width/2);
-//             z1 = center.z() + (width/2);
-//             k = center.x();
-//             output_box = AABB(Vec3(k-0.0001f, y0, z0), Vec3(k+0.0001f, y1,
-//             z1)); return true;
-//         }
-
-//         return false;
-//     }
-
-// private:
-//     __device__ static inline void GetSphereUV(const Vec3& p, float& u, float&
-//     v)
-//     {
-//         float theta = acos(-p.y());
-//         float phi = atan2(-p.z(), p.x()) + PI;
-//         u = phi / (2 * PI);
-//         v = theta / PI;
-//     }
-
-//     __host__ static inline bool BoxCompare(const Hittable* a, const Hittable*
-//     b, int axis)
-//     {
-//         AABB box_a;
-//         AABB box_b;
-
-//         if (!a->BoundingBox(box_a) || !b->BoundingBox(box_b))
-//             RT_ERROR("No bounding box in bvh_node constructor.");
-
-//         return box_a.Min().e[axis] < box_b.Min().e[axis];
-//     }
-
-//     __host__ static inline bool BoxXCompare(const Hittable* a, const
-//     Hittable* b)
-//     {
-//         return BoxCompare(a, b, 0);
-//     }
-
-//     __host__ static inline bool BoxYCompare(const Hittable* a, const
-//     Hittable* b)
-//     {
-//         return BoxCompare(a, b, 1);
-//     }
-
-//     __host__ static inline bool BoxZCompare(const Hittable* a, const
-//     Hittable* b)
-//     {
-//         return BoxCompare(a, b, 2);
-//     }
-// };
 
 __forceinline__ __host__ const char* GetTextForEnum(int enumVal)
 {

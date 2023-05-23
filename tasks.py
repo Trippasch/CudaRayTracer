@@ -1,17 +1,16 @@
 import os
 from invoke import task
 
+
 @task
 def config(context, build_type="Release"):
     print(f"Configuring project with CMake (build_type: {build_type})...")
 
     if os.name == "nt":
-        build_dir = f"build/"
+        build_dir = "build/"
         os.makedirs(build_dir, exist_ok=True)
         cmd = [
             "cmake",
-            # "-G \"MinGW Makefiles\"",
-            # f"-DCMAKE_BUILD_TYPE={build_type}",
             "-S",
             ".",
             "-B",
@@ -43,7 +42,7 @@ def build(context, build_type="Release"):
     print("Building project with CMake...")
 
     if os.name == "nt":
-        build_dir = f"build/"
+        build_dir = "build/"
         cmd = [
             "cmake",
             "--build",

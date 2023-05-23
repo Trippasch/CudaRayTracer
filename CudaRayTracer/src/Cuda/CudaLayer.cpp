@@ -17,14 +17,6 @@ extern "C" void LaunchRandInit(curandState* d_rand_state2);
 extern "C" void LaunchRenderInit(dim3 grid, dim3 block, unsigned int image_width, unsigned int image_height,
                                  curandState* d_rand_state);
 
-// extern "C"
-// void LaunchCreateWorld(Sphere **d_list, Sphere **d_world, curandState
-// *d_rand_state2);
-
-// extern "C"
-// void LaunchFreeWorld(Sphere **d_list, Sphere **d_world, const unsigned int
-// num_hittables);
-
 CudaLayer::CudaLayer() : Layer("CudaLayer")
 {
 }
@@ -70,10 +62,6 @@ void CudaLayer::OnAttach()
 void CudaLayer::OnDetach()
 {
     m_World->Object->bvh_node->Destroy();
-
-    // for (int i = 0; i < m_ListSize; i++) {
-    //     DeleteHittable(m_List[i]);
-    // }
     checkCudaErrors(cudaFree(memory));
 
     checkCudaErrors(cudaFree(m_CudaDevRenderBuffer));
@@ -191,7 +179,8 @@ void CudaLayer::OnImGuiRender()
 
     if (ImGui::CollapsingHeader("Hittables Settings", base_flags)) {
         for (int i = 0; i < m_ListSize; i++) {
-            if (ImGui::TreeNodeEx((GetTextForEnum(m_List[i]->type) + std::to_string(i)).c_str())) {
+            if (m_List[i]->isActive &&
+                ImGui::TreeNodeEx((GetTextForEnum(m_List[i]->type) + std::to_string(i)).c_str())) {
                 // Hittable switch-case
                 switch (m_List[i]->type) {
                 case HittableType::SPHERE:
@@ -646,14 +635,14 @@ void CudaLayer::OnImGuiRender()
                 if (!m_UseDielectric) {
                     if (m_UseConstantTexture || m_UseCheckerTexture || m_UseImageTexture) {
                         if (ImGui::Button("Add")) {
-                            // AddHittable();
+                            AddHittable();
                             ImGui::CloseCurrentPopup();
                         }
                     }
                 }
                 else {
                     if (ImGui::Button("Add")) {
-                        // AddHittable();
+                        AddHittable();
                         ImGui::CloseCurrentPopup();
                     }
                 }
@@ -680,9 +669,7 @@ void CudaLayer::OnImGuiRender()
             for (int i = 0; i < m_ListSize; i++) {
                 if (m_HittableID == i) {
                     if (ImGui::Button("Delete")) {
-                        // DeleteHittable(m_World->objects.at(m_HittableID));
-                        // m_World->objects.erase(m_World->objects.begin() + m_HittableID);
-
+                        DeleteHittable(m_List[i]);
                         ImGui::CloseCurrentPopup();
                     }
                 }
@@ -768,7 +755,7 @@ void CudaLayer::RunCudaInit()
 
 void CudaLayer::GenerateWorld()
 {
-    m_ListSize = 16 + 1;
+    m_ListSize = 17;
     // Coalesced memory
     // Calculate total size of memory needed
     size_t lambertianSize = sizeof(Material) + sizeof(Material::ObjectUnion) + sizeof(Lambertian);
@@ -791,8 +778,7 @@ void CudaLayer::GenerateWorld()
     size_t skyboxSize = sphereSize + lambertianSize + imageSize;
     size_t spheresSize = sphereSize + metalSize + checkerSize;
 
-    size_t totalListSize =
-        (m_ListSize * sizeof(Hittable*)) + groundSize + skyboxSize + ((m_ListSize - 2) * spheresSize);
+    size_t totalListSize = (m_ListSize * sizeof(Hittable*)) + groundSize + ((m_ListSize - 1) * spheresSize);
     size_t totalWorldSize = sizeof(Hittable) + sizeof(Hittable::ObjectUnion) + sizeof(BVHNode);
 
     size_t totalSize = totalListSize + totalWorldSize;
@@ -824,6 +810,7 @@ void CudaLayer::GenerateWorld()
         (Constant*)(m_List[0]->Object->xz_rect->mat_ptr->Object->lambertian->albedo->Object->checker->odd + 1);
 
     m_List[0]->type = HittableType::XZRECT;
+    m_List[0]->isActive = true;
 
     new (m_List[0]->Object->xz_rect->mat_ptr->Object->lambertian->albedo->Object->checker->odd)
         Constant(Vec3(0.2f, 0.3f, 0.1f));
@@ -842,69 +829,109 @@ void CudaLayer::GenerateWorld()
 
     // Skybox Sphere
     // Partitioning
-    char* basePtr1 = memory + m_ListSize * sizeof(Hittable*) + groundSize;
-    m_List[1] = (Hittable*)(basePtr1);
-    m_List[1]->Object = (Hittable::ObjectUnion*)(m_List[1] + 1);
-    m_List[1]->Object->sphere = (Sphere*)(m_List[1]->Object + 1);
-    m_List[1]->Object->sphere->mat_ptr = (Material*)(m_List[1]->Object->sphere + 1);
-    m_List[1]->Object->sphere->mat_ptr->Object = (Material::ObjectUnion*)(m_List[1]->Object->sphere->mat_ptr + 1);
-    m_List[1]->Object->sphere->mat_ptr->Object->lambertian =
-        (Lambertian*)(m_List[1]->Object->sphere->mat_ptr->Object + 1);
-    m_List[1]->Object->sphere->mat_ptr->Object->lambertian->albedo =
-        (Texture*)(m_List[1]->Object->sphere->mat_ptr->Object->lambertian + 1);
-    m_List[1]->Object->sphere->mat_ptr->Object->lambertian->albedo->Object =
-        (Texture::ObjectUnion*)(m_List[1]->Object->sphere->mat_ptr->Object->lambertian->albedo + 1);
-    m_List[1]->Object->sphere->mat_ptr->Object->lambertian->albedo->Object->image =
-        (Image*)(m_List[1]->Object->sphere->mat_ptr->Object->lambertian->albedo->Object + 1);
-    m_List[1]->Object->sphere->mat_ptr->Object->lambertian->albedo->Object->image->data =
-        (unsigned char*)(m_List[1]->Object->sphere->mat_ptr->Object->lambertian->albedo->Object->image + 1);
+    // char* basePtr1 = memory + m_ListSize * sizeof(Hittable*) + groundSize;
+    // m_List[1] = (Hittable*)(basePtr1);
+    // m_List[1]->Object = (Hittable::ObjectUnion*)(m_List[1] + 1);
+    // m_List[1]->Object->sphere = (Sphere*)(m_List[1]->Object + 1);
+    // m_List[1]->Object->sphere->mat_ptr = (Material*)(m_List[1]->Object->sphere + 1);
+    // m_List[1]->Object->sphere->mat_ptr->Object = (Material::ObjectUnion*)(m_List[1]->Object->sphere->mat_ptr + 1);
+    // m_List[1]->Object->sphere->mat_ptr->Object->lambertian =
+    //     (Lambertian*)(m_List[1]->Object->sphere->mat_ptr->Object + 1);
+    // m_List[1]->Object->sphere->mat_ptr->Object->lambertian->albedo =
+    //     (Texture*)(m_List[1]->Object->sphere->mat_ptr->Object->lambertian + 1);
+    // m_List[1]->Object->sphere->mat_ptr->Object->lambertian->albedo->Object =
+    //     (Texture::ObjectUnion*)(m_List[1]->Object->sphere->mat_ptr->Object->lambertian->albedo + 1);
+    // m_List[1]->Object->sphere->mat_ptr->Object->lambertian->albedo->Object->image =
+    //     (Image*)(m_List[1]->Object->sphere->mat_ptr->Object->lambertian->albedo->Object + 1);
+    // m_List[1]->Object->sphere->mat_ptr->Object->lambertian->albedo->Object->image->data =
+    //     (unsigned char*)(m_List[1]->Object->sphere->mat_ptr->Object->lambertian->albedo->Object->image + 1);
 
-    m_List[1]->type = HittableType::SPHERE;
+    // m_List[1]->type = HittableType::SPHERE;
 
-    checkCudaErrors(cudaMemcpy(
-        m_List[1]->Object->sphere->mat_ptr->Object->lambertian->albedo->Object->image->data, m_TextureImageData,
-        m_TextureImageWidth * m_TextureImageHeight * m_TextureImageNR * sizeof(unsigned char), cudaMemcpyHostToDevice));
-    STBI_FREE(m_TextureImageData);
+    // checkCudaErrors(cudaMemcpy(
+    //     m_List[1]->Object->sphere->mat_ptr->Object->lambertian->albedo->Object->image->data, m_TextureImageData,
+    //     m_TextureImageWidth * m_TextureImageHeight * m_TextureImageNR * sizeof(unsigned char),
+    //     cudaMemcpyHostToDevice));
+    // STBI_FREE(m_TextureImageData);
 
-    new (m_List[1]->Object->sphere->mat_ptr->Object->lambertian->albedo->Object->image)
-        Image(m_List[1]->Object->sphere->mat_ptr->Object->lambertian->albedo->Object->image->data, m_TextureImageWidth,
-              m_TextureImageHeight);
-    m_List[1]->Object->sphere->mat_ptr->Object->lambertian->albedo->type = TextureType::IMAGE;
-    new (m_List[1]->Object->sphere->mat_ptr->Object->lambertian)
-        Lambertian(m_List[1]->Object->sphere->mat_ptr->Object->lambertian->albedo);
-    // Set the type of the Material after constructing it, so the assignment won't be overwritten.
-    m_List[1]->Object->sphere->mat_ptr->type = MaterialType::LAMBERTIAN;
-    m_List[1]->Object->sphere =
-        new (m_List[1]->Object->sphere) Sphere(Vec3(0.0f, 0.0f, 0.0f), 1000.0f, m_List[1]->Object->sphere->mat_ptr);
+    // new (m_List[1]->Object->sphere->mat_ptr->Object->lambertian->albedo->Object->image)
+    //     Image(m_List[1]->Object->sphere->mat_ptr->Object->lambertian->albedo->Object->image->data,
+    //     m_TextureImageWidth,
+    //           m_TextureImageHeight);
+    // m_List[1]->Object->sphere->mat_ptr->Object->lambertian->albedo->type = TextureType::IMAGE;
+    // new (m_List[1]->Object->sphere->mat_ptr->Object->lambertian)
+    //     Lambertian(m_List[1]->Object->sphere->mat_ptr->Object->lambertian->albedo);
+    // // Set the type of the Material after constructing it, so the assignment won't be overwritten.
+    // m_List[1]->Object->sphere->mat_ptr->type = MaterialType::LAMBERTIAN;
+    // m_List[1]->Object->sphere =
+    //     new (m_List[1]->Object->sphere) Sphere(Vec3(0.0f, 0.0f, 0.0f), 1000.0f, m_List[1]->Object->sphere->mat_ptr);
 
     // Spheres
-    for (int i = 2; i < m_ListSize; i++) {
-        // Partitioning
-        char* basePtr = memory + m_ListSize * sizeof(Hittable*) + groundSize + skyboxSize + (i - 2) * spheresSize;
-        m_List[i] = (Hittable*)(basePtr);
-        m_List[i]->Object = (Hittable::ObjectUnion*)(m_List[i] + 1);
-        m_List[i]->Object->sphere = (Sphere*)(m_List[i]->Object + 1);
-        m_List[i]->Object->sphere->mat_ptr = (Material*)(m_List[i]->Object->sphere + 1);
-        m_List[i]->Object->sphere->mat_ptr->Object = (Material::ObjectUnion*)(m_List[i]->Object->sphere->mat_ptr + 1);
-        m_List[i]->Object->sphere->mat_ptr->Object->metal = (Metal*)(m_List[i]->Object->sphere->mat_ptr->Object + 1);
-        m_List[i]->Object->sphere->mat_ptr->Object->metal->albedo =
-            (Texture*)(m_List[i]->Object->sphere->mat_ptr->Object->metal + 1);
-        m_List[i]->Object->sphere->mat_ptr->Object->metal->albedo->Object =
-            (Texture::ObjectUnion*)(m_List[i]->Object->sphere->mat_ptr->Object->metal->albedo + 1);
-        m_List[i]->Object->sphere->mat_ptr->Object->metal->albedo->Object->constant =
-            (Constant*)(m_List[i]->Object->sphere->mat_ptr->Object->metal->albedo->Object + 1);
+    int i = 1;
+    for (int a = -2; a < 2; a++) {
+        for (int b = -2; b < 2; b++) {
+            // Partitioning
+            char* basePtr = memory + m_ListSize * sizeof(Hittable*) + groundSize + (i - 1) * spheresSize;
+            m_List[i] = (Hittable*)(basePtr);
+            m_List[i]->Object = (Hittable::ObjectUnion*)(m_List[i] + 1);
+            m_List[i]->Object->sphere = (Sphere*)(m_List[i]->Object + 1);
+            m_List[i]->Object->sphere->mat_ptr = (Material*)(m_List[i]->Object->sphere + 1);
+            m_List[i]->Object->sphere->mat_ptr->Object =
+                (Material::ObjectUnion*)(m_List[i]->Object->sphere->mat_ptr + 1);
+            m_List[i]->Object->sphere->mat_ptr->Object->metal =
+                (Metal*)(m_List[i]->Object->sphere->mat_ptr->Object + 1);
+            m_List[i]->Object->sphere->mat_ptr->Object->metal->albedo =
+                (Texture*)(m_List[i]->Object->sphere->mat_ptr->Object->metal + 1);
+            m_List[i]->Object->sphere->mat_ptr->Object->metal->albedo->Object =
+                (Texture::ObjectUnion*)(m_List[i]->Object->sphere->mat_ptr->Object->metal->albedo + 1);
+            m_List[i]->Object->sphere->mat_ptr->Object->metal->albedo->Object->checker =
+                (Checker*)(m_List[i]->Object->sphere->mat_ptr->Object->metal->albedo->Object + 1);
+            m_List[i]->Object->sphere->mat_ptr->Object->metal->albedo->Object->checker->odd =
+                (Constant*)(m_List[i]->Object->sphere->mat_ptr->Object->metal->albedo->Object->checker + 1);
+            m_List[i]->Object->sphere->mat_ptr->Object->metal->albedo->Object->checker->even =
+                (Constant*)(m_List[i]->Object->sphere->mat_ptr->Object->metal->albedo->Object->checker->odd + 1);
 
-        m_List[i]->type = HittableType::SPHERE;
+            m_List[i]->type = HittableType::SPHERE;
+            m_List[i]->isActive = true;
 
-        new (m_List[i]->Object->sphere->mat_ptr->Object->metal->albedo->Object->constant)
-            Constant(Vec3(0.2f, 0.3f, 0.1f));
-        m_List[i]->Object->sphere->mat_ptr->Object->metal->albedo->type = TextureType::CONSTANT;
-        new (m_List[i]->Object->sphere->mat_ptr->Object->metal)
-            Metal(m_List[i]->Object->sphere->mat_ptr->Object->metal->albedo, 0.5f);
-        // Set the type of the Material after constructing it, so the assignment won't be overwritten.
-        m_List[i]->Object->sphere->mat_ptr->type = MaterialType::METAL;
-        m_List[i]->Object->sphere = new (m_List[i]->Object->sphere)
-            Sphere(Vec3(0.0f + (i * 2), 0.5f, 0.0f), 1.0f, m_List[i]->Object->sphere->mat_ptr);
+            float choose_mat = RND;
+            Vec3 center = Vec3(a + RND, 0.0, b + RND);
+
+            if (choose_mat < 0.5f) {
+                new (m_List[i]->Object->sphere->mat_ptr->Object->lambertian->albedo->Object->constant)
+                    Constant(Vec3(RND * RND, RND * RND, RND * RND));
+                m_List[i]->Object->sphere->mat_ptr->Object->lambertian->albedo->type = TextureType::CONSTANT;
+                new (m_List[i]->Object->sphere->mat_ptr->Object->lambertian)
+                    Lambertian(m_List[i]->Object->sphere->mat_ptr->Object->lambertian->albedo);
+                // Set the type of the Material after constructing it, so the assignment won't be overwritten.
+                m_List[i]->Object->sphere->mat_ptr->type = MaterialType::LAMBERTIAN;
+                m_List[i]->Object->sphere =
+                    new (m_List[i]->Object->sphere) Sphere(center, 0.2f, m_List[i]->Object->sphere->mat_ptr);
+            }
+            else if (choose_mat < 0.95f) {
+                new (m_List[i]->Object->sphere->mat_ptr->Object->metal->albedo->Object->constant)
+                    Constant(Vec3(0.5f * (1.0f + RND), 0.5f * (1.0f + RND), 0.5f * (1.0f + RND)));
+                m_List[i]->Object->sphere->mat_ptr->Object->metal->albedo->type = TextureType::CONSTANT;
+                new (m_List[i]->Object->sphere->mat_ptr->Object->metal)
+                    Metal(m_List[i]->Object->sphere->mat_ptr->Object->metal->albedo, 0.5f * RND);
+                // Set the type of the Material after constructing it, so the assignment won't be overwritten.
+                m_List[i]->Object->sphere->mat_ptr->type = MaterialType::METAL;
+                m_List[i]->Object->sphere =
+                    new (m_List[i]->Object->sphere) Sphere(center, 0.2f, m_List[i]->Object->sphere->mat_ptr);
+            }
+            else {
+                new (m_List[i]->Object->sphere->mat_ptr->Object->diffuse_light->albedo->Object->constant)
+                    Constant(Vec3(0.5f * (1.0f + RND), 0.5f * (1.0f + RND), 0.5f * (1.0f + RND)));
+                m_List[i]->Object->sphere->mat_ptr->Object->diffuse_light->albedo->type = TextureType::CONSTANT;
+                new (m_List[i]->Object->sphere->mat_ptr->Object->diffuse_light)
+                    DiffuseLight(m_List[i]->Object->sphere->mat_ptr->Object->diffuse_light->albedo, 3);
+                // Set the type of the Material after constructing it, so the assignment won't be overwritten.
+                m_List[i]->Object->sphere->mat_ptr->type = MaterialType::DIFFUSELIGHT;
+                m_List[i]->Object->sphere =
+                    new (m_List[i]->Object->sphere) Sphere(center, 0.5f, m_List[i]->Object->sphere->mat_ptr);
+            }
+            i++;
+        }
     }
 
     // Partition the memory
@@ -917,7 +944,7 @@ void CudaLayer::GenerateWorld()
     m_World->type = HittableType::BVHNODE;
     m_World->Object->bvh_node = new (m_World->Object->bvh_node) BVHNode(m_List, 0, m_ListSize);
 
-    // // Normal Allocations
+    // Normal Allocations
     // checkCudaErrors(cudaMallocManaged(&m_List, sizeof(Hittable*)));
 
     // // Ground XZRect
@@ -1539,379 +1566,17 @@ void CudaLayer::GenerateWorld()
 //     }
 // }
 
+void CudaLayer::AddHittable()
+{
+}
+
 void CudaLayer::DeleteHittable(Hittable* hittable)
 {
-    switch (hittable->type) {
-    case HittableType::SPHERE:
-        switch (hittable->Object->sphere->mat_ptr->type) {
-        case MaterialType::LAMBERTIAN:
-            switch (hittable->Object->sphere->mat_ptr->Object->lambertian->albedo->type) {
-            case TextureType::CONSTANT:
-                checkCudaErrors(
-                    cudaFree(hittable->Object->sphere->mat_ptr->Object->lambertian->albedo->Object->constant));
-                break;
-            case TextureType::CHECKER:
-                checkCudaErrors(
-                    cudaFree(hittable->Object->sphere->mat_ptr->Object->lambertian->albedo->Object->checker->odd));
-                checkCudaErrors(
-                    cudaFree(hittable->Object->sphere->mat_ptr->Object->lambertian->albedo->Object->checker->even));
-                checkCudaErrors(
-                    cudaFree(hittable->Object->sphere->mat_ptr->Object->lambertian->albedo->Object->checker));
-                break;
-            default:
-                break;
-            }
-            checkCudaErrors(cudaFree(hittable->Object->sphere->mat_ptr->Object->lambertian->albedo->Object));
-            checkCudaErrors(cudaFree(hittable->Object->sphere->mat_ptr->Object->lambertian->albedo));
-            checkCudaErrors(cudaFree(hittable->Object->sphere->mat_ptr->Object->lambertian));
-            break;
-        case MaterialType::METAL:
-            switch (hittable->Object->sphere->mat_ptr->Object->metal->albedo->type) {
-            case TextureType::CONSTANT:
-                checkCudaErrors(cudaFree(hittable->Object->sphere->mat_ptr->Object->metal->albedo->Object->constant));
-                break;
-            case TextureType::CHECKER:
-                checkCudaErrors(
-                    cudaFree(hittable->Object->sphere->mat_ptr->Object->metal->albedo->Object->checker->odd));
-                checkCudaErrors(
-                    cudaFree(hittable->Object->sphere->mat_ptr->Object->metal->albedo->Object->checker->even));
-                checkCudaErrors(cudaFree(hittable->Object->sphere->mat_ptr->Object->metal->albedo->Object->checker));
-                break;
-            default:
-                break;
-            }
-            checkCudaErrors(cudaFree(hittable->Object->sphere->mat_ptr->Object->metal->albedo->Object));
-            checkCudaErrors(cudaFree(hittable->Object->sphere->mat_ptr->Object->metal->albedo));
-            checkCudaErrors(cudaFree(hittable->Object->sphere->mat_ptr->Object->metal));
-            break;
-        case MaterialType::DIELECTRIC:
-            switch (hittable->Object->sphere->mat_ptr->Object->dielectric->albedo->type) {
-            case TextureType::CONSTANT:
-                checkCudaErrors(
-                    cudaFree(hittable->Object->sphere->mat_ptr->Object->dielectric->albedo->Object->constant));
-                break;
-            case TextureType::CHECKER:
-                checkCudaErrors(
-                    cudaFree(hittable->Object->sphere->mat_ptr->Object->dielectric->albedo->Object->checker->odd));
-                checkCudaErrors(
-                    cudaFree(hittable->Object->sphere->mat_ptr->Object->dielectric->albedo->Object->checker->even));
-                checkCudaErrors(
-                    cudaFree(hittable->Object->sphere->mat_ptr->Object->dielectric->albedo->Object->checker));
-                break;
-            default:
-                break;
-            }
-            checkCudaErrors(cudaFree(hittable->Object->sphere->mat_ptr->Object->dielectric->albedo->Object));
-            checkCudaErrors(cudaFree(hittable->Object->sphere->mat_ptr->Object->dielectric->albedo));
-            checkCudaErrors(cudaFree(hittable->Object->sphere->mat_ptr->Object->dielectric));
-            break;
-        case MaterialType::DIFFUSELIGHT:
-            switch (hittable->Object->sphere->mat_ptr->Object->diffuse_light->albedo->type) {
-            case TextureType::CONSTANT:
-                checkCudaErrors(
-                    cudaFree(hittable->Object->sphere->mat_ptr->Object->diffuse_light->albedo->Object->constant));
-                break;
-            case TextureType::CHECKER:
-                checkCudaErrors(
-                    cudaFree(hittable->Object->sphere->mat_ptr->Object->diffuse_light->albedo->Object->checker->odd));
-                checkCudaErrors(
-                    cudaFree(hittable->Object->sphere->mat_ptr->Object->diffuse_light->albedo->Object->checker->even));
-                checkCudaErrors(
-                    cudaFree(hittable->Object->sphere->mat_ptr->Object->diffuse_light->albedo->Object->checker));
-                break;
-            default:
-                break;
-            }
-            checkCudaErrors(cudaFree(hittable->Object->sphere->mat_ptr->Object->diffuse_light->albedo->Object));
-            checkCudaErrors(cudaFree(hittable->Object->sphere->mat_ptr->Object->diffuse_light->albedo));
-            checkCudaErrors(cudaFree(hittable->Object->sphere->mat_ptr->Object->diffuse_light));
-            break;
-        default:
-            break;
-        }
-        checkCudaErrors(cudaFree(hittable->Object->sphere->mat_ptr->Object));
-        checkCudaErrors(cudaFree(hittable->Object->sphere->mat_ptr));
-        checkCudaErrors(cudaFree(hittable->Object->sphere));
-        break;
-    case HittableType::XYRECT:
-        switch (hittable->Object->xy_rect->mat_ptr->type) {
-        case MaterialType::LAMBERTIAN:
-            switch (hittable->Object->xy_rect->mat_ptr->Object->lambertian->albedo->type) {
-            case TextureType::CONSTANT:
-                checkCudaErrors(
-                    cudaFree(hittable->Object->xy_rect->mat_ptr->Object->lambertian->albedo->Object->constant));
-                break;
-            case TextureType::CHECKER:
-                checkCudaErrors(
-                    cudaFree(hittable->Object->xy_rect->mat_ptr->Object->lambertian->albedo->Object->checker->odd));
-                checkCudaErrors(
-                    cudaFree(hittable->Object->xy_rect->mat_ptr->Object->lambertian->albedo->Object->checker->even));
-                checkCudaErrors(
-                    cudaFree(hittable->Object->xy_rect->mat_ptr->Object->lambertian->albedo->Object->checker));
-                break;
-            default:
-                break;
-            }
-            checkCudaErrors(cudaFree(hittable->Object->xy_rect->mat_ptr->Object->lambertian->albedo->Object));
-            checkCudaErrors(cudaFree(hittable->Object->xy_rect->mat_ptr->Object->lambertian->albedo));
-            checkCudaErrors(cudaFree(hittable->Object->xy_rect->mat_ptr->Object->lambertian));
-            break;
-        case MaterialType::METAL:
-            switch (hittable->Object->xy_rect->mat_ptr->Object->metal->albedo->type) {
-            case TextureType::CONSTANT:
-                checkCudaErrors(cudaFree(hittable->Object->xy_rect->mat_ptr->Object->metal->albedo->Object->constant));
-                break;
-            case TextureType::CHECKER:
-                checkCudaErrors(
-                    cudaFree(hittable->Object->xy_rect->mat_ptr->Object->metal->albedo->Object->checker->odd));
-                checkCudaErrors(
-                    cudaFree(hittable->Object->xy_rect->mat_ptr->Object->metal->albedo->Object->checker->even));
-                checkCudaErrors(cudaFree(hittable->Object->xy_rect->mat_ptr->Object->metal->albedo->Object->checker));
-                break;
-            default:
-                break;
-            }
-            checkCudaErrors(cudaFree(hittable->Object->xy_rect->mat_ptr->Object->metal->albedo->Object));
-            checkCudaErrors(cudaFree(hittable->Object->xy_rect->mat_ptr->Object->metal->albedo));
-            checkCudaErrors(cudaFree(hittable->Object->xy_rect->mat_ptr->Object->metal));
-            break;
-        case MaterialType::DIELECTRIC:
-            switch (hittable->Object->xy_rect->mat_ptr->Object->dielectric->albedo->type) {
-            case TextureType::CONSTANT:
-                checkCudaErrors(
-                    cudaFree(hittable->Object->xy_rect->mat_ptr->Object->dielectric->albedo->Object->constant));
-                break;
-            case TextureType::CHECKER:
-                checkCudaErrors(
-                    cudaFree(hittable->Object->xy_rect->mat_ptr->Object->dielectric->albedo->Object->checker->odd));
-                checkCudaErrors(
-                    cudaFree(hittable->Object->xy_rect->mat_ptr->Object->dielectric->albedo->Object->checker->even));
-                checkCudaErrors(
-                    cudaFree(hittable->Object->xy_rect->mat_ptr->Object->dielectric->albedo->Object->checker));
-                break;
-            default:
-                break;
-            }
-            checkCudaErrors(cudaFree(hittable->Object->xy_rect->mat_ptr->Object->dielectric->albedo->Object));
-            checkCudaErrors(cudaFree(hittable->Object->xy_rect->mat_ptr->Object->dielectric->albedo));
-            checkCudaErrors(cudaFree(hittable->Object->xy_rect->mat_ptr->Object->dielectric));
-            break;
-        case MaterialType::DIFFUSELIGHT:
-            switch (hittable->Object->xy_rect->mat_ptr->Object->diffuse_light->albedo->type) {
-            case TextureType::CONSTANT:
-                checkCudaErrors(
-                    cudaFree(hittable->Object->xy_rect->mat_ptr->Object->diffuse_light->albedo->Object->constant));
-                break;
-            case TextureType::CHECKER:
-                checkCudaErrors(
-                    cudaFree(hittable->Object->xy_rect->mat_ptr->Object->diffuse_light->albedo->Object->checker->odd));
-                checkCudaErrors(
-                    cudaFree(hittable->Object->xy_rect->mat_ptr->Object->diffuse_light->albedo->Object->checker->even));
-                checkCudaErrors(
-                    cudaFree(hittable->Object->xy_rect->mat_ptr->Object->diffuse_light->albedo->Object->checker));
-                break;
-            default:
-                break;
-            }
-            checkCudaErrors(cudaFree(hittable->Object->xy_rect->mat_ptr->Object->diffuse_light->albedo->Object));
-            checkCudaErrors(cudaFree(hittable->Object->xy_rect->mat_ptr->Object->diffuse_light->albedo));
-            checkCudaErrors(cudaFree(hittable->Object->xy_rect->mat_ptr->Object->diffuse_light));
-            break;
-        default:
-            break;
-        }
-        checkCudaErrors(cudaFree(hittable->Object->xy_rect->mat_ptr->Object));
-        checkCudaErrors(cudaFree(hittable->Object->xy_rect->mat_ptr));
-        checkCudaErrors(cudaFree(hittable->Object->xy_rect));
-        break;
-    case HittableType::XZRECT:
-        switch (hittable->Object->xz_rect->mat_ptr->type) {
-        case MaterialType::LAMBERTIAN:
-            switch (hittable->Object->xz_rect->mat_ptr->Object->lambertian->albedo->type) {
-            case TextureType::CONSTANT:
-                checkCudaErrors(
-                    cudaFree(hittable->Object->xz_rect->mat_ptr->Object->lambertian->albedo->Object->constant));
-                break;
-            case TextureType::CHECKER:
-                checkCudaErrors(
-                    cudaFree(hittable->Object->xz_rect->mat_ptr->Object->lambertian->albedo->Object->checker->odd));
-                checkCudaErrors(
-                    cudaFree(hittable->Object->xz_rect->mat_ptr->Object->lambertian->albedo->Object->checker->even));
-                checkCudaErrors(
-                    cudaFree(hittable->Object->xz_rect->mat_ptr->Object->lambertian->albedo->Object->checker));
-                break;
-            default:
-                break;
-            }
-            checkCudaErrors(cudaFree(hittable->Object->xz_rect->mat_ptr->Object->lambertian->albedo->Object));
-            checkCudaErrors(cudaFree(hittable->Object->xz_rect->mat_ptr->Object->lambertian->albedo));
-            checkCudaErrors(cudaFree(hittable->Object->xz_rect->mat_ptr->Object->lambertian));
-            break;
-        case MaterialType::METAL:
-            switch (hittable->Object->xz_rect->mat_ptr->Object->metal->albedo->type) {
-            case TextureType::CONSTANT:
-                checkCudaErrors(cudaFree(hittable->Object->xz_rect->mat_ptr->Object->metal->albedo->Object->constant));
-                break;
-            case TextureType::CHECKER:
-                checkCudaErrors(
-                    cudaFree(hittable->Object->xz_rect->mat_ptr->Object->metal->albedo->Object->checker->odd));
-                checkCudaErrors(
-                    cudaFree(hittable->Object->xz_rect->mat_ptr->Object->metal->albedo->Object->checker->even));
-                checkCudaErrors(cudaFree(hittable->Object->xz_rect->mat_ptr->Object->metal->albedo->Object->checker));
-                break;
-            default:
-                break;
-            }
-            checkCudaErrors(cudaFree(hittable->Object->xz_rect->mat_ptr->Object->metal->albedo->Object));
-            checkCudaErrors(cudaFree(hittable->Object->xz_rect->mat_ptr->Object->metal->albedo));
-            checkCudaErrors(cudaFree(hittable->Object->xz_rect->mat_ptr->Object->metal));
-            break;
-        case MaterialType::DIELECTRIC:
-            switch (hittable->Object->xz_rect->mat_ptr->Object->dielectric->albedo->type) {
-            case TextureType::CONSTANT:
-                checkCudaErrors(
-                    cudaFree(hittable->Object->xz_rect->mat_ptr->Object->dielectric->albedo->Object->constant));
-                break;
-            case TextureType::CHECKER:
-                checkCudaErrors(
-                    cudaFree(hittable->Object->xz_rect->mat_ptr->Object->dielectric->albedo->Object->checker->odd));
-                checkCudaErrors(
-                    cudaFree(hittable->Object->xz_rect->mat_ptr->Object->dielectric->albedo->Object->checker->even));
-                checkCudaErrors(
-                    cudaFree(hittable->Object->xz_rect->mat_ptr->Object->dielectric->albedo->Object->checker));
-                break;
-            default:
-                break;
-            }
-            checkCudaErrors(cudaFree(hittable->Object->xz_rect->mat_ptr->Object->dielectric->albedo->Object));
-            checkCudaErrors(cudaFree(hittable->Object->xz_rect->mat_ptr->Object->dielectric->albedo));
-            checkCudaErrors(cudaFree(hittable->Object->xz_rect->mat_ptr->Object->dielectric));
-            break;
-        case MaterialType::DIFFUSELIGHT:
-            switch (hittable->Object->xz_rect->mat_ptr->Object->diffuse_light->albedo->type) {
-            case TextureType::CONSTANT:
-                checkCudaErrors(
-                    cudaFree(hittable->Object->xz_rect->mat_ptr->Object->diffuse_light->albedo->Object->constant));
-                break;
-            case TextureType::CHECKER:
-                checkCudaErrors(
-                    cudaFree(hittable->Object->xz_rect->mat_ptr->Object->diffuse_light->albedo->Object->checker->odd));
-                checkCudaErrors(
-                    cudaFree(hittable->Object->xz_rect->mat_ptr->Object->diffuse_light->albedo->Object->checker->even));
-                checkCudaErrors(
-                    cudaFree(hittable->Object->xz_rect->mat_ptr->Object->diffuse_light->albedo->Object->checker));
-                break;
-            default:
-                break;
-            }
-            checkCudaErrors(cudaFree(hittable->Object->xz_rect->mat_ptr->Object->diffuse_light->albedo->Object));
-            checkCudaErrors(cudaFree(hittable->Object->xz_rect->mat_ptr->Object->diffuse_light->albedo));
-            checkCudaErrors(cudaFree(hittable->Object->xz_rect->mat_ptr->Object->diffuse_light));
-            break;
-        default:
-            break;
-        }
-        checkCudaErrors(cudaFree(hittable->Object->xz_rect->mat_ptr->Object));
-        checkCudaErrors(cudaFree(hittable->Object->xz_rect->mat_ptr));
-        checkCudaErrors(cudaFree(hittable->Object->xz_rect));
-        break;
-    case HittableType::YZRECT:
-        switch (hittable->Object->yz_rect->mat_ptr->type) {
-        case MaterialType::LAMBERTIAN:
-            switch (hittable->Object->yz_rect->mat_ptr->Object->lambertian->albedo->type) {
-            case TextureType::CONSTANT:
-                checkCudaErrors(
-                    cudaFree(hittable->Object->yz_rect->mat_ptr->Object->lambertian->albedo->Object->constant));
-                break;
-            case TextureType::CHECKER:
-                checkCudaErrors(
-                    cudaFree(hittable->Object->yz_rect->mat_ptr->Object->lambertian->albedo->Object->checker->odd));
-                checkCudaErrors(
-                    cudaFree(hittable->Object->yz_rect->mat_ptr->Object->lambertian->albedo->Object->checker->even));
-                checkCudaErrors(
-                    cudaFree(hittable->Object->yz_rect->mat_ptr->Object->lambertian->albedo->Object->checker));
-                break;
-            default:
-                break;
-            }
-            checkCudaErrors(cudaFree(hittable->Object->yz_rect->mat_ptr->Object->lambertian->albedo->Object));
-            checkCudaErrors(cudaFree(hittable->Object->yz_rect->mat_ptr->Object->lambertian->albedo));
-            checkCudaErrors(cudaFree(hittable->Object->yz_rect->mat_ptr->Object->lambertian));
-            break;
-        case MaterialType::METAL:
-            switch (hittable->Object->yz_rect->mat_ptr->Object->metal->albedo->type) {
-            case TextureType::CONSTANT:
-                checkCudaErrors(cudaFree(hittable->Object->yz_rect->mat_ptr->Object->metal->albedo->Object->constant));
-                break;
-            case TextureType::CHECKER:
-                checkCudaErrors(
-                    cudaFree(hittable->Object->yz_rect->mat_ptr->Object->metal->albedo->Object->checker->odd));
-                checkCudaErrors(
-                    cudaFree(hittable->Object->yz_rect->mat_ptr->Object->metal->albedo->Object->checker->even));
-                checkCudaErrors(cudaFree(hittable->Object->yz_rect->mat_ptr->Object->metal->albedo->Object->checker));
-                break;
-            default:
-                break;
-            }
-            checkCudaErrors(cudaFree(hittable->Object->yz_rect->mat_ptr->Object->metal->albedo->Object));
-            checkCudaErrors(cudaFree(hittable->Object->yz_rect->mat_ptr->Object->metal->albedo));
-            checkCudaErrors(cudaFree(hittable->Object->yz_rect->mat_ptr->Object->metal));
-            break;
-        case MaterialType::DIELECTRIC:
-            switch (hittable->Object->yz_rect->mat_ptr->Object->dielectric->albedo->type) {
-            case TextureType::CONSTANT:
-                checkCudaErrors(
-                    cudaFree(hittable->Object->yz_rect->mat_ptr->Object->dielectric->albedo->Object->constant));
-                break;
-            case TextureType::CHECKER:
-                checkCudaErrors(
-                    cudaFree(hittable->Object->yz_rect->mat_ptr->Object->dielectric->albedo->Object->checker->odd));
-                checkCudaErrors(
-                    cudaFree(hittable->Object->yz_rect->mat_ptr->Object->dielectric->albedo->Object->checker->even));
-                checkCudaErrors(
-                    cudaFree(hittable->Object->yz_rect->mat_ptr->Object->dielectric->albedo->Object->checker));
-                break;
-            default:
-                break;
-            }
-            checkCudaErrors(cudaFree(hittable->Object->yz_rect->mat_ptr->Object->dielectric->albedo->Object));
-            checkCudaErrors(cudaFree(hittable->Object->yz_rect->mat_ptr->Object->dielectric->albedo));
-            checkCudaErrors(cudaFree(hittable->Object->yz_rect->mat_ptr->Object->dielectric));
-            break;
-        case MaterialType::DIFFUSELIGHT:
-            switch (hittable->Object->yz_rect->mat_ptr->Object->diffuse_light->albedo->type) {
-            case TextureType::CONSTANT:
-                checkCudaErrors(
-                    cudaFree(hittable->Object->yz_rect->mat_ptr->Object->diffuse_light->albedo->Object->constant));
-                break;
-            case TextureType::CHECKER:
-                checkCudaErrors(
-                    cudaFree(hittable->Object->yz_rect->mat_ptr->Object->diffuse_light->albedo->Object->checker->odd));
-                checkCudaErrors(
-                    cudaFree(hittable->Object->yz_rect->mat_ptr->Object->diffuse_light->albedo->Object->checker->even));
-                checkCudaErrors(
-                    cudaFree(hittable->Object->yz_rect->mat_ptr->Object->diffuse_light->albedo->Object->checker));
-                break;
-            default:
-                break;
-            }
-            checkCudaErrors(cudaFree(hittable->Object->yz_rect->mat_ptr->Object->diffuse_light->albedo->Object));
-            checkCudaErrors(cudaFree(hittable->Object->yz_rect->mat_ptr->Object->diffuse_light->albedo));
-            checkCudaErrors(cudaFree(hittable->Object->yz_rect->mat_ptr->Object->diffuse_light));
-            break;
-        default:
-            break;
-        }
-        checkCudaErrors(cudaFree(hittable->Object->yz_rect->mat_ptr->Object));
-        checkCudaErrors(cudaFree(hittable->Object->yz_rect->mat_ptr));
-        checkCudaErrors(cudaFree(hittable->Object->yz_rect));
-        break;
-    default:
-        break;
-    }
-
-    checkCudaErrors(cudaFree(hittable->Object));
-    checkCudaErrors(cudaFree(hittable));
+    hittable->isActive = false;
+    m_World->Object->bvh_node->Destroy();
+    m_World->Object->bvh_node = new (m_World->Object->bvh_node) BVHNode(m_List, 0, m_ListSize);
+    m_ListSize--;
+    m_DeletedHittables.push_back(hittable);
 }
 
 void CudaLayer::RunCudaUpdate()
