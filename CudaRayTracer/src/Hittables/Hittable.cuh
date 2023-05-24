@@ -60,6 +60,10 @@ public:
     };
 
     ObjectUnion* Object;
+
+    __host__ Hittable(const Hittable& other) : type(other.type), isActive(other.isActive), Object(other.Object)
+    {
+    }
 };
 
 class Sphere
@@ -298,7 +302,11 @@ public:
 
     __host__ BVHNode(Hittable** list, size_t start, size_t end)
     {
-        auto objects = list;
+        Hittable** objects = new Hittable*[end];
+        for (int i = start; i < end; i++) {
+            objects[i] = list[i];
+        }
+
         // First filter out inactive objects from the list
         auto activeObjectsEnd =
             thrust::remove_if(objects + start, objects + end, [](const Hittable* object) { return !object->isActive; });

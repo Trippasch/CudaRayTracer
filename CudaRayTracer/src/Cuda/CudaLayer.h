@@ -51,7 +51,7 @@ private:
     void RunCudaInit();
     void GenerateWorld();
     void AddHittable();
-    void DeleteHittable(Hittable* hittable);
+    void DeleteHittable(Hittable* hittable, int i);
     void RunCudaUpdate();
     bool OnImGuiResize();
 
@@ -78,8 +78,34 @@ private:
     Hittable* m_World;
     Hittable** m_List;
     size_t m_ListSize;
-    char* memory;
-    std::vector<Hittable*> m_DeletedHittables;
+    char* m_ListMemory;
+    char* m_WorldMemory;
+    char* temp = nullptr;
+
+    size_t m_TotalWorldSize;
+    size_t m_TotalListSize;
+    size_t m_TotalSize;
+
+    size_t m_ConstantSize;
+    size_t m_CheckerSize;
+    size_t m_ImageSize;
+
+    size_t m_LambertianSize;
+    size_t m_MetalSize;
+    size_t m_DielectricSize;
+    size_t m_DiffuseSize;
+
+    size_t m_SphereSize;
+    size_t m_XYrectSize;
+    size_t m_XZrectSize;
+    size_t m_YZrectSize;
+
+    size_t m_SpheresSize;
+    size_t m_SkyboxSize;
+    size_t m_GroundSize;
+
+    size_t m_MemoryAllocations;
+    std::vector<std::pair<Hittable*, int>> m_InactiveHittables;
 
     bool m_UseHittableSphere = true;
     bool m_UseHittableXYRect = false;
@@ -92,7 +118,7 @@ private:
     float m_RectHeight = 2.0f;
 
     // RayTracing
-    unsigned int m_SamplesPerPixel = 50;
+    unsigned int m_SamplesPerPixel = 1;
     unsigned int m_MaxDepth = 12;
 
     // Material Properties

@@ -62,7 +62,8 @@ void CudaLayer::OnAttach()
 void CudaLayer::OnDetach()
 {
     m_World->Object->bvh_node->Destroy();
-    checkCudaErrors(cudaFree(memory));
+    checkCudaErrors(cudaFree(m_ListMemory));
+    checkCudaErrors(cudaFree(m_WorldMemory));
 
     checkCudaErrors(cudaFree(m_CudaDevRenderBuffer));
     checkCudaErrors(cudaFree(m_DrandState));
@@ -669,7 +670,7 @@ void CudaLayer::OnImGuiRender()
             for (int i = 0; i < m_ListSize; i++) {
                 if (m_HittableID == i) {
                     if (ImGui::Button("Delete")) {
-                        DeleteHittable(m_List[i]);
+                        DeleteHittable(m_List[i], i);
                         ImGui::CloseCurrentPopup();
                     }
                 }
@@ -758,39 +759,39 @@ void CudaLayer::GenerateWorld()
     m_ListSize = 17;
     // Coalesced memory
     // Calculate total size of memory needed
-    size_t lambertianSize = sizeof(Material) + sizeof(Material::ObjectUnion) + sizeof(Lambertian);
-    size_t metalSize = sizeof(Material) + sizeof(Material::ObjectUnion) + sizeof(Metal);
-    size_t dielectricSize = sizeof(Material) + sizeof(Material::ObjectUnion) + sizeof(Dielectric);
-    size_t diffuseSize = sizeof(Material) + sizeof(Material::ObjectUnion) + sizeof(DiffuseLight);
-    size_t constantSize = sizeof(Texture) + sizeof(Texture::ObjectUnion) + sizeof(Constant);
-    size_t checkerSize = sizeof(Texture) + sizeof(Texture::ObjectUnion) + sizeof(Checker) + 2 * sizeof(Constant);
+    m_LambertianSize = sizeof(Material) + sizeof(Material::ObjectUnion) + sizeof(Lambertian);
+    m_MetalSize = sizeof(Material) + sizeof(Material::ObjectUnion) + sizeof(Metal);
+    m_DielectricSize = sizeof(Material) + sizeof(Material::ObjectUnion) + sizeof(Dielectric);
+    m_DiffuseSize = sizeof(Material) + sizeof(Material::ObjectUnion) + sizeof(DiffuseLight);
+    m_ConstantSize = sizeof(Texture) + sizeof(Texture::ObjectUnion) + sizeof(Constant);
+    m_CheckerSize = sizeof(Texture) + sizeof(Texture::ObjectUnion) + sizeof(Checker) + 2 * sizeof(Constant);
     m_TextureImageFilename = "assets/textures/industrial_sunset_puresky.jpg";
     m_TextureImageData = LoadImage(m_TextureImageFilename, m_TextureImageData, &m_TextureImageWidth,
                                    &m_TextureImageHeight, &m_TextureImageNR);
-    size_t imageSize = sizeof(Texture) + sizeof(Texture::ObjectUnion) + sizeof(Image) +
-                       m_TextureImageWidth * m_TextureImageHeight * m_TextureImageNR * sizeof(unsigned char);
-    size_t sphereSize = sizeof(Hittable) + sizeof(Hittable::ObjectUnion) + sizeof(Sphere);
-    size_t xyrectSize = sizeof(Hittable) + sizeof(Hittable::ObjectUnion) + sizeof(XYRect);
-    size_t xzrectSize = sizeof(Hittable) + sizeof(Hittable::ObjectUnion) + sizeof(XZRect);
-    size_t yzrectSize = sizeof(Hittable) + sizeof(Hittable::ObjectUnion) + sizeof(YZRect);
+    m_ImageSize = sizeof(Texture) + sizeof(Texture::ObjectUnion) + sizeof(Image) +
+                  m_TextureImageWidth * m_TextureImageHeight * m_TextureImageNR * sizeof(unsigned char);
+    m_SphereSize = sizeof(Hittable) + sizeof(Hittable::ObjectUnion) + sizeof(Sphere);
+    m_XYrectSize = sizeof(Hittable) + sizeof(Hittable::ObjectUnion) + sizeof(XYRect);
+    m_XZrectSize = sizeof(Hittable) + sizeof(Hittable::ObjectUnion) + sizeof(XZRect);
+    m_YZrectSize = sizeof(Hittable) + sizeof(Hittable::ObjectUnion) + sizeof(YZRect);
 
-    size_t groundSize = xzrectSize + lambertianSize + checkerSize;
-    size_t skyboxSize = sphereSize + lambertianSize + imageSize;
-    size_t spheresSize = sphereSize + metalSize + checkerSize;
+    m_GroundSize = m_XZrectSize + m_LambertianSize + m_CheckerSize;
+    m_SkyboxSize = m_SphereSize + m_LambertianSize + m_ImageSize;
+    m_SpheresSize = m_SphereSize + m_MetalSize + m_CheckerSize;
 
-    size_t totalListSize = (m_ListSize * sizeof(Hittable*)) + groundSize + ((m_ListSize - 1) * spheresSize);
-    size_t totalWorldSize = sizeof(Hittable) + sizeof(Hittable::ObjectUnion) + sizeof(BVHNode);
+    m_TotalListSize = (m_ListSize * sizeof(Hittable*)) + m_GroundSize + ((m_ListSize - 1) * m_SpheresSize);
+    m_TotalWorldSize = sizeof(Hittable) + sizeof(Hittable::ObjectUnion) + sizeof(BVHNode);
 
-    size_t totalSize = totalListSize + totalWorldSize;
+    m_TotalSize = m_TotalListSize;
 
     // Allocate the memory
-    checkCudaErrors(cudaMallocManaged(&memory, totalSize));
+    checkCudaErrors(cudaMallocManaged(&m_ListMemory, m_TotalSize));
 
-    m_List = (Hittable**)memory;
+    m_List = (Hittable**)m_ListMemory;
 
     // Ground XZRect
     // Partitioning
-    char* basePtr = memory + m_ListSize * sizeof(Hittable*);
+    char* basePtr = m_ListMemory + m_ListSize * sizeof(Hittable*);
     m_List[0] = (Hittable*)(basePtr);
     m_List[0]->Object = (Hittable::ObjectUnion*)(m_List[0] + 1);
     m_List[0]->Object->xz_rect = (XZRect*)(m_List[0]->Object + 1);
@@ -829,7 +830,7 @@ void CudaLayer::GenerateWorld()
 
     // Skybox Sphere
     // Partitioning
-    // char* basePtr1 = memory + m_ListSize * sizeof(Hittable*) + groundSize;
+    // char* basePtr1 = m_ListMemory + m_ListSize * sizeof(Hittable*) + groundSize;
     // m_List[1] = (Hittable*)(basePtr1);
     // m_List[1]->Object = (Hittable::ObjectUnion*)(m_List[1] + 1);
     // m_List[1]->Object->sphere = (Sphere*)(m_List[1]->Object + 1);
@@ -871,7 +872,7 @@ void CudaLayer::GenerateWorld()
     for (int a = -2; a < 2; a++) {
         for (int b = -2; b < 2; b++) {
             // Partitioning
-            char* basePtr = memory + m_ListSize * sizeof(Hittable*) + groundSize + (i - 1) * spheresSize;
+            char* basePtr = m_ListMemory + m_ListSize * sizeof(Hittable*) + m_GroundSize + (i - 1) * m_SpheresSize;
             m_List[i] = (Hittable*)(basePtr);
             m_List[i]->Object = (Hittable::ObjectUnion*)(m_List[i] + 1);
             m_List[i]->Object->sphere = (Sphere*)(m_List[i]->Object + 1);
@@ -921,7 +922,7 @@ void CudaLayer::GenerateWorld()
             }
             else {
                 new (m_List[i]->Object->sphere->mat_ptr->Object->diffuse_light->albedo->Object->constant)
-                    Constant(Vec3(0.5f * (1.0f + RND), 0.5f * (1.0f + RND), 0.5f * (1.0f + RND)));
+                    Constant(Vec3(1.0f, 1.0f, 1.0f));
                 m_List[i]->Object->sphere->mat_ptr->Object->diffuse_light->albedo->type = TextureType::CONSTANT;
                 new (m_List[i]->Object->sphere->mat_ptr->Object->diffuse_light)
                     DiffuseLight(m_List[i]->Object->sphere->mat_ptr->Object->diffuse_light->albedo, 3);
@@ -934,8 +935,11 @@ void CudaLayer::GenerateWorld()
         }
     }
 
+    m_MemoryAllocations = m_ListSize;
+
+    checkCudaErrors(cudaMallocManaged(&m_WorldMemory, m_TotalWorldSize));
     // Partition the memory
-    char* worldBasePtr = memory + totalListSize;
+    char* worldBasePtr = m_WorldMemory;
     m_World = (Hittable*)worldBasePtr;
     m_World->Object = (Hittable::ObjectUnion*)(m_World + 1);
     m_World->Object->bvh_node = (BVHNode*)(m_World->Object + 1);
@@ -1568,15 +1572,232 @@ void CudaLayer::GenerateWorld()
 
 void CudaLayer::AddHittable()
 {
+    Hittable* hittable;
+    int i;
+    bool allocateNew = false;
+
+    if (!m_InactiveHittables.empty()) {
+        for (auto& inactiveHittable : m_InactiveHittables) {
+            hittable = inactiveHittable.first;
+            i = inactiveHittable.second;
+            if (m_UseHittableSphere) {
+                if (hittable->type == HittableType::SPHERE) {
+                    // Reuse an inactive Hittable
+                    hittable->isActive = true;
+
+                    new (hittable->Object->sphere->mat_ptr->Object->lambertian->albedo->Object->constant)
+                        Constant(Vec3(0.9f, 0.9f, 0.9f));
+                    hittable->Object->sphere->mat_ptr->Object->lambertian->albedo->type = TextureType::CONSTANT;
+                    new (hittable->Object->sphere->mat_ptr->Object->lambertian)
+                        Lambertian(hittable->Object->sphere->mat_ptr->Object->lambertian->albedo);
+                    // Set the type of the Material after constructing it, so the assignment won't be overwritten.
+                    hittable->Object->sphere->mat_ptr->type = MaterialType::LAMBERTIAN;
+                    hittable->Object->sphere = new (hittable->Object->sphere)
+                        Sphere(Vec3(0.0f, 0.0f, 0.0f), 1.0f, hittable->Object->sphere->mat_ptr);
+
+                    m_List[i] = hittable;
+
+                    m_World->Object->bvh_node->Destroy();
+                    m_World->Object->bvh_node = new (m_World->Object->bvh_node) BVHNode(m_List, 0, m_ListSize);
+
+                    allocateNew = false;
+                    break;
+                }
+                else {
+                    allocateNew = true;
+                }
+            }
+            else if (m_UseHittableXYRect) {
+                if (hittable->type == HittableType::XYRECT) {
+                    // Reuse an inactive Hittable
+                    hittable->isActive = true;
+
+                    new (hittable->Object->xy_rect->mat_ptr->Object->lambertian->albedo->Object->constant)
+                        Constant(Vec3(0.9f, 0.9f, 0.9f));
+                    hittable->Object->xy_rect->mat_ptr->Object->lambertian->albedo->type = TextureType::CONSTANT;
+                    new (hittable->Object->xy_rect->mat_ptr->Object->lambertian)
+                        Lambertian(hittable->Object->xy_rect->mat_ptr->Object->lambertian->albedo);
+                    // Set the type of the Material after constructing it, so the assignment won't be overwritten.
+                    hittable->Object->xy_rect->mat_ptr->type = MaterialType::LAMBERTIAN;
+                    hittable->Object->xy_rect = new (hittable->Object->xy_rect)
+                        XYRect(Vec3(0.0f, 0.0f, 0.0f), 1.0f, 1.0f, hittable->Object->xy_rect->mat_ptr);
+
+                    m_List[i] = hittable;
+
+                    m_World->Object->bvh_node->Destroy();
+                    m_World->Object->bvh_node = new (m_World->Object->bvh_node) BVHNode(m_List, 0, m_ListSize);
+
+                    allocateNew = false;
+                    break;
+                }
+                else {
+                    allocateNew = true;
+                }
+            }
+            else if (m_UseHittableXZRect) {
+                if (hittable->type == HittableType::XZRECT) {
+                    // Reuse an inactive Hittable
+                    hittable->isActive = true;
+
+                    new (hittable->Object->xz_rect->mat_ptr->Object->lambertian->albedo->Object->constant)
+                        Constant(Vec3(0.9f, 0.9f, 0.9f));
+                    hittable->Object->xz_rect->mat_ptr->Object->lambertian->albedo->type = TextureType::CONSTANT;
+                    new (hittable->Object->xz_rect->mat_ptr->Object->lambertian)
+                        Lambertian(hittable->Object->xz_rect->mat_ptr->Object->lambertian->albedo);
+                    // Set the type of the Material after constructing it, so the assignment won't be overwritten.
+                    hittable->Object->xz_rect->mat_ptr->type = MaterialType::LAMBERTIAN;
+                    hittable->Object->xz_rect = new (hittable->Object->xz_rect)
+                        XZRect(Vec3(0.0f, 0.0f, 0.0f), 1.0f, 1.0f, hittable->Object->xz_rect->mat_ptr);
+
+                    m_List[i] = hittable;
+
+                    m_World->Object->bvh_node->Destroy();
+                    m_World->Object->bvh_node = new (m_World->Object->bvh_node) BVHNode(m_List, 0, m_ListSize);
+
+                    allocateNew = false;
+                    break;
+                }
+                else {
+                    allocateNew = true;
+                }
+            }
+            else if (m_UseHittableYZRect) {
+                if (hittable->type == HittableType::YZRECT) {
+                    // Reuse an inactive Hittable
+                    hittable->isActive = true;
+
+                    new (hittable->Object->yz_rect->mat_ptr->Object->lambertian->albedo->Object->constant)
+                        Constant(Vec3(0.9f, 0.9f, 0.9f));
+                    hittable->Object->yz_rect->mat_ptr->Object->lambertian->albedo->type = TextureType::CONSTANT;
+                    new (hittable->Object->yz_rect->mat_ptr->Object->lambertian)
+                        Lambertian(hittable->Object->yz_rect->mat_ptr->Object->lambertian->albedo);
+                    // Set the type of the Material after constructing it, so the assignment won't be overwritten.
+                    hittable->Object->yz_rect->mat_ptr->type = MaterialType::LAMBERTIAN;
+                    hittable->Object->yz_rect = new (hittable->Object->yz_rect)
+                        YZRect(Vec3(0.0f, 0.0f, 0.0f), 1.0f, 1.0f, hittable->Object->yz_rect->mat_ptr);
+
+                    m_List[i] = hittable;
+
+                    m_World->Object->bvh_node->Destroy();
+                    m_World->Object->bvh_node = new (m_World->Object->bvh_node) BVHNode(m_List, 0, m_ListSize);
+
+                    allocateNew = false;
+                    break;
+                }
+                else {
+                    allocateNew = true;
+                }
+            }
+        }
+    }
+    else {
+        allocateNew = true;
+    }
+
+    if (allocateNew) {
+        std::cout << "Allocate NEW Hittable" << std::endl;
+        if (m_UseHittableSphere) {
+            size_t newSphere = m_SphereSize + m_MetalSize + m_CheckerSize;
+
+            m_ListSize++;
+            m_TotalListSize += newSphere;
+            m_TotalSize += newSphere;
+
+            if (temp != nullptr) {
+                cudaFree(temp);
+            }
+            checkCudaErrors(cudaMallocManaged(&temp, m_TotalSize - newSphere));
+            checkCudaErrors(cudaMemcpy(temp, m_ListMemory, m_TotalSize - newSphere, cudaMemcpyDeviceToDevice));
+            checkCudaErrors(cudaFree(m_ListMemory));
+            checkCudaErrors(cudaMallocManaged(&m_ListMemory, m_TotalSize));
+            m_ListMemory = temp;
+
+            // Reallocate the list memory
+            // char* newListMemory;
+            // checkCudaErrors(cudaMallocManaged(&newListMemory, m_TotalSize - newSphere));
+            // checkCudaErrors(cudaMemcpy(newListMemory, m_ListMemory, m_TotalSize - newSphere, cudaMemcpyDeviceToDevice));
+            // checkCudaErrors(cudaFree(m_ListMemory));
+            // checkCudaErrors(cudaMallocManaged(&m_ListMemory, m_TotalSize));
+            // checkCudaErrors(cudaMemcpy(m_ListMemory, newListMemory, m_TotalSize - newSphere, cudaMemcpyDeviceToDevice));
+            // checkCudaErrors(cudaFree(newListMemory));
+
+            // Update the list pointer
+            m_List = (Hittable**)m_ListMemory;
+
+            // Partitioning
+            char* basePtr = m_ListMemory + (m_TotalSize - newSphere);
+            m_List[m_ListSize - 1] = (Hittable*)(basePtr);
+            m_List[m_ListSize - 1]->Object = (Hittable::ObjectUnion*)(m_List[m_ListSize - 1] + 1);
+            m_List[m_ListSize - 1]->Object->sphere = (Sphere*)(m_List[m_ListSize - 1]->Object + 1);
+            m_List[m_ListSize - 1]->Object->sphere->mat_ptr = (Material*)(m_List[m_ListSize - 1]->Object->sphere + 1);
+            m_List[m_ListSize - 1]->Object->sphere->mat_ptr->Object =
+                (Material::ObjectUnion*)(m_List[m_ListSize - 1]->Object->sphere->mat_ptr + 1);
+            m_List[m_ListSize - 1]->Object->sphere->mat_ptr->Object->metal =
+                (Metal*)(m_List[m_ListSize - 1]->Object->sphere->mat_ptr->Object + 1);
+            m_List[m_ListSize - 1]->Object->sphere->mat_ptr->Object->metal->albedo =
+                (Texture*)(m_List[m_ListSize - 1]->Object->sphere->mat_ptr->Object->metal + 1);
+            m_List[m_ListSize - 1]->Object->sphere->mat_ptr->Object->metal->albedo->Object =
+                (Texture::ObjectUnion*)(m_List[m_ListSize - 1]->Object->sphere->mat_ptr->Object->metal->albedo + 1);
+            m_List[m_ListSize - 1]->Object->sphere->mat_ptr->Object->metal->albedo->Object->checker =
+                (Checker*)(m_List[m_ListSize - 1]->Object->sphere->mat_ptr->Object->metal->albedo->Object + 1);
+            m_List[m_ListSize - 1]->Object->sphere->mat_ptr->Object->metal->albedo->Object->checker->odd =
+                (Constant*)(m_List[m_ListSize - 1]->Object->sphere->mat_ptr->Object->metal->albedo->Object->checker +
+                            1);
+            m_List[m_ListSize - 1]->Object->sphere->mat_ptr->Object->metal->albedo->Object->checker->even =
+                (Constant*)(m_List[m_ListSize - 1]
+                                ->Object->sphere->mat_ptr->Object->metal->albedo->Object->checker->odd +
+                            1);
+
+            m_List[m_ListSize - 1]->type = HittableType::SPHERE;
+            m_List[m_ListSize - 1]->isActive = true;
+
+            new (m_List[m_ListSize - 1]->Object->sphere->mat_ptr->Object->lambertian->albedo->Object->constant)
+                Constant(Vec3(0.9f, 0.9f, 0.9f));
+            m_List[m_ListSize - 1]->Object->sphere->mat_ptr->Object->lambertian->albedo->type = TextureType::CONSTANT;
+            new (m_List[m_ListSize - 1]->Object->sphere->mat_ptr->Object->lambertian)
+                Lambertian(m_List[m_ListSize - 1]->Object->sphere->mat_ptr->Object->lambertian->albedo);
+            // Set the type of the Material after constructing it, so the assignment won't be overwritten.
+            m_List[m_ListSize - 1]->Object->sphere->mat_ptr->type = MaterialType::LAMBERTIAN;
+            m_List[m_ListSize - 1]->Object->sphere = new (m_List[m_ListSize - 1]->Object->sphere)
+                Sphere(Vec3(0.0f, 0.0f, 0.0f), 1.0f, m_List[m_ListSize - 1]->Object->sphere->mat_ptr);
+
+            m_World->Object->bvh_node->Destroy();
+            m_World->Object->bvh_node = new (m_World->Object->bvh_node) BVHNode(m_List, 0, m_ListSize);
+        }
+        else if (m_UseHittableXYRect) {
+        }
+        else if (m_UseHittableXZRect) {
+        }
+        else if (m_UseHittableYZRect) {
+        }
+    }
+    else {
+        m_InactiveHittables.pop_back();
+    }
 }
 
-void CudaLayer::DeleteHittable(Hittable* hittable)
+void CudaLayer::DeleteHittable(Hittable* hittable, int i)
 {
+    for (size_t i = 0; i < m_ListSize; i++) {
+        printf("i = %d\n", i);
+        std::cout << "Hexadecimal representation of pointer: " << std::hex
+                  << reinterpret_cast<unsigned long long>(m_List[i]) << std::endl;
+        std::cout << "Decimal representation of pointer: " << std::dec
+                  << reinterpret_cast<unsigned long long>(m_List[i]) << std::endl;
+    }
+
     hittable->isActive = false;
     m_World->Object->bvh_node->Destroy();
     m_World->Object->bvh_node = new (m_World->Object->bvh_node) BVHNode(m_List, 0, m_ListSize);
-    m_ListSize--;
-    m_DeletedHittables.push_back(hittable);
+    m_InactiveHittables.push_back(std::make_pair(hittable, i));
+
+    for (size_t i = 0; i < m_ListSize; i++) {
+        printf("i = %d\n", i);
+        std::cout << "Hexadecimal representation of pointer: " << std::hex
+                  << reinterpret_cast<unsigned long long>(m_List[i]) << std::endl;
+        std::cout << "Decimal representation of pointer: " << std::dec
+                  << reinterpret_cast<unsigned long long>(m_List[i]) << std::endl;
+    }
 }
 
 void CudaLayer::RunCudaUpdate()
