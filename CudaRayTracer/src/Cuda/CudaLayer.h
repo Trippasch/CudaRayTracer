@@ -83,7 +83,6 @@ private:
     char* temp = nullptr;
 
     size_t m_TotalWorldSize;
-    size_t m_TotalListSize;
     size_t m_TotalSize;
 
     size_t m_ConstantSize;
@@ -104,7 +103,6 @@ private:
     size_t m_SkyboxSize;
     size_t m_GroundSize;
 
-    size_t m_MemoryAllocations;
     std::vector<std::pair<Hittable*, int>> m_InactiveHittables;
 
     bool m_UseHittableSphere = true;

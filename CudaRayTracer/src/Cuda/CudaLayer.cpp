@@ -779,10 +779,8 @@ void CudaLayer::GenerateWorld()
     m_SkyboxSize = m_SphereSize + m_LambertianSize + m_ImageSize;
     m_SpheresSize = m_SphereSize + m_MetalSize + m_CheckerSize;
 
-    m_TotalListSize = (m_ListSize * sizeof(Hittable*)) + m_GroundSize + ((m_ListSize - 1) * m_SpheresSize);
+    m_TotalSize = (m_ListSize * sizeof(Hittable*)) + m_GroundSize + ((m_ListSize - 1) * m_SpheresSize);
     m_TotalWorldSize = sizeof(Hittable) + sizeof(Hittable::ObjectUnion) + sizeof(BVHNode);
-
-    m_TotalSize = m_TotalListSize;
 
     // Allocate the memory
     checkCudaErrors(cudaMallocManaged(&m_ListMemory, m_TotalSize));
@@ -934,8 +932,6 @@ void CudaLayer::GenerateWorld()
             i++;
         }
     }
-
-    m_MemoryAllocations = m_ListSize;
 
     checkCudaErrors(cudaMallocManaged(&m_WorldMemory, m_TotalWorldSize));
     // Partition the memory
@@ -1191,385 +1187,6 @@ void CudaLayer::GenerateWorld()
     // Tex::constant_texture), 7, Mat::diffuse_light), Hitt::xy_rect));
 }
 
-// void CudaLayer::AddHittable()
-// {
-//     Hittable* new_hittable;
-//     checkCudaErrors(cudaMallocManaged(&new_hittable, sizeof(Hittable)));
-//     checkCudaErrors(cudaMallocManaged(&new_hittable->mat_ptr,
-//     sizeof(Material)));
-//     checkCudaErrors(cudaMallocManaged(&new_hittable->mat_ptr->albedo,
-//     sizeof(Texture)));
-
-//     // FIXME: works for now... not a good solution
-//     new_hittable->mat_ptr->albedo->data = nullptr;
-
-//     checkCudaErrors(cudaMallocManaged(&new_hittable->mat_ptr->albedo->odd,
-//     sizeof(Texture)));
-//     checkCudaErrors(cudaMallocManaged(&new_hittable->mat_ptr->albedo->even,
-//     sizeof(Texture)));
-
-//     if (m_UseHittableSphere) {
-//         if (m_UseLambertian) {
-//             if (m_UseConstantTexture) {
-//                 m_World->Add(new(new_hittable) Hittable(m_HittablePosition,
-//                 m_SphereRadius, new(new_hittable->mat_ptr)
-//                 Material(new(new_hittable->mat_ptr->albedo)
-//                 Texture(m_newColor, Tex::constant_texture), Mat::lambertian),
-//                 Hitt::sphere));
-//             }
-//             else if (m_UseCheckerTexture) {
-//                 m_World->Add(new(new_hittable) Hittable(m_HittablePosition,
-//                 m_SphereRadius, new(new_hittable->mat_ptr)
-//                 Material(new(new_hittable->mat_ptr->albedo)
-//                 Texture(new(new_hittable->mat_ptr->albedo->odd)
-//                 Texture(Vec3(0.0f, 0.0f, 0.0f), Tex::constant_texture),
-//                 new(new_hittable->mat_ptr->albedo->even)
-//                 Texture(Vec3(1.0f, 1.0f, 1.0f), Tex::constant_texture),
-//                 Tex::checker_texture), Mat::lambertian), Hitt::sphere));
-//             }
-//             else if (m_UseImageTexture) {
-//                 m_World->Add(new(new_hittable) Hittable(m_HittablePosition,
-//                 m_SphereRadius, new(new_hittable->mat_ptr)
-//                 Material(new(new_hittable->mat_ptr->albedo)
-//                 Texture(new_hittable->mat_ptr->albedo->data,
-//                 m_TextureImageWidth, m_TextureImageHeight,
-//                 Tex::image_texture), Mat::lambertian), Hitt::sphere));
-//             }
-//         }
-//         else if (m_UseMetal) {
-//             if (m_UseConstantTexture) {
-//                 m_World->Add(new(new_hittable) Hittable(m_HittablePosition,
-//                 m_SphereRadius, new(new_hittable->mat_ptr)
-//                 Material(new(new_hittable->mat_ptr->albedo)
-//                 Texture(m_newColor, Tex::constant_texture), m_Fuzz,
-//                 Mat::metal), Hitt::sphere));
-//             }
-//             else if (m_UseCheckerTexture) {
-//                 m_World->Add(new(new_hittable) Hittable(m_HittablePosition,
-//                 m_SphereRadius, new(new_hittable->mat_ptr)
-//                 Material(new(new_hittable->mat_ptr->albedo)
-//                 Texture(new(new_hittable->mat_ptr->albedo->odd)
-//                 Texture(Vec3(0.0f, 0.0f, 0.0f), Tex::constant_texture),
-//                 new(new_hittable->mat_ptr->albedo->even)
-//                 Texture(Vec3(1.0f, 1.0f, 1.0f), Tex::constant_texture),
-//                 Tex::checker_texture), m_Fuzz, Mat::metal), Hitt::sphere));
-//             }
-//             else if (m_UseImageTexture) {
-//                 m_World->Add(new(new_hittable) Hittable(m_HittablePosition,
-//                 m_SphereRadius, new(new_hittable->mat_ptr)
-//                 Material(new(new_hittable->mat_ptr->albedo)
-//                 Texture(new_hittable->mat_ptr->albedo->data,
-//                 m_TextureImageWidth, m_TextureImageHeight,
-//                 Tex::image_texture), m_Fuzz, Mat::metal), Hitt::sphere));
-//             }
-//         }
-//         else if (m_UseDiffuseLight) {
-//             if (m_UseConstantTexture) {
-//                 m_World->Add(new(new_hittable) Hittable(m_HittablePosition,
-//                 m_SphereRadius, new(new_hittable->mat_ptr)
-//                 Material(new(new_hittable->mat_ptr->albedo)
-//                 Texture(m_newColor, Tex::constant_texture), m_LightIntensity,
-//                 Mat::diffuse_light), Hitt::sphere));
-//             }
-//             else if (m_UseCheckerTexture) {
-//                 m_World->Add(new(new_hittable) Hittable(m_HittablePosition,
-//                 m_SphereRadius, new(new_hittable->mat_ptr)
-//                 Material(new(new_hittable->mat_ptr->albedo)
-//                 Texture(new(new_hittable->mat_ptr->albedo->odd)
-//                 Texture(Vec3(0.0f, 0.0f, 0.0f), Tex::constant_texture),
-//                 new(new_hittable->mat_ptr->albedo->even)
-//                 Texture(Vec3(1.0f, 1.0f, 1.0f), Tex::constant_texture),
-//                 Tex::checker_texture), m_LightIntensity, Mat::diffuse_light),
-//                 Hitt::sphere));
-//             }
-//             else if (m_UseImageTexture) {
-//                 m_World->Add(new(new_hittable) Hittable(m_HittablePosition,
-//                 m_SphereRadius, new(new_hittable->mat_ptr)
-//                 Material(new(new_hittable->mat_ptr->albedo)
-//                 Texture(new_hittable->mat_ptr->albedo->data,
-//                 m_TextureImageWidth, m_TextureImageHeight,
-//                 Tex::image_texture), m_LightIntensity, Mat::diffuse_light),
-//                 Hitt::sphere));
-//             }
-//         }
-//         else if (m_UseDielectric) {
-//             m_World->Add(new(new_hittable) Hittable(m_HittablePosition,
-//             m_SphereRadius, new(new_hittable->mat_ptr) Material(m_IR,
-//             Mat::dielectric), Hitt::sphere));
-//         }
-//     }
-//     else if (m_UseHittableXYRect) {
-//         if (m_UseLambertian) {
-//             if (m_UseConstantTexture) {
-//                 m_World->Add(new(new_hittable) Hittable(m_HittablePosition,
-//                 m_RectWidth, m_RectHeight, new(new_hittable->mat_ptr)
-//                 Material(new(new_hittable->mat_ptr->albedo)
-//                 Texture(m_newColor, Tex::constant_texture), Mat::lambertian),
-//                 Hitt::xy_rect));
-//             }
-//             else if (m_UseCheckerTexture) {
-//                 m_World->Add(new(new_hittable) Hittable(m_HittablePosition,
-//                 m_RectWidth, m_RectHeight, new(new_hittable->mat_ptr)
-//                 Material(new(new_hittable->mat_ptr->albedo)
-//                 Texture(new(new_hittable->mat_ptr->albedo->odd)
-//                 Texture(Vec3(0.0f, 0.0f, 0.0f), Tex::constant_texture),
-//                 new(new_hittable->mat_ptr->albedo->even)
-//                 Texture(Vec3(1.0f, 1.0f, 1.0f), Tex::constant_texture),
-//                 Tex::checker_texture), Mat::lambertian), Hitt::xy_rect));
-//             }
-//             else if (m_UseImageTexture) {
-//                 m_World->Add(new(new_hittable) Hittable(m_HittablePosition,
-//                 m_RectWidth, m_RectHeight, new(new_hittable->mat_ptr)
-//                 Material(new(new_hittable->mat_ptr->albedo)
-//                 Texture(new_hittable->mat_ptr->albedo->data,
-//                 m_TextureImageWidth, m_TextureImageHeight,
-//                 Tex::image_texture), Mat::lambertian), Hitt::xy_rect));
-//             }
-//         }
-//         else if (m_UseMetal) {
-//             if (m_UseConstantTexture) {
-//                 m_World->Add(new(new_hittable) Hittable(m_HittablePosition,
-//                 m_RectWidth, m_RectHeight, new(new_hittable->mat_ptr)
-//                 Material(new(new_hittable->mat_ptr->albedo)
-//                 Texture(m_newColor, Tex::constant_texture), m_Fuzz,
-//                 Mat::metal), Hitt::xy_rect));
-//             }
-//             else if (m_UseCheckerTexture) {
-//                 m_World->Add(new(new_hittable) Hittable(m_HittablePosition,
-//                 m_RectWidth, m_RectHeight, new(new_hittable->mat_ptr)
-//                 Material(new(new_hittable->mat_ptr->albedo)
-//                 Texture(new(new_hittable->mat_ptr->albedo->odd)
-//                 Texture(Vec3(0.0f, 0.0f, 0.0f), Tex::constant_texture),
-//                 new(new_hittable->mat_ptr->albedo->even)
-//                 Texture(Vec3(1.0f, 1.0f, 1.0f), Tex::constant_texture),
-//                 Tex::checker_texture), m_Fuzz, Mat::metal), Hitt::xy_rect));
-//             }
-//             else if (m_UseImageTexture) {
-//                 m_World->Add(new(new_hittable) Hittable(m_HittablePosition,
-//                 m_RectWidth, m_RectHeight, new(new_hittable->mat_ptr)
-//                 Material(new(new_hittable->mat_ptr->albedo)
-//                 Texture(new_hittable->mat_ptr->albedo->data,
-//                 m_TextureImageWidth, m_TextureImageHeight,
-//                 Tex::image_texture), m_Fuzz, Mat::metal), Hitt::xy_rect));
-//             }
-//         }
-//         else if (m_UseDiffuseLight) {
-//             if (m_UseConstantTexture) {
-//                 m_World->Add(new(new_hittable) Hittable(m_HittablePosition,
-//                 m_RectWidth, m_RectHeight, new(new_hittable->mat_ptr)
-//                 Material(new(new_hittable->mat_ptr->albedo)
-//                 Texture(m_newColor, Tex::constant_texture), m_LightIntensity,
-//                 Mat::diffuse_light), Hitt::xy_rect));
-//             }
-//             else if (m_UseCheckerTexture) {
-//                 m_World->Add(new(new_hittable) Hittable(m_HittablePosition,
-//                 m_RectWidth, m_RectHeight, new(new_hittable->mat_ptr)
-//                 Material(new(new_hittable->mat_ptr->albedo)
-//                 Texture(new(new_hittable->mat_ptr->albedo->odd)
-//                 Texture(Vec3(0.0f, 0.0f, 0.0f), Tex::constant_texture),
-//                 new(new_hittable->mat_ptr->albedo->even)
-//                 Texture(Vec3(1.0f, 1.0f, 1.0f), Tex::constant_texture),
-//                 Tex::checker_texture), m_LightIntensity, Mat::diffuse_light),
-//                 Hitt::xy_rect));
-//             }
-//             else if (m_UseImageTexture) {
-//                 m_World->Add(new(new_hittable) Hittable(m_HittablePosition,
-//                 m_RectWidth, m_RectHeight, new(new_hittable->mat_ptr)
-//                 Material(new(new_hittable->mat_ptr->albedo)
-//                 Texture(new_hittable->mat_ptr->albedo->data,
-//                 m_TextureImageWidth, m_TextureImageHeight,
-//                 Tex::image_texture), m_LightIntensity, Mat::diffuse_light),
-//                 Hitt::xy_rect));
-//             }
-//         }
-//         else if (m_UseDielectric) {
-//             m_World->Add(new(new_hittable) Hittable(m_HittablePosition,
-//             m_RectWidth, m_RectHeight, new(new_hittable->mat_ptr)
-//             Material(m_IR, Mat::dielectric), Hitt::xy_rect));
-//         }
-//     }
-//     else if (m_UseHittableXZRect) {
-//         if (m_UseLambertian) {
-//             if (m_UseConstantTexture) {
-//                 m_World->Add(new(new_hittable) Hittable(m_HittablePosition,
-//                 m_RectWidth, m_RectHeight, new(new_hittable->mat_ptr)
-//                 Material(new(new_hittable->mat_ptr->albedo)
-//                 Texture(m_newColor, Tex::constant_texture), Mat::lambertian),
-//                 Hitt::xz_rect));
-//             }
-//             else if (m_UseCheckerTexture) {
-//                 m_World->Add(new(new_hittable) Hittable(m_HittablePosition,
-//                 m_RectWidth, m_RectHeight, new(new_hittable->mat_ptr)
-//                 Material(new(new_hittable->mat_ptr->albedo)
-//                 Texture(new(new_hittable->mat_ptr->albedo->odd)
-//                 Texture(Vec3(0.0f, 0.0f, 0.0f), Tex::constant_texture),
-//                 new(new_hittable->mat_ptr->albedo->even)
-//                 Texture(Vec3(1.0f, 1.0f, 1.0f), Tex::constant_texture),
-//                 Tex::checker_texture), Mat::lambertian), Hitt::xz_rect));
-//             }
-//             else if (m_UseImageTexture) {
-//                 m_World->Add(new(new_hittable) Hittable(m_HittablePosition,
-//                 m_RectWidth, m_RectHeight, new(new_hittable->mat_ptr)
-//                 Material(new(new_hittable->mat_ptr->albedo)
-//                 Texture(new_hittable->mat_ptr->albedo->data,
-//                 m_TextureImageWidth, m_TextureImageHeight,
-//                 Tex::image_texture), Mat::lambertian), Hitt::xz_rect));
-//             }
-//         }
-//         else if (m_UseMetal) {
-//             if (m_UseConstantTexture) {
-//                 m_World->Add(new(new_hittable) Hittable(m_HittablePosition,
-//                 m_RectWidth, m_RectHeight, new(new_hittable->mat_ptr)
-//                 Material(new(new_hittable->mat_ptr->albedo)
-//                 Texture(m_newColor, Tex::constant_texture), m_Fuzz,
-//                 Mat::metal), Hitt::xz_rect));
-//             }
-//             else if (m_UseCheckerTexture) {
-//                 m_World->Add(new(new_hittable) Hittable(m_HittablePosition,
-//                 m_RectWidth, m_RectHeight, new(new_hittable->mat_ptr)
-//                 Material(new(new_hittable->mat_ptr->albedo)
-//                 Texture(new(new_hittable->mat_ptr->albedo->odd)
-//                 Texture(Vec3(0.0f, 0.0f, 0.0f), Tex::constant_texture),
-//                 new(new_hittable->mat_ptr->albedo->even)
-//                 Texture(Vec3(1.0f, 1.0f, 1.0f), Tex::constant_texture),
-//                 Tex::checker_texture), m_Fuzz, Mat::metal), Hitt::xz_rect));
-//             }
-//             else if (m_UseImageTexture) {
-//                 m_World->Add(new(new_hittable) Hittable(m_HittablePosition,
-//                 m_RectWidth, m_RectHeight, new(new_hittable->mat_ptr)
-//                 Material(new(new_hittable->mat_ptr->albedo)
-//                 Texture(new_hittable->mat_ptr->albedo->data,
-//                 m_TextureImageWidth, m_TextureImageHeight,
-//                 Tex::image_texture), m_Fuzz, Mat::metal), Hitt::xz_rect));
-//             }
-//         }
-//         else if (m_UseDiffuseLight) {
-//             if (m_UseConstantTexture) {
-//                 m_World->Add(new(new_hittable) Hittable(m_HittablePosition,
-//                 m_RectWidth, m_RectHeight, new(new_hittable->mat_ptr)
-//                 Material(new(new_hittable->mat_ptr->albedo)
-//                 Texture(m_newColor, Tex::constant_texture), m_LightIntensity,
-//                 Mat::diffuse_light), Hitt::xz_rect));
-//             }
-//             else if (m_UseCheckerTexture) {
-//                 m_World->Add(new(new_hittable) Hittable(m_HittablePosition,
-//                 m_RectWidth, m_RectHeight, new(new_hittable->mat_ptr)
-//                 Material(new(new_hittable->mat_ptr->albedo)
-//                 Texture(new(new_hittable->mat_ptr->albedo->odd)
-//                 Texture(Vec3(0.0f, 0.0f, 0.0f), Tex::constant_texture),
-//                 new(new_hittable->mat_ptr->albedo->even)
-//                 Texture(Vec3(1.0f, 1.0f, 1.0f), Tex::constant_texture),
-//                 Tex::checker_texture), m_LightIntensity, Mat::diffuse_light),
-//                 Hitt::xz_rect));
-//             }
-//             else if (m_UseImageTexture) {
-//                 m_World->Add(new(new_hittable) Hittable(m_HittablePosition,
-//                 m_RectWidth, m_RectHeight, new(new_hittable->mat_ptr)
-//                 Material(new(new_hittable->mat_ptr->albedo)
-//                 Texture(new_hittable->mat_ptr->albedo->data,
-//                 m_TextureImageWidth, m_TextureImageHeight,
-//                 Tex::image_texture), m_LightIntensity, Mat::diffuse_light),
-//                 Hitt::xz_rect));
-//             }
-//         }
-//         else if (m_UseDielectric) {
-//             m_World->Add(new(new_hittable) Hittable(m_HittablePosition,
-//             m_RectWidth, m_RectHeight, new(new_hittable->mat_ptr)
-//             Material(m_IR, Mat::dielectric), Hitt::xz_rect));
-//         }
-//     }
-//     else if (m_UseHittableYZRect) {
-//         if (m_UseLambertian) {
-//             if (m_UseConstantTexture) {
-//                 m_World->Add(new(new_hittable) Hittable(m_HittablePosition,
-//                 m_RectWidth, m_RectHeight, new(new_hittable->mat_ptr)
-//                 Material(new(new_hittable->mat_ptr->albedo)
-//                 Texture(m_newColor, Tex::constant_texture), Mat::lambertian),
-//                 Hitt::yz_rect));
-//             }
-//             else if (m_UseCheckerTexture) {
-//                 m_World->Add(new(new_hittable) Hittable(m_HittablePosition,
-//                 m_RectWidth, m_RectHeight, new(new_hittable->mat_ptr)
-//                 Material(new(new_hittable->mat_ptr->albedo)
-//                 Texture(new(new_hittable->mat_ptr->albedo->odd)
-//                 Texture(Vec3(0.0f, 0.0f, 0.0f), Tex::constant_texture),
-//                 new(new_hittable->mat_ptr->albedo->even)
-//                 Texture(Vec3(1.0f, 1.0f, 1.0f), Tex::constant_texture),
-//                 Tex::checker_texture), Mat::lambertian), Hitt::yz_rect));
-//             }
-//             else if (m_UseImageTexture) {
-//                 m_World->Add(new(new_hittable) Hittable(m_HittablePosition,
-//                 m_RectWidth, m_RectHeight, new(new_hittable->mat_ptr)
-//                 Material(new(new_hittable->mat_ptr->albedo)
-//                 Texture(new_hittable->mat_ptr->albedo->data,
-//                 m_TextureImageWidth, m_TextureImageHeight,
-//                 Tex::image_texture), Mat::lambertian), Hitt::yz_rect));
-//             }
-//         }
-//         else if (m_UseMetal) {
-//             if (m_UseConstantTexture) {
-//                 m_World->Add(new(new_hittable) Hittable(m_HittablePosition,
-//                 m_RectWidth, m_RectHeight, new(new_hittable->mat_ptr)
-//                 Material(new(new_hittable->mat_ptr->albedo)
-//                 Texture(m_newColor, Tex::constant_texture), m_Fuzz,
-//                 Mat::metal), Hitt::yz_rect));
-//             }
-//             else if (m_UseCheckerTexture) {
-//                 m_World->Add(new(new_hittable) Hittable(m_HittablePosition,
-//                 m_RectWidth, m_RectHeight, new(new_hittable->mat_ptr)
-//                 Material(new(new_hittable->mat_ptr->albedo)
-//                 Texture(new(new_hittable->mat_ptr->albedo->odd)
-//                 Texture(Vec3(0.0f, 0.0f, 0.0f), Tex::constant_texture),
-//                 new(new_hittable->mat_ptr->albedo->even)
-//                 Texture(Vec3(1.0f, 1.0f, 1.0f), Tex::constant_texture),
-//                 Tex::checker_texture), m_Fuzz, Mat::metal), Hitt::yz_rect));
-//             }
-//             else if (m_UseImageTexture) {
-//                 m_World->Add(new(new_hittable) Hittable(m_HittablePosition,
-//                 m_RectWidth, m_RectHeight, new(new_hittable->mat_ptr)
-//                 Material(new(new_hittable->mat_ptr->albedo)
-//                 Texture(new_hittable->mat_ptr->albedo->data,
-//                 m_TextureImageWidth, m_TextureImageHeight,
-//                 Tex::image_texture), m_Fuzz, Mat::metal), Hitt::yz_rect));
-//             }
-//         }
-//         else if (m_UseDiffuseLight) {
-//             if (m_UseConstantTexture) {
-//                 m_World->Add(new(new_hittable) Hittable(m_HittablePosition,
-//                 m_RectWidth, m_RectHeight, new(new_hittable->mat_ptr)
-//                 Material(new(new_hittable->mat_ptr->albedo)
-//                 Texture(m_newColor, Tex::constant_texture), m_LightIntensity,
-//                 Mat::diffuse_light), Hitt::yz_rect));
-//             }
-//             else if (m_UseCheckerTexture) {
-//                 m_World->Add(new(new_hittable) Hittable(m_HittablePosition,
-//                 m_RectWidth, m_RectHeight, new(new_hittable->mat_ptr)
-//                 Material(new(new_hittable->mat_ptr->albedo)
-//                 Texture(new(new_hittable->mat_ptr->albedo->odd)
-//                 Texture(Vec3(0.0f, 0.0f, 0.0f), Tex::constant_texture),
-//                 new(new_hittable->mat_ptr->albedo->even)
-//                 Texture(Vec3(1.0f, 1.0f, 1.0f), Tex::constant_texture),
-//                 Tex::checker_texture), m_LightIntensity, Mat::diffuse_light),
-//                 Hitt::yz_rect));
-//             }
-//             else if (m_UseImageTexture) {
-//                 m_World->Add(new(new_hittable) Hittable(m_HittablePosition,
-//                 m_RectWidth, m_RectHeight, new(new_hittable->mat_ptr)
-//                 Material(new(new_hittable->mat_ptr->albedo)
-//                 Texture(new_hittable->mat_ptr->albedo->data,
-//                 m_TextureImageWidth, m_TextureImageHeight,
-//                 Tex::image_texture), m_LightIntensity, Mat::diffuse_light),
-//                 Hitt::yz_rect));
-//             }
-//         }
-//         else if (m_UseDielectric) {
-//             m_World->Add(new(new_hittable) Hittable(m_HittablePosition,
-//             m_RectWidth, m_RectHeight, new(new_hittable->mat_ptr)
-//             Material(m_IR, Mat::dielectric), Hitt::yz_rect));
-//         }
-//     }
-// }
-
 void CudaLayer::AddHittable()
 {
     Hittable* hittable;
@@ -1700,7 +1317,6 @@ void CudaLayer::AddHittable()
             size_t newSphere = m_SphereSize + m_MetalSize + m_CheckerSize;
 
             m_ListSize++;
-            m_TotalListSize += newSphere;
             m_TotalSize += newSphere;
 
             if (temp != nullptr) {
@@ -1715,11 +1331,11 @@ void CudaLayer::AddHittable()
             // Reallocate the list memory
             // char* newListMemory;
             // checkCudaErrors(cudaMallocManaged(&newListMemory, m_TotalSize - newSphere));
-            // checkCudaErrors(cudaMemcpy(newListMemory, m_ListMemory, m_TotalSize - newSphere, cudaMemcpyDeviceToDevice));
-            // checkCudaErrors(cudaFree(m_ListMemory));
+            // checkCudaErrors(cudaMemcpy(newListMemory, m_ListMemory, m_TotalSize - newSphere,
+            // cudaMemcpyDeviceToDevice)); checkCudaErrors(cudaFree(m_ListMemory));
             // checkCudaErrors(cudaMallocManaged(&m_ListMemory, m_TotalSize));
-            // checkCudaErrors(cudaMemcpy(m_ListMemory, newListMemory, m_TotalSize - newSphere, cudaMemcpyDeviceToDevice));
-            // checkCudaErrors(cudaFree(newListMemory));
+            // checkCudaErrors(cudaMemcpy(m_ListMemory, newListMemory, m_TotalSize - newSphere,
+            // cudaMemcpyDeviceToDevice)); checkCudaErrors(cudaFree(newListMemory));
 
             // Update the list pointer
             m_List = (Hittable**)m_ListMemory;
@@ -1778,14 +1394,6 @@ void CudaLayer::AddHittable()
 
 void CudaLayer::DeleteHittable(Hittable* hittable, int i)
 {
-    for (size_t i = 0; i < m_ListSize; i++) {
-        printf("i = %d\n", i);
-        std::cout << "Hexadecimal representation of pointer: " << std::hex
-                  << reinterpret_cast<unsigned long long>(m_List[i]) << std::endl;
-        std::cout << "Decimal representation of pointer: " << std::dec
-                  << reinterpret_cast<unsigned long long>(m_List[i]) << std::endl;
-    }
-
     hittable->isActive = false;
     m_World->Object->bvh_node->Destroy();
     m_World->Object->bvh_node = new (m_World->Object->bvh_node) BVHNode(m_List, 0, m_ListSize);
