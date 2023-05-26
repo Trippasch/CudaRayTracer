@@ -36,24 +36,12 @@ class Lambertian
 public:
     Texture* albedo;
 
+    __host__ Lambertian()
+    {
+    }
+
     __host__ Lambertian(Texture* a) : albedo(a)
     {
-        // switch (albedo->type) {
-        // case TextureType::CONSTANT:
-        //     albedo->Object->checker->even->color = Vec3(1.0f, 1.0f, 1.0f);
-        //     albedo->Object->checker->odd->color = Vec3(0.0f, 0.0f, 0.0f);
-        //     break;
-        // case TextureType::CHECKER:
-        //     albedo->Object->constant->color = Vec3(1.0f, 1.0f, 1.0f);
-        //     break;
-        // case TextureType::IMAGE:
-        //     albedo->Object->checker->even->color = Vec3(1.0f, 1.0f, 1.0f);
-        //     albedo->Object->checker->odd->color = Vec3(0.0f, 0.0f, 0.0f);
-        //     albedo->Object->constant->color = Vec3(1.0f, 1.0f, 1.0f);
-        //     break;
-        // default:
-        //     break;
-        // }
     }
 
     __device__ inline bool Scatter(const Ray& r, const HitRecord& rec, Vec3& attenuation, Ray& scattered,
@@ -83,22 +71,14 @@ class Metal
 {
 public:
     Texture* albedo;
-    float fuzz;
+    float fuzz = 0.0f;
+
+    __host__ Metal() : fuzz(0.0f)
+    {
+    }
 
     __host__ Metal(Texture* a, float f) : albedo(a), fuzz(f < 1 ? f : 1)
     {
-        // if (albedo->texture == Tex::constant_texture) {
-        //     albedo->even->color = Vec3(1.0f, 1.0f, 1.0f);
-        //     albedo->odd->color = Vec3(0.0f, 0.0f, 0.0f);
-        // }
-        // else if (albedo->texture == Tex::checker_texture) {
-        //     albedo->color = Vec3(1.0f, 1.0f, 1.0f);
-        // }
-        // else if (albedo->texture == Tex::image_texture) {
-        //     albedo->even->color = Vec3(1.0f, 1.0f, 1.0f);
-        //     albedo->odd->color = Vec3(0.0f, 0.0f, 0.0f);
-        //     albedo->color = Vec3(1.0f, 1.0f, 1.0f);
-        // }
     }
 
     __device__ inline bool Scatter(const Ray& r, const HitRecord& rec, Vec3& attenuation, Ray& scattered,
@@ -128,15 +108,14 @@ class Dielectric
 {
 public:
     Texture* albedo;
-    float ir;
+    float ir = 0.0f;
+
+    __host__ Dielectric() : ir(0.0f)
+    {
+    }
 
     __host__ Dielectric(float index_of_refraction) : ir(index_of_refraction)
     {
-        // if (albedo->texture == Tex::constant_texture) {
-        //     albedo->even->color = Vec3(1.0f, 1.0f, 1.0f);
-        //     albedo->odd->color = Vec3(0.0f, 0.0f, 0.0f);
-        // }
-        // albedo->color = Vec3(1.0f, 1.0f, 1.0f);
     }
 
     __device__ inline bool Scatter(const Ray& r, const HitRecord& rec, Vec3& attenuation, Ray& scattered,
@@ -185,22 +164,14 @@ class DiffuseLight
 {
 public:
     Texture* albedo;
-    int light_intensity;
+    int light_intensity = 3.0f;
+
+    __host__ DiffuseLight() : light_intensity(3.0f)
+    {
+    }
 
     __host__ DiffuseLight(Texture* a, int l) : albedo(a), light_intensity(l)
     {
-        // if (albedo->texture == Tex::constant_texture) {
-        //     albedo->even->color = Vec3(1.0f, 1.0f, 1.0f);
-        //     albedo->odd->color = Vec3(0.0f, 0.0f, 0.0f);
-        // }
-        // else if (albedo->texture == Tex::checker_texture) {
-        //     albedo->color = Vec3(1.0f, 1.0f, 1.0f);
-        // }
-        // else if (albedo->texture == Tex::image_texture) {
-        //     albedo->even->color = Vec3(1.0f, 1.0f, 1.0f);
-        //     albedo->odd->color = Vec3(0.0f, 0.0f, 0.0f);
-        //     albedo->color = Vec3(1.0f, 1.0f, 1.0f);
-        // }
     }
 
     __device__ inline bool Scatter(const Ray& r, const HitRecord& rec, Vec3& attenuation, Ray& scattered,

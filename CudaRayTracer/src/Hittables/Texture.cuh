@@ -32,7 +32,7 @@ public:
 class Constant
 {
 public:
-    Vec3 color;
+    Vec3 color = Vec3(1.0f, 1.0f, 1.0f);
     float padding;
 
     __host__ Constant(Vec3 c) : color(c)

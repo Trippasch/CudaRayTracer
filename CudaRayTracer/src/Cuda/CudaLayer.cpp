@@ -201,6 +201,13 @@ void CudaLayer::OnImGuiRender()
 
                         if (ImGui::Combo(" ", &mat_item_current, mat_items, IM_ARRAYSIZE(mat_items))) {
                             m_List[i]->Object->sphere->mat_ptr->type = (MaterialType)mat_item_current;
+                            if (m_List[i]->Object->sphere->mat_ptr->type == MaterialType::LAMBERTIAN) {
+                                new (m_List[i]->Object->sphere->mat_ptr->Object->lambertian)
+                                    Lambertian(m_List[i]->Object->sphere->mat_ptr->Object->lambertian->albedo);
+                                // Set the type of the Material after constructing it, so the assignment won't be
+                                // overwritten.
+                                m_List[i]->Object->sphere->mat_ptr->type = MaterialType::LAMBERTIAN;
+                            }
                         }
 
                         // Material switch-case
@@ -263,11 +270,115 @@ void CudaLayer::OnImGuiRender()
                             ImGui::DragFloat("Fuzziness",
                                              (float*)&m_List[i]->Object->sphere->mat_ptr->Object->metal->fuzz, 0.01f,
                                              0.0f, 1.0f, "%.2f");
+                            if (ImGui::TreeNodeEx("Texture", base_flags)) {
+                                const char* tex_items[] = {"Constant", "Checker", "Image"};
+                                int tex_item_current = m_List[i]->Object->sphere->mat_ptr->Object->metal->albedo->type;
+
+                                if (ImGui::Combo(" ", &tex_item_current, tex_items, IM_ARRAYSIZE(tex_items))) {
+                                    m_List[i]->Object->sphere->mat_ptr->Object->metal->albedo->type =
+                                        (TextureType)tex_item_current;
+                                }
+
+                                // Texture switch-case
+                                switch (m_List[i]->Object->sphere->mat_ptr->Object->metal->albedo->type) {
+                                case TextureType::CONSTANT:
+                                    m_List[i]->Object->sphere->mat_ptr->Object->metal->albedo->Object->constant =
+                                        (Constant*)(m_List[i]->Object->sphere->mat_ptr->Object->metal->albedo->Object +
+                                                    1);
+                                    ImGui::ColorEdit3(
+                                        "Albedo",
+                                        (float*)&m_List[i]
+                                            ->Object->sphere->mat_ptr->Object->metal->albedo->Object->constant->color);
+                                    break;
+                                case TextureType::CHECKER:
+                                    m_List[i]->Object->sphere->mat_ptr->Object->metal->albedo->Object->checker =
+                                        (Checker*)(m_List[i]->Object->sphere->mat_ptr->Object->metal->albedo->Object +
+                                                   1);
+                                    m_List[i]->Object->sphere->mat_ptr->Object->metal->albedo->Object->checker->odd =
+                                        (Constant*)(m_List[i]
+                                                        ->Object->sphere->mat_ptr->Object->metal->albedo->Object
+                                                        ->checker +
+                                                    1);
+                                    m_List[i]->Object->sphere->mat_ptr->Object->metal->albedo->Object->checker->even =
+                                        (Constant*)(m_List[i]
+                                                        ->Object->sphere->mat_ptr->Object->metal->albedo->Object
+                                                        ->checker->odd +
+                                                    1);
+                                    ImGui::ColorEdit3("Albedo odd", (float*)&m_List[i]
+                                                                        ->Object->sphere->mat_ptr->Object->metal->albedo
+                                                                        ->Object->checker->odd->color);
+                                    ImGui::ColorEdit3("Albedo even", (float*)&m_List[i]
+                                                                         ->Object->sphere->mat_ptr->Object->metal
+                                                                         ->albedo->Object->checker->even->color);
+                                    break;
+                                case TextureType::IMAGE:
+                                    break;
+                                default:
+                                    break;
+                                }
+                                ImGui::TreePop();
+                            }
                             break;
                         case MaterialType::DIFFUSELIGHT:
                             ImGui::SliderInt(
                                 "Light Intensity",
                                 &m_List[i]->Object->sphere->mat_ptr->Object->diffuse_light->light_intensity, 0, 10);
+                            if (ImGui::TreeNodeEx("Texture", base_flags)) {
+                                const char* tex_items[] = {"Constant", "Checker", "Image"};
+                                int tex_item_current =
+                                    m_List[i]->Object->sphere->mat_ptr->Object->diffuse_light->albedo->type;
+
+                                if (ImGui::Combo(" ", &tex_item_current, tex_items, IM_ARRAYSIZE(tex_items))) {
+                                    m_List[i]->Object->sphere->mat_ptr->Object->diffuse_light->albedo->type =
+                                        (TextureType)tex_item_current;
+                                }
+
+                                // Texture switch-case
+                                switch (m_List[i]->Object->sphere->mat_ptr->Object->diffuse_light->albedo->type) {
+                                case TextureType::CONSTANT:
+                                    m_List[i]
+                                        ->Object->sphere->mat_ptr->Object->diffuse_light->albedo->Object->constant =
+                                        (Constant*)(m_List[i]
+                                                        ->Object->sphere->mat_ptr->Object->diffuse_light->albedo
+                                                        ->Object +
+                                                    1);
+                                    ImGui::ColorEdit3("Albedo", (float*)&m_List[i]
+                                                                    ->Object->sphere->mat_ptr->Object->diffuse_light
+                                                                    ->albedo->Object->constant->color);
+                                    break;
+                                case TextureType::CHECKER:
+                                    m_List[i]->Object->sphere->mat_ptr->Object->diffuse_light->albedo->Object->checker =
+                                        (Checker*)(m_List[i]
+                                                       ->Object->sphere->mat_ptr->Object->diffuse_light->albedo
+                                                       ->Object +
+                                                   1);
+                                    m_List[i]
+                                        ->Object->sphere->mat_ptr->Object->diffuse_light->albedo->Object->checker->odd =
+                                        (Constant*)(m_List[i]
+                                                        ->Object->sphere->mat_ptr->Object->diffuse_light->albedo->Object
+                                                        ->checker +
+                                                    1);
+                                    m_List[i]
+                                        ->Object->sphere->mat_ptr->Object->diffuse_light->albedo->Object->checker
+                                        ->even = (Constant*)(m_List[i]
+                                                                 ->Object->sphere->mat_ptr->Object->diffuse_light
+                                                                 ->albedo->Object->checker->odd +
+                                                             1);
+                                    ImGui::ColorEdit3("Albedo odd", (float*)&m_List[i]
+                                                                        ->Object->sphere->mat_ptr->Object->diffuse_light
+                                                                        ->albedo->Object->checker->odd->color);
+                                    ImGui::ColorEdit3("Albedo even",
+                                                      (float*)&m_List[i]
+                                                          ->Object->sphere->mat_ptr->Object->diffuse_light->albedo
+                                                          ->Object->checker->even->color);
+                                    break;
+                                case TextureType::IMAGE:
+                                    break;
+                                default:
+                                    break;
+                                }
+                                ImGui::TreePop();
+                            }
                             break;
                         case MaterialType::DIELECTRIC:
                             ImGui::DragFloat("Index of Refraction",
@@ -296,6 +407,197 @@ void CudaLayer::OnImGuiRender()
                                          "%.2f")) {
                         m_World->Object->bvh_node->Destroy();
                         m_World->Object->bvh_node = new (m_World->Object->bvh_node) BVHNode(m_List, 0, m_ListSize);
+                    }
+                    if (ImGui::TreeNodeEx("Material", base_flags)) {
+                        const char* mat_items[] = {"Lambertian", "Metal", "Dielectric", "Diffuse Light"};
+                        int mat_item_current = m_List[i]->Object->xz_rect->mat_ptr->type;
+
+                        if (ImGui::Combo(" ", &mat_item_current, mat_items, IM_ARRAYSIZE(mat_items))) {
+                            m_List[i]->Object->xz_rect->mat_ptr->type = (MaterialType)mat_item_current;
+                        }
+
+                        // Material switch-case
+                        switch (m_List[i]->Object->xz_rect->mat_ptr->type) {
+                        case MaterialType::LAMBERTIAN:
+                            if (ImGui::TreeNodeEx("Texture", base_flags)) {
+                                const char* tex_items[] = {"Constant", "Checker", "Image"};
+                                int tex_item_current =
+                                    m_List[i]->Object->xz_rect->mat_ptr->Object->lambertian->albedo->type;
+
+                                if (ImGui::Combo(" ", &tex_item_current, tex_items, IM_ARRAYSIZE(tex_items))) {
+                                    m_List[i]->Object->xz_rect->mat_ptr->Object->lambertian->albedo->type =
+                                        (TextureType)tex_item_current;
+                                }
+
+                                // Texture switch-case
+                                switch (m_List[i]->Object->xz_rect->mat_ptr->Object->lambertian->albedo->type) {
+                                case TextureType::CONSTANT:
+                                    m_List[i]->Object->xz_rect->mat_ptr->Object->lambertian->albedo->Object->constant =
+                                        (Constant*)(m_List[i]
+                                                        ->Object->xz_rect->mat_ptr->Object->lambertian->albedo->Object +
+                                                    1);
+                                    ImGui::ColorEdit3("Albedo", (float*)&m_List[i]
+                                                                    ->Object->xz_rect->mat_ptr->Object->lambertian
+                                                                    ->albedo->Object->constant->color);
+                                    break;
+                                case TextureType::CHECKER:
+                                    m_List[i]->Object->xz_rect->mat_ptr->Object->lambertian->albedo->Object->checker =
+                                        (Checker*)(m_List[i]
+                                                       ->Object->xz_rect->mat_ptr->Object->lambertian->albedo->Object +
+                                                   1);
+                                    m_List[i]
+                                        ->Object->xz_rect->mat_ptr->Object->lambertian->albedo->Object->checker->odd =
+                                        (Constant*)(m_List[i]
+                                                        ->Object->xz_rect->mat_ptr->Object->lambertian->albedo->Object
+                                                        ->checker +
+                                                    1);
+                                    m_List[i]
+                                        ->Object->xz_rect->mat_ptr->Object->lambertian->albedo->Object->checker->even =
+                                        (Constant*)(m_List[i]
+                                                        ->Object->xz_rect->mat_ptr->Object->lambertian->albedo->Object
+                                                        ->checker->odd +
+                                                    1);
+                                    ImGui::ColorEdit3("Albedo odd", (float*)&m_List[i]
+                                                                        ->Object->xz_rect->mat_ptr->Object->lambertian
+                                                                        ->albedo->Object->checker->odd->color);
+                                    ImGui::ColorEdit3("Albedo even", (float*)&m_List[i]
+                                                                         ->Object->xz_rect->mat_ptr->Object->lambertian
+                                                                         ->albedo->Object->checker->even->color);
+                                    break;
+                                case TextureType::IMAGE:
+                                    break;
+                                default:
+                                    break;
+                                }
+                                ImGui::TreePop();
+                            }
+                            break;
+                        case MaterialType::METAL:
+                            ImGui::DragFloat("Fuzziness",
+                                             (float*)&m_List[i]->Object->xz_rect->mat_ptr->Object->metal->fuzz, 0.01f,
+                                             0.0f, 1.0f, "%.2f");
+                            if (ImGui::TreeNodeEx("Texture", base_flags)) {
+                                const char* tex_items[] = {"Constant", "Checker", "Image"};
+                                int tex_item_current = m_List[i]->Object->xz_rect->mat_ptr->Object->metal->albedo->type;
+
+                                if (ImGui::Combo(" ", &tex_item_current, tex_items, IM_ARRAYSIZE(tex_items))) {
+                                    m_List[i]->Object->xz_rect->mat_ptr->Object->metal->albedo->type =
+                                        (TextureType)tex_item_current;
+                                }
+
+                                // Texture switch-case
+                                switch (m_List[i]->Object->xz_rect->mat_ptr->Object->metal->albedo->type) {
+                                case TextureType::CONSTANT:
+                                    m_List[i]->Object->xz_rect->mat_ptr->Object->metal->albedo->Object->constant =
+                                        (Constant*)(m_List[i]->Object->xz_rect->mat_ptr->Object->metal->albedo->Object +
+                                                    1);
+                                    ImGui::ColorEdit3(
+                                        "Albedo",
+                                        (float*)&m_List[i]
+                                            ->Object->xz_rect->mat_ptr->Object->metal->albedo->Object->constant->color);
+                                    break;
+                                case TextureType::CHECKER:
+                                    m_List[i]->Object->xz_rect->mat_ptr->Object->metal->albedo->Object->checker =
+                                        (Checker*)(m_List[i]->Object->xz_rect->mat_ptr->Object->metal->albedo->Object +
+                                                   1);
+                                    m_List[i]->Object->xz_rect->mat_ptr->Object->metal->albedo->Object->checker->odd =
+                                        (Constant*)(m_List[i]
+                                                        ->Object->xz_rect->mat_ptr->Object->metal->albedo->Object
+                                                        ->checker +
+                                                    1);
+                                    m_List[i]->Object->xz_rect->mat_ptr->Object->metal->albedo->Object->checker->even =
+                                        (Constant*)(m_List[i]
+                                                        ->Object->xz_rect->mat_ptr->Object->metal->albedo->Object
+                                                        ->checker->odd +
+                                                    1);
+                                    ImGui::ColorEdit3("Albedo odd", (float*)&m_List[i]
+                                                                        ->Object->xz_rect->mat_ptr->Object->metal
+                                                                        ->albedo->Object->checker->odd->color);
+                                    ImGui::ColorEdit3("Albedo even", (float*)&m_List[i]
+                                                                         ->Object->xz_rect->mat_ptr->Object->metal
+                                                                         ->albedo->Object->checker->even->color);
+                                    break;
+                                case TextureType::IMAGE:
+                                    break;
+                                default:
+                                    break;
+                                }
+                                ImGui::TreePop();
+                            }
+                            break;
+                        case MaterialType::DIFFUSELIGHT:
+                            ImGui::SliderInt(
+                                "Light Intensity",
+                                &m_List[i]->Object->xz_rect->mat_ptr->Object->diffuse_light->light_intensity, 0, 10);
+                            if (ImGui::TreeNodeEx("Texture", base_flags)) {
+                                const char* tex_items[] = {"Constant", "Checker", "Image"};
+                                int tex_item_current =
+                                    m_List[i]->Object->xz_rect->mat_ptr->Object->diffuse_light->albedo->type;
+
+                                if (ImGui::Combo(" ", &tex_item_current, tex_items, IM_ARRAYSIZE(tex_items))) {
+                                    m_List[i]->Object->xz_rect->mat_ptr->Object->diffuse_light->albedo->type =
+                                        (TextureType)tex_item_current;
+                                }
+
+                                // Texture switch-case
+                                switch (m_List[i]->Object->xz_rect->mat_ptr->Object->diffuse_light->albedo->type) {
+                                case TextureType::CONSTANT:
+                                    m_List[i]
+                                        ->Object->xz_rect->mat_ptr->Object->diffuse_light->albedo->Object->constant =
+                                        (Constant*)(m_List[i]
+                                                        ->Object->xz_rect->mat_ptr->Object->diffuse_light->albedo
+                                                        ->Object +
+                                                    1);
+                                    ImGui::ColorEdit3("Albedo", (float*)&m_List[i]
+                                                                    ->Object->xz_rect->mat_ptr->Object->diffuse_light
+                                                                    ->albedo->Object->constant->color);
+                                    break;
+                                case TextureType::CHECKER:
+                                    m_List[i]
+                                        ->Object->xz_rect->mat_ptr->Object->diffuse_light->albedo->Object->checker =
+                                        (Checker*)(m_List[i]
+                                                       ->Object->xz_rect->mat_ptr->Object->diffuse_light->albedo
+                                                       ->Object +
+                                                   1);
+                                    m_List[i]
+                                        ->Object->xz_rect->mat_ptr->Object->diffuse_light->albedo->Object->checker
+                                        ->odd = (Constant*)(m_List[i]
+                                                                ->Object->xz_rect->mat_ptr->Object->diffuse_light
+                                                                ->albedo->Object->checker +
+                                                            1);
+                                    m_List[i]
+                                        ->Object->xz_rect->mat_ptr->Object->diffuse_light->albedo->Object->checker
+                                        ->even = (Constant*)(m_List[i]
+                                                                 ->Object->xz_rect->mat_ptr->Object->diffuse_light
+                                                                 ->albedo->Object->checker->odd +
+                                                             1);
+                                    ImGui::ColorEdit3("Albedo odd",
+                                                      (float*)&m_List[i]
+                                                          ->Object->xz_rect->mat_ptr->Object->diffuse_light->albedo
+                                                          ->Object->checker->odd->color);
+                                    ImGui::ColorEdit3("Albedo even",
+                                                      (float*)&m_List[i]
+                                                          ->Object->xz_rect->mat_ptr->Object->diffuse_light->albedo
+                                                          ->Object->checker->even->color);
+                                    break;
+                                case TextureType::IMAGE:
+                                    break;
+                                default:
+                                    break;
+                                }
+                                ImGui::TreePop();
+                            }
+                            break;
+                        case MaterialType::DIELECTRIC:
+                            ImGui::DragFloat("Index of Refraction",
+                                             (float*)&m_List[i]->Object->xz_rect->mat_ptr->Object->dielectric->ir,
+                                             0.01f, 0.0f, FLT_MAX, "%.2f");
+                            break;
+                        default:
+                            break;
+                        }
+
+                        ImGui::TreePop();
                     }
                     break;
                 default:
