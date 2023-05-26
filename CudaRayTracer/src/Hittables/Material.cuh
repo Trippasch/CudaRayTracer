@@ -36,10 +36,6 @@ class Lambertian
 public:
     Texture* albedo;
 
-    __host__ Lambertian()
-    {
-    }
-
     __host__ Lambertian(Texture* a) : albedo(a)
     {
     }
@@ -73,10 +69,6 @@ public:
     Texture* albedo;
     float fuzz = 0.0f;
 
-    __host__ Metal() : fuzz(0.0f)
-    {
-    }
-
     __host__ Metal(Texture* a, float f) : albedo(a), fuzz(f < 1 ? f : 1)
     {
     }
@@ -107,12 +99,7 @@ public:
 class Dielectric
 {
 public:
-    Texture* albedo;
     float ir = 0.0f;
-
-    __host__ Dielectric() : ir(0.0f)
-    {
-    }
 
     __host__ Dielectric(float index_of_refraction) : ir(index_of_refraction)
     {
@@ -164,11 +151,7 @@ class DiffuseLight
 {
 public:
     Texture* albedo;
-    int light_intensity = 3.0f;
-
-    __host__ DiffuseLight() : light_intensity(3.0f)
-    {
-    }
+    int light_intensity = 3;
 
     __host__ DiffuseLight(Texture* a, int l) : albedo(a), light_intensity(l)
     {
