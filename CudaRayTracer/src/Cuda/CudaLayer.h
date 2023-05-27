@@ -50,10 +50,14 @@ private:
     void InitGLBuffers();
     void RunCudaInit();
     void GenerateWorld();
-    void AddHittable();
-    void DeleteHittable(Hittable* hittable, int i);
     void RunCudaUpdate();
     bool OnImGuiResize();
+    void AddHittable();
+    void DeleteHittable(Hittable* hittable, int i);
+    void DeleteImageAllocation(Hittable* hittable);
+    void ImageAllocation(Image* image);
+    void MaterialNode(Material* material);
+    void TextureNode(Texture* texture);
 
 private:
     // Image
