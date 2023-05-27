@@ -52,12 +52,12 @@ private:
     void GenerateWorld();
     void RunCudaUpdate();
     bool OnImGuiResize();
+    void MaterialNode(Material* material, size_t i);
+    void TextureNode(Texture* texture, size_t i);
+    void ImageAllocation(Image* image);
     void AddHittable();
     void DeleteHittable(Hittable* hittable, int i);
     void DeleteImageAllocation(Hittable* hittable);
-    void ImageAllocation(Image* image);
-    void MaterialNode(Material* material);
-    void TextureNode(Texture* texture);
 
 private:
     // Image

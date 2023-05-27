@@ -652,7 +652,7 @@ void CudaLayer::OnImGuiRender()
     ImGui::Separator();
 
     if (ImGui::CollapsingHeader("Hittables Settings", base_flags)) {
-        for (int i = 0; i < m_ListSize; i++) {
+        for (size_t i = 0; i < m_ListSize; i++) {
             if (m_List[i]->isActive &&
                 ImGui::TreeNodeEx((GetTextForEnum(m_List[i]->type) + std::to_string(i)).c_str())) {
                 // Hittable switch-case
@@ -668,7 +668,7 @@ void CudaLayer::OnImGuiRender()
                         m_World->Object->bvh_node->Destroy();
                         m_World->Object->bvh_node = new (m_World->Object->bvh_node) BVHNode(m_List, 0, m_ListSize);
                     }
-                    MaterialNode(m_List[i]->Object->sphere->mat_ptr);
+                    MaterialNode(m_List[i]->Object->sphere->mat_ptr, i);
                     break;
                 case HittableType::XYRECT:
                     if (ImGui::DragFloat3("Position", (float*)&m_List[i]->Object->xy_rect->center, 0.01f, -FLT_MAX,
@@ -686,7 +686,7 @@ void CudaLayer::OnImGuiRender()
                         m_World->Object->bvh_node->Destroy();
                         m_World->Object->bvh_node = new (m_World->Object->bvh_node) BVHNode(m_List, 0, m_ListSize);
                     }
-                    MaterialNode(m_List[i]->Object->xy_rect->mat_ptr);
+                    MaterialNode(m_List[i]->Object->xy_rect->mat_ptr, i);
                     break;
                 case HittableType::XZRECT:
                     if (ImGui::DragFloat3("Position", (float*)&m_List[i]->Object->xz_rect->center, 0.01f, -FLT_MAX,
@@ -704,7 +704,7 @@ void CudaLayer::OnImGuiRender()
                         m_World->Object->bvh_node->Destroy();
                         m_World->Object->bvh_node = new (m_World->Object->bvh_node) BVHNode(m_List, 0, m_ListSize);
                     }
-                    MaterialNode(m_List[i]->Object->xz_rect->mat_ptr);
+                    MaterialNode(m_List[i]->Object->xz_rect->mat_ptr, i);
                     break;
                 case HittableType::YZRECT:
                     if (ImGui::DragFloat3("Position", (float*)&m_List[i]->Object->yz_rect->center, 0.01f, -FLT_MAX,
@@ -722,7 +722,7 @@ void CudaLayer::OnImGuiRender()
                         m_World->Object->bvh_node->Destroy();
                         m_World->Object->bvh_node = new (m_World->Object->bvh_node) BVHNode(m_List, 0, m_ListSize);
                     }
-                    MaterialNode(m_List[i]->Object->yz_rect->mat_ptr);
+                    MaterialNode(m_List[i]->Object->yz_rect->mat_ptr, i);
                     break;
                 default:
                     break;
@@ -899,7 +899,7 @@ bool CudaLayer::OnImGuiResize()
     return true;
 }
 
-void CudaLayer::MaterialNode(Material* material)
+void CudaLayer::MaterialNode(Material* material, size_t i)
 {
     if (ImGui::TreeNodeEx("Material", base_flags)) {
         const char* mat_items[] = {"Lambertian", "Metal", "Dielectric", "Diffuse Light"};
@@ -964,11 +964,11 @@ void CudaLayer::MaterialNode(Material* material)
         // Material switch-case
         switch (material->type) {
         case MaterialType::LAMBERTIAN:
-            TextureNode(material->Object->lambertian->albedo);
+            TextureNode(material->Object->lambertian->albedo, i);
             break;
         case MaterialType::METAL:
             ImGui::DragFloat("Fuzziness", (float*)&material->Object->metal->fuzz, 0.01f, 0.0f, 1.0f, "%.2f");
-            TextureNode(material->Object->metal->albedo);
+            TextureNode(material->Object->metal->albedo, i);
             break;
         case MaterialType::DIELECTRIC:
             ImGui::DragFloat("Index of Refraction", (float*)&material->Object->dielectric->ir, 0.01f, 0.0f, FLT_MAX,
@@ -976,7 +976,7 @@ void CudaLayer::MaterialNode(Material* material)
             break;
         case MaterialType::DIFFUSELIGHT:
             ImGui::SliderInt("Light Intensity", &material->Object->diffuse_light->light_intensity, 0, 10);
-            TextureNode(material->Object->diffuse_light->albedo);
+            TextureNode(material->Object->diffuse_light->albedo, i);
             break;
         default:
             break;
@@ -986,7 +986,7 @@ void CudaLayer::MaterialNode(Material* material)
     }
 }
 
-void CudaLayer::TextureNode(Texture* texture)
+void CudaLayer::TextureNode(Texture* texture, size_t i)
 {
     if (ImGui::TreeNodeEx("Texture", base_flags)) {
         const char* tex_items[] = {"Constant", "Checker", "Image"};
@@ -1029,13 +1029,19 @@ void CudaLayer::TextureNode(Texture* texture)
             break;
         case TextureType::IMAGE:
             if (ImGui::Button("Open...")) {
-                // m_ButtonID = i;
-                ImGuiFileDialog::Instance()->OpenDialog("ChooseFileDlgKey", "Choose File ", ".jpg,.jpeg,.png", ".", 1,
-                                                        nullptr, ImGuiFileDialogFlags_Modal);
+                m_ButtonID = i;
+                // clang-format off
+                ImGuiFileDialog::Instance()->OpenDialog(
+                    "ChooseFileDlgKey",
+                    "Choose File ",
+                    ".jpg,.jpeg,.png",
+                    ".",
+                    1, nullptr, ImGuiFileDialogFlags_Modal);
+                // clang-format on
             }
-            ImageAllocation(texture->Object->image);
-            // if (m_ButtonID != -1) {
-            // }
+            if (m_ButtonID == i) {
+                ImageAllocation(texture->Object->image);
+            }
             break;
         default:
             break;
