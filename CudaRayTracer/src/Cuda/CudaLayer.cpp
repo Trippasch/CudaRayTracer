@@ -1008,8 +1008,6 @@ void CudaLayer::TextureNode(Texture* texture, size_t i)
                 new (texture->Object->checker) Checker(texture->Object->checker->odd, texture->Object->checker->even);
                 break;
             case TextureType::IMAGE:
-                texture->Object->image = (Image*)(texture->Object + 1);
-                texture->Object->image->data = (unsigned char*)(texture->Object->image + 1);
                 texture->Object->image->data = nullptr;
                 texture->Object->image->path = nullptr;
                 break;
@@ -1042,6 +1040,12 @@ void CudaLayer::TextureNode(Texture* texture, size_t i)
             if (m_ButtonID == i) {
                 ImageAllocation(texture->Object->image);
             }
+            if (texture->Object->image->path != nullptr) {
+                ImGui::Text(texture->Object->image->path);
+            }
+            else {
+                ImGui::Text("None");
+            }
             break;
         default:
             break;
@@ -1066,6 +1070,10 @@ void CudaLayer::ImageAllocation(Image* image)
                 checkCudaErrors(cudaFree(image->data));
             }
 
+            if (image->path != nullptr) {
+                checkCudaErrors(cudaFree((void*)image->path));
+            }
+
             m_TextureImageData = LoadImage(m_TextureImageFilename, m_TextureImageData, &m_TextureImageWidth,
                                            &m_TextureImageHeight, &m_TextureImageNR);
             checkCudaErrors(cudaMallocManaged(&image->data, m_TextureImageWidth * m_TextureImageHeight *
@@ -1075,21 +1083,15 @@ void CudaLayer::ImageAllocation(Image* image)
                            m_TextureImageWidth * m_TextureImageHeight * m_TextureImageNR * sizeof(unsigned char),
                            cudaMemcpyHostToDevice));
             STBI_FREE(m_TextureImageData);
+            checkCudaErrors(cudaMallocManaged(&image->path, 64 * sizeof(const char)));
+            checkCudaErrors(cudaMemcpy((void*)image->path, m_TextureImageFilename, 64 * sizeof(const char),
+                                       cudaMemcpyHostToDevice));
 
-            new (image) Image(image->data, m_TextureImageWidth, m_TextureImageHeight);
-
-            image->path = m_TextureImageFilename;
+            new (image) Image(image->data, image->path, m_TextureImageWidth, m_TextureImageHeight);
         }
 
         // close
         ImGuiFileDialog::Instance()->Close();
-    }
-
-    if (image->path != nullptr) {
-        ImGui::Text(image->path);
-    }
-    else {
-        ImGui::Text("None");
     }
 }
 
@@ -1326,6 +1328,10 @@ void CudaLayer::DeleteImageAllocation(Hittable* hittable)
                     checkCudaErrors(
                         cudaFree(hittable->Object->sphere->mat_ptr->Object->lambertian->albedo->Object->image->data));
                 }
+                if (hittable->Object->sphere->mat_ptr->Object->lambertian->albedo->Object->image->path != nullptr) {
+                    checkCudaErrors(cudaFree(
+                        (void*)hittable->Object->sphere->mat_ptr->Object->lambertian->albedo->Object->image->path));
+                }
             }
             break;
         case MaterialType::METAL:
@@ -1334,6 +1340,10 @@ void CudaLayer::DeleteImageAllocation(Hittable* hittable)
                     checkCudaErrors(
                         cudaFree(hittable->Object->sphere->mat_ptr->Object->metal->albedo->Object->image->data));
                 }
+                if (hittable->Object->sphere->mat_ptr->Object->metal->albedo->Object->image->path != nullptr) {
+                    checkCudaErrors(cudaFree(
+                        (void*)hittable->Object->sphere->mat_ptr->Object->metal->albedo->Object->image->path));
+                }
             }
             break;
         case MaterialType::DIFFUSELIGHT:
@@ -1341,6 +1351,10 @@ void CudaLayer::DeleteImageAllocation(Hittable* hittable)
                 if (hittable->Object->sphere->mat_ptr->Object->diffuse_light->albedo->Object->image->data != nullptr) {
                     checkCudaErrors(cudaFree(
                         hittable->Object->sphere->mat_ptr->Object->diffuse_light->albedo->Object->image->data));
+                }
+                if (hittable->Object->sphere->mat_ptr->Object->diffuse_light->albedo->Object->image->path != nullptr) {
+                    checkCudaErrors(cudaFree(
+                        (void*)hittable->Object->sphere->mat_ptr->Object->diffuse_light->albedo->Object->image->path));
                 }
             }
             break;
@@ -1356,6 +1370,10 @@ void CudaLayer::DeleteImageAllocation(Hittable* hittable)
                     checkCudaErrors(
                         cudaFree(hittable->Object->xy_rect->mat_ptr->Object->lambertian->albedo->Object->image->data));
                 }
+                if (hittable->Object->xy_rect->mat_ptr->Object->lambertian->albedo->Object->image->path != nullptr) {
+                    checkCudaErrors(cudaFree(
+                        (void*)hittable->Object->xy_rect->mat_ptr->Object->lambertian->albedo->Object->image->path));
+                }
             }
             break;
         case MaterialType::METAL:
@@ -1364,6 +1382,10 @@ void CudaLayer::DeleteImageAllocation(Hittable* hittable)
                     checkCudaErrors(
                         cudaFree(hittable->Object->xy_rect->mat_ptr->Object->metal->albedo->Object->image->data));
                 }
+                if (hittable->Object->xy_rect->mat_ptr->Object->metal->albedo->Object->image->path != nullptr) {
+                    checkCudaErrors(cudaFree(
+                        (void*)hittable->Object->xy_rect->mat_ptr->Object->metal->albedo->Object->image->path));
+                }
             }
             break;
         case MaterialType::DIFFUSELIGHT:
@@ -1371,6 +1393,10 @@ void CudaLayer::DeleteImageAllocation(Hittable* hittable)
                 if (hittable->Object->xy_rect->mat_ptr->Object->diffuse_light->albedo->Object->image->data != nullptr) {
                     checkCudaErrors(cudaFree(
                         hittable->Object->xy_rect->mat_ptr->Object->diffuse_light->albedo->Object->image->data));
+                }
+                if (hittable->Object->xy_rect->mat_ptr->Object->diffuse_light->albedo->Object->image->path != nullptr) {
+                    checkCudaErrors(cudaFree(
+                        (void*)hittable->Object->xy_rect->mat_ptr->Object->diffuse_light->albedo->Object->image->path));
                 }
             }
             break;
@@ -1386,6 +1412,10 @@ void CudaLayer::DeleteImageAllocation(Hittable* hittable)
                     checkCudaErrors(
                         cudaFree(hittable->Object->xz_rect->mat_ptr->Object->lambertian->albedo->Object->image->data));
                 }
+                if (hittable->Object->xz_rect->mat_ptr->Object->lambertian->albedo->Object->image->path != nullptr) {
+                    checkCudaErrors(cudaFree(
+                        (void*)hittable->Object->xz_rect->mat_ptr->Object->lambertian->albedo->Object->image->path));
+                }
             }
             break;
         case MaterialType::METAL:
@@ -1394,6 +1424,10 @@ void CudaLayer::DeleteImageAllocation(Hittable* hittable)
                     checkCudaErrors(
                         cudaFree(hittable->Object->xz_rect->mat_ptr->Object->metal->albedo->Object->image->data));
                 }
+                if (hittable->Object->xz_rect->mat_ptr->Object->metal->albedo->Object->image->path != nullptr) {
+                    checkCudaErrors(cudaFree(
+                        (void*)hittable->Object->xz_rect->mat_ptr->Object->metal->albedo->Object->image->path));
+                }
             }
             break;
         case MaterialType::DIFFUSELIGHT:
@@ -1401,6 +1435,10 @@ void CudaLayer::DeleteImageAllocation(Hittable* hittable)
                 if (hittable->Object->xz_rect->mat_ptr->Object->diffuse_light->albedo->Object->image->data != nullptr) {
                     checkCudaErrors(cudaFree(
                         hittable->Object->xz_rect->mat_ptr->Object->diffuse_light->albedo->Object->image->data));
+                }
+                if (hittable->Object->xz_rect->mat_ptr->Object->diffuse_light->albedo->Object->image->path != nullptr) {
+                    checkCudaErrors(cudaFree(
+                        (void*)hittable->Object->xz_rect->mat_ptr->Object->diffuse_light->albedo->Object->image->path));
                 }
             }
             break;
@@ -1416,6 +1454,10 @@ void CudaLayer::DeleteImageAllocation(Hittable* hittable)
                     checkCudaErrors(
                         cudaFree(hittable->Object->yz_rect->mat_ptr->Object->lambertian->albedo->Object->image->data));
                 }
+                if (hittable->Object->yz_rect->mat_ptr->Object->lambertian->albedo->Object->image->path != nullptr) {
+                    checkCudaErrors(cudaFree(
+                        (void*)hittable->Object->yz_rect->mat_ptr->Object->lambertian->albedo->Object->image->path));
+                }
             }
             break;
         case MaterialType::METAL:
@@ -1424,6 +1466,10 @@ void CudaLayer::DeleteImageAllocation(Hittable* hittable)
                     checkCudaErrors(
                         cudaFree(hittable->Object->yz_rect->mat_ptr->Object->metal->albedo->Object->image->data));
                 }
+                if (hittable->Object->yz_rect->mat_ptr->Object->metal->albedo->Object->image->path != nullptr) {
+                    checkCudaErrors(cudaFree(
+                        (void*)hittable->Object->yz_rect->mat_ptr->Object->metal->albedo->Object->image->path));
+                }
             }
             break;
         case MaterialType::DIFFUSELIGHT:
@@ -1431,6 +1477,10 @@ void CudaLayer::DeleteImageAllocation(Hittable* hittable)
                 if (hittable->Object->yz_rect->mat_ptr->Object->diffuse_light->albedo->Object->image->data != nullptr) {
                     checkCudaErrors(cudaFree(
                         hittable->Object->yz_rect->mat_ptr->Object->diffuse_light->albedo->Object->image->data));
+                }
+                if (hittable->Object->yz_rect->mat_ptr->Object->diffuse_light->albedo->Object->image->path != nullptr) {
+                    checkCudaErrors(cudaFree(
+                        (void*)hittable->Object->yz_rect->mat_ptr->Object->diffuse_light->albedo->Object->image->path));
                 }
             }
             break;

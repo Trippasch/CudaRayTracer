@@ -75,7 +75,7 @@ public:
     int width, height;
     const static int bytes_per_pixel = 3;
 
-    __host__ Image(unsigned char* d, int w, int h) : data(d), width(w), height(h)
+    __host__ Image(unsigned char* d, const char* p, int w, int h) : data(d), path(p), width(w), height(h)
     {
         bytes_per_scanline = bytes_per_pixel * width;
     }
