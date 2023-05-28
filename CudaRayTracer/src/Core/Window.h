@@ -21,6 +21,8 @@ struct WindowProps
 class Window
 {
 public:
+    bool m_PauseRender = false;
+
     Window(const WindowProps& props);
     ~Window();
 

@@ -1,4 +1,5 @@
 #include "Cuda/CudaLayer.h"
+#include "Core/Application.h"
 
 #include <backends/imgui_impl_glfw.h>
 #include <backends/imgui_impl_opengl3.h>
@@ -535,7 +536,10 @@ void CudaLayer::GenerateWorld()
 
 void CudaLayer::OnUpdate()
 {
-    RunCudaUpdate();
+    Application& app = Application::Get();
+    if (!app.GetWindow().m_PauseRender) {
+        RunCudaUpdate();
+    }
 }
 
 void CudaLayer::RunCudaUpdate()
@@ -622,33 +626,7 @@ void CudaLayer::OnImGuiRender()
 
     ImGui::End();
 
-    ImGui::Begin("Opions");
-
-    ImGui::Separator();
-
-    if (ImGui::CollapsingHeader("Camera", base_flags)) {
-        if (ImGui::DragFloat3("Position", (float*)&m_Camera->m_Position, 0.01f, -FLT_MAX, FLT_MAX, "%.2f")) {
-            m_Inputs.origin_x = m_Camera->m_Position.x;
-            m_Inputs.origin_y = m_Camera->m_Position.y;
-            m_Inputs.origin_z = m_Camera->m_Position.z;
-        }
-        if (ImGui::DragFloat3("Orientation", (float*)&m_Camera->m_Orientation, 0.01f, -FLT_MAX, FLT_MAX, "%.2f")) {
-            m_Inputs.orientation_x = m_Camera->m_Orientation.x;
-            m_Inputs.orientation_y = m_Camera->m_Orientation.y;
-            m_Inputs.orientation_z = m_Camera->m_Orientation.z;
-        }
-        if (ImGui::SliderFloat("Field of view", &m_Camera->m_Fov, 1.0f, 120.0f, "%.f")) {
-            m_Inputs.fov = glm::radians(m_Camera->m_Fov);
-        }
-    }
-
-    ImGui::Separator();
-
-    if (ImGui::CollapsingHeader("Ray Tracing Settings", base_flags)) {
-        ImGui::InputInt("Samples Per Pixel", (int*)&m_SamplesPerPixel, 1, 100);
-        ImGui::SliderInt("Max Depth", (int*)&m_MaxDepth, 1, 50);
-    }
-
+    ImGui::Begin("Scene");
     ImGui::Separator();
 
     if (ImGui::CollapsingHeader("Hittables Settings", base_flags)) {
@@ -730,138 +708,169 @@ void CudaLayer::OnImGuiRender()
                 ImGui::TreePop();
             }
         }
+    }
 
-        if (ImGui::Button("Add Hittable...")) {
-            ImGui::OpenPopup("New Hittable");
+    ImGui::Separator();
+
+    if (ImGui::Button("Add Hittable...")) {
+        ImGui::OpenPopup("New Hittable");
+    }
+
+    // Always center this window when appearing
+    ImVec2 center = ImGui::GetMainViewport()->GetCenter();
+    ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
+
+    if (ImGui::BeginPopupModal("New Hittable", NULL, ImGuiWindowFlags_AlwaysAutoResize)) {
+
+        ImGui::Separator();
+        ImGui::Text("Choose the type of hittable:");
+        ImGui::Separator();
+
+        if (ImGui::Checkbox("Sphere", &m_UseHittableSphere)) {
+            m_UseHittableXYRect = false;
+            m_UseHittableXZRect = false;
+            m_UseHittableYZRect = false;
+        }
+        else if (ImGui::Checkbox("XYRect", &m_UseHittableXYRect)) {
+            m_UseHittableSphere = false;
+            m_UseHittableXZRect = false;
+            m_UseHittableYZRect = false;
+        }
+        else if (ImGui::Checkbox("XZRect", &m_UseHittableXZRect)) {
+            m_UseHittableSphere = false;
+            m_UseHittableXYRect = false;
+            m_UseHittableYZRect = false;
+        }
+        else if (ImGui::Checkbox("YZRect", &m_UseHittableYZRect)) {
+            m_UseHittableSphere = false;
+            m_UseHittableXYRect = false;
+            m_UseHittableXZRect = false;
         }
 
-        // Always center this window when appearing
-        ImVec2 center = ImGui::GetMainViewport()->GetCenter();
-        ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
+        ImGui::Separator();
+        ImGui::Text("Choose the hittable material:");
+        ImGui::Separator();
 
-        if (ImGui::BeginPopupModal("New Hittable", NULL, ImGuiWindowFlags_AlwaysAutoResize)) {
+        if (ImGui::Checkbox("Lambertian", &m_UseLambertian)) {
+            m_UseMetal = false;
+            m_UseDielectric = false;
+            m_UseDiffuseLight = false;
+        }
+        else if (ImGui::Checkbox("Metal", &m_UseMetal)) {
+            m_UseLambertian = false;
+            m_UseDielectric = false;
+            m_UseDiffuseLight = false;
+        }
+        else if (ImGui::Checkbox("Dielectric", &m_UseDielectric)) {
+            m_UseMetal = false;
+            m_UseLambertian = false;
+            m_UseDiffuseLight = false;
+        }
+        else if (ImGui::Checkbox("Diffuse Light", &m_UseDiffuseLight)) {
+            m_UseMetal = false;
+            m_UseLambertian = false;
+            m_UseDielectric = false;
+        }
 
+        ImGui::Separator();
+
+        if (m_UseLambertian == true || m_UseMetal == true || m_UseDiffuseLight == true) {
+            ImGui::Text("Choose the hittable material texture:");
             ImGui::Separator();
-            ImGui::Text("Choose the type of hittable:");
+            if (ImGui::Checkbox("Constant Texture", &m_UseConstantTexture)) {
+                m_UseCheckerTexture = false;
+                m_UseImageTexture = false;
+            }
+            else if (ImGui::Checkbox("Checker Texture", &m_UseCheckerTexture)) {
+                m_UseConstantTexture = false;
+                m_UseImageTexture = false;
+            }
+            else if (ImGui::Checkbox("Image Texture", &m_UseImageTexture)) {
+                m_UseConstantTexture = false;
+                m_UseCheckerTexture = false;
+            }
             ImGui::Separator();
+        }
 
-            if (ImGui::Checkbox("Sphere", &m_UseHittableSphere)) {
-                m_UseHittableXYRect = false;
-                m_UseHittableXZRect = false;
-                m_UseHittableYZRect = false;
-            }
-            else if (ImGui::Checkbox("XYRect", &m_UseHittableXYRect)) {
-                m_UseHittableSphere = false;
-                m_UseHittableXZRect = false;
-                m_UseHittableYZRect = false;
-            }
-            else if (ImGui::Checkbox("XZRect", &m_UseHittableXZRect)) {
-                m_UseHittableSphere = false;
-                m_UseHittableXYRect = false;
-                m_UseHittableYZRect = false;
-            }
-            else if (ImGui::Checkbox("YZRect", &m_UseHittableYZRect)) {
-                m_UseHittableSphere = false;
-                m_UseHittableXYRect = false;
-                m_UseHittableXZRect = false;
-            }
-
-            ImGui::Separator();
-            ImGui::Text("Choose the hittable material:");
-            ImGui::Separator();
-
-            if (ImGui::Checkbox("Lambertian", &m_UseLambertian)) {
-                m_UseMetal = false;
-                m_UseDielectric = false;
-                m_UseDiffuseLight = false;
-            }
-            else if (ImGui::Checkbox("Metal", &m_UseMetal)) {
-                m_UseLambertian = false;
-                m_UseDielectric = false;
-                m_UseDiffuseLight = false;
-            }
-            else if (ImGui::Checkbox("Dielectric", &m_UseDielectric)) {
-                m_UseMetal = false;
-                m_UseLambertian = false;
-                m_UseDiffuseLight = false;
-            }
-            else if (ImGui::Checkbox("Diffuse Light", &m_UseDiffuseLight)) {
-                m_UseMetal = false;
-                m_UseLambertian = false;
-                m_UseDielectric = false;
-            }
-
-            ImGui::Separator();
-
-            if (m_UseLambertian == true || m_UseMetal == true || m_UseDiffuseLight == true) {
-                ImGui::Text("Choose the hittable material texture:");
-                ImGui::Separator();
-                if (ImGui::Checkbox("Constant Texture", &m_UseConstantTexture)) {
-                    m_UseCheckerTexture = false;
-                    m_UseImageTexture = false;
-                }
-                else if (ImGui::Checkbox("Checker Texture", &m_UseCheckerTexture)) {
-                    m_UseConstantTexture = false;
-                    m_UseImageTexture = false;
-                }
-                else if (ImGui::Checkbox("Image Texture", &m_UseImageTexture)) {
-                    m_UseConstantTexture = false;
-                    m_UseCheckerTexture = false;
-                }
-                ImGui::Separator();
-            }
-
-            if (((m_UseLambertian || m_UseMetal || m_UseDielectric || m_UseDiffuseLight) &&
-                 (m_UseHittableSphere || m_UseHittableXYRect || m_UseHittableXZRect || m_UseHittableYZRect))) {
-                if (!m_UseDielectric) {
-                    if (m_UseConstantTexture || m_UseCheckerTexture || m_UseImageTexture) {
-                        if (ImGui::Button("Add")) {
-                            AddHittable();
-                            ImGui::CloseCurrentPopup();
-                        }
-                    }
-                }
-                else {
+        if (((m_UseLambertian || m_UseMetal || m_UseDielectric || m_UseDiffuseLight) &&
+             (m_UseHittableSphere || m_UseHittableXYRect || m_UseHittableXZRect || m_UseHittableYZRect))) {
+            if (!m_UseDielectric) {
+                if (m_UseConstantTexture || m_UseCheckerTexture || m_UseImageTexture) {
                     if (ImGui::Button("Add")) {
                         AddHittable();
                         ImGui::CloseCurrentPopup();
                     }
                 }
             }
-
-            if (ImGui::Button("Cancel")) {
-                ImGui::CloseCurrentPopup();
-            }
-
-            ImGui::EndPopup();
-        }
-
-        if (ImGui::Button("Delete Hittable...")) {
-            ImGui::OpenPopup("Delete Hittable");
-        }
-
-        // Always center this window when appearing
-        ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
-
-        if (ImGui::BeginPopupModal("Delete Hittable", NULL, ImGuiWindowFlags_AlwaysAutoResize)) {
-            ImGui::Text("Enter the hittable ID you want to delete");
-            ImGui::InputInt("Hittable ID", &m_HittableID);
-
-            for (int i = 0; i < m_ListSize; i++) {
-                if (m_HittableID == i) {
-                    if (ImGui::Button("Delete")) {
-                        DeleteHittable(m_List[i], i);
-                        ImGui::CloseCurrentPopup();
-                    }
+            else {
+                if (ImGui::Button("Add")) {
+                    AddHittable();
+                    ImGui::CloseCurrentPopup();
                 }
             }
-
-            if (ImGui::Button("Cancel")) {
-                ImGui::CloseCurrentPopup();
-            }
-
-            ImGui::EndPopup();
         }
+
+        if (ImGui::Button("Cancel")) {
+            ImGui::CloseCurrentPopup();
+        }
+
+        ImGui::EndPopup();
+    }
+
+    if (ImGui::Button("Delete Hittable...")) {
+        ImGui::OpenPopup("Delete Hittable");
+    }
+
+    // Always center this window when appearing
+    ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
+
+    if (ImGui::BeginPopupModal("Delete Hittable", NULL, ImGuiWindowFlags_AlwaysAutoResize)) {
+        ImGui::Text("Enter the hittable ID you want to delete");
+        ImGui::InputInt("Hittable ID", &m_HittableID);
+
+        for (int i = 0; i < m_ListSize; i++) {
+            if (m_HittableID == i) {
+                if (ImGui::Button("Delete")) {
+                    DeleteHittable(m_List[i], i);
+                    ImGui::CloseCurrentPopup();
+                }
+            }
+        }
+
+        if (ImGui::Button("Cancel")) {
+            ImGui::CloseCurrentPopup();
+        }
+
+        ImGui::EndPopup();
+    }
+
+    ImGui::End();
+
+    ImGui::Begin("Opions");
+
+    ImGui::Separator();
+
+    if (ImGui::CollapsingHeader("Camera Settings", base_flags)) {
+        if (ImGui::DragFloat3("Position", (float*)&m_Camera->m_Position, 0.01f, -FLT_MAX, FLT_MAX, "%.2f")) {
+            m_Inputs.origin_x = m_Camera->m_Position.x;
+            m_Inputs.origin_y = m_Camera->m_Position.y;
+            m_Inputs.origin_z = m_Camera->m_Position.z;
+        }
+        if (ImGui::DragFloat3("Orientation", (float*)&m_Camera->m_Orientation, 0.01f, -FLT_MAX, FLT_MAX, "%.2f")) {
+            m_Inputs.orientation_x = m_Camera->m_Orientation.x;
+            m_Inputs.orientation_y = m_Camera->m_Orientation.y;
+            m_Inputs.orientation_z = m_Camera->m_Orientation.z;
+        }
+        if (ImGui::SliderFloat("Field of view", &m_Camera->m_Fov, 1.0f, 120.0f, "%.f")) {
+            m_Inputs.fov = glm::radians(m_Camera->m_Fov);
+        }
+    }
+
+    ImGui::Separator();
+
+    if (ImGui::CollapsingHeader("Ray Tracing Settings", base_flags)) {
+        ImGui::InputInt("Samples Per Pixel", (int*)&m_SamplesPerPixel, 1, 100);
+        ImGui::SliderInt("Max Depth", (int*)&m_MaxDepth, 1, 50);
     }
 
     ImGui::Separator();
@@ -1344,8 +1353,8 @@ void CudaLayer::DeleteImageAllocation(Hittable* hittable)
                         cudaFree(hittable->Object->sphere->mat_ptr->Object->metal->albedo->Object->image->data));
                 }
                 if (hittable->Object->sphere->mat_ptr->Object->metal->albedo->Object->image->path != nullptr) {
-                    checkCudaErrors(cudaFree(
-                        (void*)hittable->Object->sphere->mat_ptr->Object->metal->albedo->Object->image->path));
+                    checkCudaErrors(
+                        cudaFree((void*)hittable->Object->sphere->mat_ptr->Object->metal->albedo->Object->image->path));
                 }
             }
             break;

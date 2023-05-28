@@ -42,8 +42,7 @@ void Window::Init(const WindowProps& props)
 
     RT_INFO("Creating window {0} ({1}, {2})", props.Title, props.Width, props.Height);
 
-    if (!s_GLFWInitialized)
-    {
+    if (!s_GLFWInitialized) {
         // TODO: glfwTerminate on system shutdown
         int success = glfwInit();
         RT_ASSERT(success, "Could not initialize GLFW!");
@@ -81,21 +80,17 @@ void Window::Init(const WindowProps& props)
     glfwSetKeyCallback(m_Window, [](GLFWwindow* window, int key, int scancode, int action, int mods) {
         Window& w = *(Window*)glfwGetWindowUserPointer(window);
 
-        if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
-        {
+        if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) {
             glfwSetWindowShouldClose(window, true);
         }
 
-        if (glfwGetKey(window, GLFW_KEY_F11) == GLFW_PRESS)
-        {
+        if (glfwGetKey(window, GLFW_KEY_F11) == GLFW_PRESS) {
 
             GLFWmonitor* monitor = glfwGetWindowMonitor(window);
-            if (monitor != nullptr)
-            {
+            if (monitor != nullptr) {
                 glfwSetWindowMonitor(window, nullptr, w.GetXPos(), w.GetYPos(), w.GetWidth(), w.GetHeight(), 0);
             }
-            else
-            {
+            else {
                 int xpos, ypos, width, height;
                 glfwGetWindowPos(window, &xpos, &ypos);
                 glfwGetWindowSize(window, &width, &height);
@@ -107,6 +102,13 @@ void Window::Init(const WindowProps& props)
                 const GLFWvidmode* mode = glfwGetVideoMode(monitor);
                 glfwSetWindowMonitor(window, monitor, 0, 0, mode->width, mode->height, mode->refreshRate);
             }
+        }
+
+        if (glfwGetKey(window, GLFW_KEY_P) == GLFW_PRESS) {
+            if (!w.m_PauseRender)
+                w.m_PauseRender = true;
+            else
+                w.m_PauseRender = false;
         }
     });
 

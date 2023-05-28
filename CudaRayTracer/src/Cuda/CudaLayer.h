@@ -59,10 +59,9 @@ private:
     void DeleteHittable(Hittable* hittable, int i);
     void DeleteImageAllocation(Hittable* hittable);
 
-private:
     // Image
-    unsigned int m_ImageWidth = 800;
-    unsigned int m_ImageHeight = 698;
+    unsigned int m_ImageWidth = 880;
+    unsigned int m_ImageHeight = 465;
 
     // Cuda Image
     unsigned int m_NumTexels = m_ImageWidth * m_ImageHeight;
