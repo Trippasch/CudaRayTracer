@@ -90,7 +90,6 @@ private:
 
     size_t m_ConstantSize;
     size_t m_CheckerSize;
-    size_t m_ImageSize;
 
     size_t m_LambertianSize;
     size_t m_MetalSize;
@@ -103,7 +102,6 @@ private:
     size_t m_YZrectSize;
 
     size_t m_SpheresSize;
-    size_t m_SkyboxSize;
     size_t m_GroundSize;
 
     std::vector<std::pair<Hittable*, int>> m_InactiveHittables;

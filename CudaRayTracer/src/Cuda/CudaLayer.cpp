@@ -108,11 +108,6 @@ void CudaLayer::GenerateWorld()
     m_DiffuseSize = sizeof(Material) + sizeof(Material::ObjectUnion) + sizeof(DiffuseLight);
     m_ConstantSize = sizeof(Texture) + sizeof(Texture::ObjectUnion) + sizeof(Constant);
     m_CheckerSize = sizeof(Texture) + sizeof(Texture::ObjectUnion) + sizeof(Checker) + 2 * sizeof(Constant);
-    // m_TextureImageFilename = "assets/textures/industrial_sunset_puresky.jpg";
-    m_TextureImageData = LoadImage(m_TextureImageFilename, m_TextureImageData, &m_TextureImageWidth,
-                                   &m_TextureImageHeight, &m_TextureImageNR);
-    m_ImageSize = sizeof(Texture) + sizeof(Texture::ObjectUnion) + sizeof(Image) +
-                  m_TextureImageWidth * m_TextureImageHeight * m_TextureImageNR * sizeof(unsigned char);
     m_SphereSize = sizeof(Hittable) + sizeof(Hittable::ObjectUnion) + sizeof(Sphere);
     m_XYrectSize = sizeof(Hittable) + sizeof(Hittable::ObjectUnion) + sizeof(XYRect);
     m_XZrectSize = sizeof(Hittable) + sizeof(Hittable::ObjectUnion) + sizeof(XZRect);
@@ -120,10 +115,8 @@ void CudaLayer::GenerateWorld()
 
     RT_INFO("Constant Size = {0}", m_ConstantSize);
     RT_INFO("Checker Size = {0}", m_CheckerSize);
-    RT_INFO("Image Size = {0}", m_ImageSize);
 
     m_GroundSize = m_XZrectSize + m_LambertianSize + m_CheckerSize;
-    m_SkyboxSize = m_SphereSize + m_LambertianSize + m_ImageSize;
     m_SpheresSize = m_SphereSize + m_MetalSize + m_CheckerSize;
 
     m_TotalSize = (m_ListSize * sizeof(Hittable*)) + m_GroundSize + ((m_ListSize - 1) * m_SpheresSize);
@@ -172,45 +165,6 @@ void CudaLayer::GenerateWorld()
     m_List[0]->Object->xz_rect->mat_ptr->type = MaterialType::LAMBERTIAN;
     m_List[0]->Object->xz_rect = new (m_List[0]->Object->xz_rect)
         XZRect(Vec3(0.0f, -0.5f, 0.0f), 1000.0f, 1000.0f, m_List[0]->Object->xz_rect->mat_ptr);
-
-    // Skybox Sphere
-    // Partitioning
-    // char* basePtr1 = m_ListMemory + m_ListSize * sizeof(Hittable*) + groundSize;
-    // m_List[1] = (Hittable*)(basePtr1);
-    // m_List[1]->Object = (Hittable::ObjectUnion*)(m_List[1] + 1);
-    // m_List[1]->Object->sphere = (Sphere*)(m_List[1]->Object + 1);
-    // m_List[1]->Object->sphere->mat_ptr = (Material*)(m_List[1]->Object->sphere + 1);
-    // m_List[1]->Object->sphere->mat_ptr->Object = (Material::ObjectUnion*)(m_List[1]->Object->sphere->mat_ptr + 1);
-    // m_List[1]->Object->sphere->mat_ptr->Object->lambertian =
-    //     (Lambertian*)(m_List[1]->Object->sphere->mat_ptr->Object + 1);
-    // m_List[1]->Object->sphere->mat_ptr->Object->lambertian->albedo =
-    //     (Texture*)(m_List[1]->Object->sphere->mat_ptr->Object->lambertian + 1);
-    // m_List[1]->Object->sphere->mat_ptr->Object->lambertian->albedo->Object =
-    //     (Texture::ObjectUnion*)(m_List[1]->Object->sphere->mat_ptr->Object->lambertian->albedo + 1);
-    // m_List[1]->Object->sphere->mat_ptr->Object->lambertian->albedo->Object->image =
-    //     (Image*)(m_List[1]->Object->sphere->mat_ptr->Object->lambertian->albedo->Object + 1);
-    // m_List[1]->Object->sphere->mat_ptr->Object->lambertian->albedo->Object->image->data =
-    //     (unsigned char*)(m_List[1]->Object->sphere->mat_ptr->Object->lambertian->albedo->Object->image + 1);
-
-    // m_List[1]->type = HittableType::SPHERE;
-
-    // checkCudaErrors(cudaMemcpy(
-    //     m_List[1]->Object->sphere->mat_ptr->Object->lambertian->albedo->Object->image->data, m_TextureImageData,
-    //     m_TextureImageWidth * m_TextureImageHeight * m_TextureImageNR * sizeof(unsigned char),
-    //     cudaMemcpyHostToDevice));
-    // STBI_FREE(m_TextureImageData);
-
-    // new (m_List[1]->Object->sphere->mat_ptr->Object->lambertian->albedo->Object->image)
-    //     Image(m_List[1]->Object->sphere->mat_ptr->Object->lambertian->albedo->Object->image->data,
-    //     m_TextureImageWidth,
-    //           m_TextureImageHeight);
-    // m_List[1]->Object->sphere->mat_ptr->Object->lambertian->albedo->type = TextureType::IMAGE;
-    // new (m_List[1]->Object->sphere->mat_ptr->Object->lambertian)
-    //     Lambertian(m_List[1]->Object->sphere->mat_ptr->Object->lambertian->albedo);
-    // // Set the type of the Material after constructing it, so the assignment won't be overwritten.
-    // m_List[1]->Object->sphere->mat_ptr->type = MaterialType::LAMBERTIAN;
-    // m_List[1]->Object->sphere =
-    //     new (m_List[1]->Object->sphere) Sphere(Vec3(0.0f, 0.0f, 0.0f), 1000.0f, m_List[1]->Object->sphere->mat_ptr);
 
     // Spheres
     int i = 1;
@@ -395,143 +349,6 @@ void CudaLayer::GenerateWorld()
     // checkCudaErrors(cudaMallocManaged(&m_World->Object->bvh_node, sizeof(BVHNode)));
     // m_World->type = HittableType::BVHNODE;
     // m_World->Object->bvh_node = new (m_World->Object->bvh_node) BVHNode(m_List, 0, m_ListSize);
-
-    // Hittable* ground;
-    // checkCudaErrors(cudaMallocManaged(&ground, sizeof(Hittable)));
-    // checkCudaErrors(cudaMallocManaged(&ground->mat_ptr, sizeof(Material)));
-    // checkCudaErrors(cudaMallocManaged(&ground->mat_ptr->albedo,
-    // sizeof(Texture)));
-    // checkCudaErrors(cudaMallocManaged(&ground->mat_ptr->albedo->odd,
-    // sizeof(Texture)));
-    // checkCudaErrors(cudaMallocManaged(&ground->mat_ptr->albedo->even,
-    // sizeof(Texture))); m_World->Add(new(ground) Hittable(Vec3(0.0f, -0.5f,
-    // 0.0f), 1000.0f, 1000.0f, new(ground->mat_ptr)
-    // Material(new(ground->mat_ptr->albedo)
-    // Texture(new(ground->mat_ptr->albedo->odd) Texture(Vec3(0.2f, 0.3f, 0.1f),
-    // Tex::constant_texture), new(ground->mat_ptr->albedo->even)
-    // Texture(Vec3(0.9f, 0.9f, 0.9f), Tex::constant_texture),
-    // Tex::checker_texture), Mat::lambertian), Hitt::xz_rect));
-
-    // Hittable* skybox_sphere;
-    // checkCudaErrors(cudaMallocManaged(&skybox_sphere, sizeof(Hittable)));
-    // checkCudaErrors(cudaMallocManaged(&skybox_sphere->mat_ptr,
-    // sizeof(Material)));
-    // checkCudaErrors(cudaMallocManaged(&skybox_sphere->mat_ptr->albedo,
-    // sizeof(Texture)));
-    // checkCudaErrors(cudaMallocManaged(&skybox_sphere->mat_ptr->albedo->odd,
-    // sizeof(Texture)));
-    // checkCudaErrors(cudaMallocManaged(&skybox_sphere->mat_ptr->albedo->even,
-    // sizeof(Texture))); m_TextureImageFilename =
-    // "assets/textures/industrial_sunset_puresky.jpg"; m_TextureImageData =
-    // LoadImage(m_TextureImageFilename, m_TextureImageData,
-    // &m_TextureImageWidth, &m_TextureImageHeight, &m_TextureImageNR);
-    // checkCudaErrors(cudaMallocManaged(&skybox_sphere->mat_ptr->albedo->data,
-    // m_TextureImageWidth * m_TextureImageHeight * m_TextureImageNR *
-    // sizeof(unsigned char)));
-    // checkCudaErrors(cudaMemcpy(skybox_sphere->mat_ptr->albedo->data,
-    // m_TextureImageData, m_TextureImageWidth * m_TextureImageHeight *
-    // m_TextureImageNR * sizeof(unsigned char), cudaMemcpyHostToDevice));
-    // STBI_FREE(m_TextureImageData);
-    // m_World->Add(new(skybox_sphere) Hittable(Vec3(0.0f, 0.0f, 0.0f), 1000.0f,
-    // new(skybox_sphere->mat_ptr) Material(new(skybox_sphere->mat_ptr->albedo)
-    // Texture(skybox_sphere->mat_ptr->albedo->data, m_TextureImageWidth,
-    // m_TextureImageHeight, Tex::image_texture), Mat::lambertian),
-    // Hitt::sphere));
-    // // don't forget to set the path for the object
-    // skybox_sphere->mat_ptr->albedo->path = m_TextureImageFilename;
-
-    // Hittable* sphere1;
-    // checkCudaErrors(cudaMallocManaged(&sphere1, sizeof(Hittable)));
-    // checkCudaErrors(cudaMallocManaged(&sphere1->mat_ptr, sizeof(Material)));
-    // checkCudaErrors(cudaMallocManaged(&sphere1->mat_ptr->albedo,
-    // sizeof(Texture)));
-    // checkCudaErrors(cudaMallocManaged(&sphere1->mat_ptr->albedo->odd,
-    // sizeof(Texture)));
-    // checkCudaErrors(cudaMallocManaged(&sphere1->mat_ptr->albedo->even,
-    // sizeof(Texture))); m_World->Add(new(sphere1) Hittable(Vec3(0.0f, 0.0f,
-    // -1.0f), 0.5f, new(sphere1->mat_ptr)
-    // Material(new(sphere1->mat_ptr->albedo) Texture(Vec3(0.1f, 0.2f, 0.5f),
-    // Tex::constant_texture), Mat::lambertian), Hitt::sphere));
-
-    // Hittable* sphere2;
-    // checkCudaErrors(cudaMallocManaged(&sphere2, sizeof(Hittable)));
-    // checkCudaErrors(cudaMallocManaged(&sphere2->mat_ptr, sizeof(Material)));
-    // checkCudaErrors(cudaMallocManaged(&sphere2->mat_ptr->albedo,
-    // sizeof(Texture)));
-    // checkCudaErrors(cudaMallocManaged(&sphere2->mat_ptr->albedo->odd,
-    // sizeof(Texture)));
-    // checkCudaErrors(cudaMallocManaged(&sphere2->mat_ptr->albedo->even,
-    // sizeof(Texture))); m_World->Add(new(sphere2) Hittable(Vec3(1.0f, 0.0f,
-    // -1.0f), 0.5f, new(sphere2->mat_ptr)
-    // Material(new(sphere2->mat_ptr->albedo) Texture(Vec3(0.8f, 0.6f, 0.2f),
-    // Tex::constant_texture), 0.0f, Mat::metal), Hitt::sphere));
-
-    // Hittable* glassSphere_a;
-    // checkCudaErrors(cudaMallocManaged(&glassSphere_a, sizeof(Hittable)));
-    // checkCudaErrors(cudaMallocManaged(&glassSphere_a->mat_ptr,
-    // sizeof(Material)));
-    // checkCudaErrors(cudaMallocManaged(&glassSphere_a->mat_ptr->albedo,
-    // sizeof(Texture)));
-    // checkCudaErrors(cudaMallocManaged(&glassSphere_a->mat_ptr->albedo->odd,
-    // sizeof(Texture)));
-    // checkCudaErrors(cudaMallocManaged(&glassSphere_a->mat_ptr->albedo->even,
-    // sizeof(Texture))); m_World->Add(new(glassSphere_a) Hittable(Vec3(-1.0f,
-    // 0.0f, -1.0f), 0.5f, new(glassSphere_a->mat_ptr) Material(1.5f,
-    // Mat::dielectric), Hitt::sphere));
-
-    // Hittable* glassSphere_b;
-    // checkCudaErrors(cudaMallocManaged(&glassSphere_b, sizeof(Hittable)));
-    // checkCudaErrors(cudaMallocManaged(&glassSphere_b->mat_ptr,
-    // sizeof(Material)));
-    // checkCudaErrors(cudaMallocManaged(&glassSphere_b->mat_ptr->albedo,
-    // sizeof(Texture)));
-    // checkCudaErrors(cudaMallocManaged(&glassSphere_b->mat_ptr->albedo->odd,
-    // sizeof(Texture)));
-    // checkCudaErrors(cudaMallocManaged(&glassSphere_b->mat_ptr->albedo->even,
-    // sizeof(Texture))); m_World->Add(new(glassSphere_b) Hittable(Vec3(-1.0f,
-    // 0.0f, -1.0f), -0.45f, new(glassSphere_b->mat_ptr) Material(1.5f,
-    // Mat::dielectric), Hitt::sphere));
-
-    // Hittable* light_sphere;
-    // checkCudaErrors(cudaMallocManaged(&light_sphere, sizeof(Hittable)));
-    // checkCudaErrors(cudaMallocManaged(&light_sphere->mat_ptr,
-    // sizeof(Material)));
-    // checkCudaErrors(cudaMallocManaged(&light_sphere->mat_ptr->albedo,
-    // sizeof(Texture)));
-    // checkCudaErrors(cudaMallocManaged(&light_sphere->mat_ptr->albedo->odd,
-    // sizeof(Texture)));
-    // checkCudaErrors(cudaMallocManaged(&light_sphere->mat_ptr->albedo->even,
-    // sizeof(Texture))); m_TextureImageFilename = "assets/textures/8k_sun.jpg";
-    // m_TextureImageData = LoadImage(m_TextureImageFilename,
-    // m_TextureImageData, &m_TextureImageWidth, &m_TextureImageHeight,
-    // &m_TextureImageNR);
-    // checkCudaErrors(cudaMallocManaged(&light_sphere->mat_ptr->albedo->data,
-    // m_TextureImageWidth * m_TextureImageHeight * m_TextureImageNR *
-    // sizeof(unsigned char)));
-    // checkCudaErrors(cudaMemcpy(light_sphere->mat_ptr->albedo->data,
-    // m_TextureImageData, m_TextureImageWidth * m_TextureImageHeight *
-    // m_TextureImageNR * sizeof(unsigned char), cudaMemcpyHostToDevice));
-    // STBI_FREE(m_TextureImageData);
-    // m_World->Add(new(light_sphere) Hittable(Vec3(0.0f, 2.0f, 0.0f), 0.5f,
-    // new(light_sphere->mat_ptr) Material(new(light_sphere->mat_ptr->albedo)
-    // Texture(light_sphere->mat_ptr->albedo->data, m_TextureImageWidth,
-    // m_TextureImageHeight, Tex::image_texture), m_LightIntensity,
-    // Mat::diffuse_light), Hitt::sphere));
-    // // don't forget to set the path for the object
-    // light_sphere->mat_ptr->albedo->path = m_TextureImageFilename;
-
-    // Hittable* rect;
-    // checkCudaErrors(cudaMallocManaged(&rect, sizeof(Hittable)));
-    // checkCudaErrors(cudaMallocManaged(&rect->mat_ptr, sizeof(Material)));
-    // checkCudaErrors(cudaMallocManaged(&rect->mat_ptr->albedo,
-    // sizeof(Texture)));
-    // checkCudaErrors(cudaMallocManaged(&rect->mat_ptr->albedo->odd,
-    // sizeof(Texture)));
-    // checkCudaErrors(cudaMallocManaged(&rect->mat_ptr->albedo->even,
-    // sizeof(Texture))); m_World->Add(new(rect) Hittable(Vec3(0.0f, 1.0f,
-    // -3.0f), 6.0f, 3.0f, new(rect->mat_ptr)
-    // Material(new(rect->mat_ptr->albedo) Texture(Vec3(1.0f, 0.0f, 0.0f),
-    // Tex::constant_texture), 7, Mat::diffuse_light), Hitt::xy_rect));
 }
 
 void CudaLayer::OnUpdate()
