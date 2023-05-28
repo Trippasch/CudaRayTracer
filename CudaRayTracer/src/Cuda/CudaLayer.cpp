@@ -1064,7 +1064,9 @@ void CudaLayer::ImageAllocation(Image* image)
     if (ImGuiFileDialog::Instance()->Display("ChooseFileDlgKey")) {
         // action if OK
         if (ImGuiFileDialog::Instance()->IsOk()) {
-            m_TextureImageFilename = ("assets/textures/" + ImGuiFileDialog::Instance()->GetCurrentFileName()).c_str();
+            std::string temp = ("assets/textures/" + ImGuiFileDialog::Instance()->GetCurrentFileName());
+            m_TextureImageFilename = (char*)malloc(temp.length() + 1);
+            std::strcpy(m_TextureImageFilename, temp.c_str());
 
             if (image->data != nullptr) {
                 checkCudaErrors(cudaFree(image->data));
@@ -1088,6 +1090,7 @@ void CudaLayer::ImageAllocation(Image* image)
                                        cudaMemcpyHostToDevice));
 
             new (image) Image(image->data, image->path, m_TextureImageWidth, m_TextureImageHeight);
+            free(m_TextureImageFilename);
         }
 
         // close

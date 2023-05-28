@@ -143,7 +143,7 @@ private:
     int m_TextureImageHeight;
     int m_TextureImageNR;
     unsigned char* m_TextureImageData = nullptr;
-    const char* m_TextureImageFilename = nullptr;
+    char* m_TextureImageFilename = nullptr;
 
     // hittable id when openning the file dialog
     int m_ButtonID = -1;
