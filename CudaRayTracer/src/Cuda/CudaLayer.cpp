@@ -107,7 +107,7 @@ void CudaLayer::GenerateWorld()
     m_DiffuseSize = sizeof(Material) + sizeof(Material::ObjectUnion) + sizeof(DiffuseLight);
     m_ConstantSize = sizeof(Texture) + sizeof(Texture::ObjectUnion) + sizeof(Constant);
     m_CheckerSize = sizeof(Texture) + sizeof(Texture::ObjectUnion) + sizeof(Checker) + 2 * sizeof(Constant);
-    m_TextureImageFilename = "assets/textures/industrial_sunset_puresky.jpg";
+    // m_TextureImageFilename = "assets/textures/industrial_sunset_puresky.jpg";
     m_TextureImageData = LoadImage(m_TextureImageFilename, m_TextureImageData, &m_TextureImageWidth,
                                    &m_TextureImageHeight, &m_TextureImageNR);
     m_ImageSize = sizeof(Texture) + sizeof(Texture::ObjectUnion) + sizeof(Image) +
@@ -1041,7 +1041,7 @@ void CudaLayer::TextureNode(Texture* texture, size_t i)
                 ImageAllocation(texture->Object->image);
             }
             if (texture->Object->image->path != nullptr) {
-                ImGui::Text(texture->Object->image->path);
+                ImGui::Text("%s", texture->Object->image->path);
             }
             else {
                 ImGui::Text("None");
