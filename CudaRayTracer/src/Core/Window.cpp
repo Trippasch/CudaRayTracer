@@ -55,14 +55,15 @@ void Window::Init(const WindowProps& props)
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
     glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+    glfwWindowHint(GLFW_MAXIMIZED, GLFW_TRUE);
 
     m_Window = glfwCreateWindow((int)props.Width, (int)props.Height, m_Data.Title.c_str(), nullptr, nullptr);
     RT_ASSERT(m_Window, "Could not create GLFW window");
 
     /* Set the window's position */
-    GLFWmonitor* monitor = glfwGetPrimaryMonitor();
-    const GLFWvidmode* mode = glfwGetVideoMode(monitor);
-    glfwSetWindowPos(m_Window, (mode->width - m_Data.Width) / 2, (mode->height - m_Data.Height) / 2);
+    // GLFWmonitor* monitor = glfwGetPrimaryMonitor();
+    // const GLFWvidmode* mode = glfwGetVideoMode(monitor);
+    // glfwSetWindowPos(m_Window, (mode->width - m_Data.Width) / 2, (mode->height - m_Data.Height) / 2);
 
     /* Make the window's context curren */
     glfwMakeContextCurrent(m_Window);

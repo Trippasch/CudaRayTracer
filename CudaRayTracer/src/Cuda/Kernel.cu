@@ -27,7 +27,8 @@ __device__ inline Vec3 IntToRgb(int val)
     return Vec3(r, g, b);
 }
 
-__device__ inline Vec3 color(const Ray& r, Hittable* world, int max_depth, curandState* local_rand_state)
+__device__ inline Vec3 color(const Ray& r, Hittable* world, int max_depth, curandState* local_rand_state,
+                             InputStruct inputs)
 {
     Ray cur_ray = r;
     Vec3 cur_attenuation = Vec3(1.0f, 1.0f, 1.0f);
@@ -39,7 +40,7 @@ __device__ inline Vec3 color(const Ray& r, Hittable* world, int max_depth, curan
         if (!world->Object->bvh_node->Hit(cur_ray, 0.001f, FLT_MAX, rec)) {
             Vec3 unit_direction = UnitVector(cur_ray.Direction());
             float t = 0.5f * (unit_direction.y() + 1.0f);
-            Vec3 c = (1.0f - t) * Vec3(1.0f, 1.0f, 1.0f) + t * Vec3(0.5f, 0.7f, 1.0f);
+            Vec3 c = (1.0f - t) * inputs.background_start + t * inputs.background_end;
             return cur_attenuation * c;
         }
         else {
@@ -143,7 +144,7 @@ __global__ __launch_bounds__(MY_KERNEL_MAX_THREADS) void Kernel(unsigned int* po
         Vec3 dirVector = Normalize(secondPlanePos - startPos);
 
         Ray r = Ray(startPos, dirVector);
-        col = col + color(r, world, max_depth, &local_rand_state);
+        col = col + color(r, world, max_depth, &local_rand_state, inputs);
     }
     rand_state[pixel_index] = local_rand_state;
 

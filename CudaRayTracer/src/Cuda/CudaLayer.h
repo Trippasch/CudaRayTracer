@@ -147,4 +147,8 @@ private:
 
     // Camera
     std::unique_ptr<Camera> m_Camera;
+
+    // Background
+    Vec3 m_BackgroundStart = Vec3(1.0f, 1.0f, 1.0f);
+    Vec3 m_BackgroundEnd = Vec3(0.5f, 0.7f, 1.0f);
 };

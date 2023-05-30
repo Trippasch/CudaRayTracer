@@ -60,6 +60,9 @@ void CudaLayer::OnAttach()
     m_Inputs.far_plane = m_Camera->m_FarPlane;
     m_Inputs.near_plane = m_Camera->m_NearPlane;
     m_Inputs.fov = glm::radians(m_Camera->m_Fov);
+
+    m_Inputs.background_start = m_BackgroundStart;
+    m_Inputs.background_end = m_BackgroundEnd;
 }
 
 void CudaLayer::InitCudaBuffers()
@@ -444,6 +447,17 @@ void CudaLayer::OnImGuiRender()
     ImGui::End();
 
     ImGui::Begin("Scene");
+    ImGui::Separator();
+
+    if (ImGui::CollapsingHeader("Background Gradient", base_flags)) {
+        if (ImGui::ColorEdit3("Background Start", (float*)&m_BackgroundStart)) {
+            m_Inputs.background_start = m_BackgroundStart;
+        }
+        if (ImGui::ColorEdit3("Background End", (float*)&m_BackgroundEnd)) {
+            m_Inputs.background_end = m_BackgroundEnd;
+        }
+    }
+
     ImGui::Separator();
 
     if (ImGui::CollapsingHeader("Hittables Settings", base_flags)) {

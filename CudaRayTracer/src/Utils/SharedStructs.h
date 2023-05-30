@@ -18,4 +18,7 @@ typedef struct InputStruct
     float near_plane = 0.0f;
     float fov = 0.0f;
 
+    Vec3 background_start = Vec3(0.0f, 0.0f, 0.0f);
+    Vec3 background_end = Vec3(0.0f, 0.0f, 0.0f);
+
 } InputStruct;
