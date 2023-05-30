@@ -403,22 +403,25 @@ void CudaLayer::OnImGuiRender()
 
     if (ImGui::IsWindowFocused()) {
 
-        m_Camera->Inputs((GLFWwindow*)ImGui::GetMainViewport()->PlatformHandle);
+        Application& app = Application::Get();
+        if (!app.GetWindow().m_PauseRender) {
+            m_Camera->Inputs((GLFWwindow*)ImGui::GetMainViewport()->PlatformHandle);
 
-        glm::vec3 rightV = glm::normalize(glm::cross(m_Camera->m_Orientation, m_Camera->m_Up));
-        glm::vec3 upV = glm::normalize(glm::cross(m_Camera->m_Orientation, rightV));
+            glm::vec3 rightV = glm::normalize(glm::cross(m_Camera->m_Orientation, m_Camera->m_Up));
+            glm::vec3 upV = glm::normalize(glm::cross(m_Camera->m_Orientation, rightV));
 
-        m_Inputs.origin_x = m_Camera->m_Position.x;
-        m_Inputs.origin_y = m_Camera->m_Position.y;
-        m_Inputs.origin_z = m_Camera->m_Position.z;
+            m_Inputs.origin_x = m_Camera->m_Position.x;
+            m_Inputs.origin_y = m_Camera->m_Position.y;
+            m_Inputs.origin_z = m_Camera->m_Position.z;
 
-        m_Inputs.orientation_x = m_Camera->m_Orientation.x;
-        m_Inputs.orientation_y = m_Camera->m_Orientation.y;
-        m_Inputs.orientation_z = m_Camera->m_Orientation.z;
+            m_Inputs.orientation_x = m_Camera->m_Orientation.x;
+            m_Inputs.orientation_y = m_Camera->m_Orientation.y;
+            m_Inputs.orientation_z = m_Camera->m_Orientation.z;
 
-        m_Inputs.up_x = upV.x;
-        m_Inputs.up_y = upV.y;
-        m_Inputs.up_z = upV.z;
+            m_Inputs.up_x = upV.x;
+            m_Inputs.up_y = upV.y;
+            m_Inputs.up_z = upV.z;
+        }
     }
     else {
         glfwSetInputMode((GLFWwindow*)ImGui::GetMainViewport()->PlatformHandle, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
@@ -579,65 +582,11 @@ void CudaLayer::OnImGuiRender()
         }
 
         ImGui::Separator();
-        ImGui::Text("Choose the hittable material:");
-        ImGui::Separator();
 
-        if (ImGui::Checkbox("Lambertian", &m_UseLambertian)) {
-            m_UseMetal = false;
-            m_UseDielectric = false;
-            m_UseDiffuseLight = false;
-        }
-        else if (ImGui::Checkbox("Metal", &m_UseMetal)) {
-            m_UseLambertian = false;
-            m_UseDielectric = false;
-            m_UseDiffuseLight = false;
-        }
-        else if (ImGui::Checkbox("Dielectric", &m_UseDielectric)) {
-            m_UseMetal = false;
-            m_UseLambertian = false;
-            m_UseDiffuseLight = false;
-        }
-        else if (ImGui::Checkbox("Diffuse Light", &m_UseDiffuseLight)) {
-            m_UseMetal = false;
-            m_UseLambertian = false;
-            m_UseDielectric = false;
-        }
-
-        ImGui::Separator();
-
-        if (m_UseLambertian == true || m_UseMetal == true || m_UseDiffuseLight == true) {
-            ImGui::Text("Choose the hittable material texture:");
-            ImGui::Separator();
-            if (ImGui::Checkbox("Constant Texture", &m_UseConstantTexture)) {
-                m_UseCheckerTexture = false;
-                m_UseImageTexture = false;
-            }
-            else if (ImGui::Checkbox("Checker Texture", &m_UseCheckerTexture)) {
-                m_UseConstantTexture = false;
-                m_UseImageTexture = false;
-            }
-            else if (ImGui::Checkbox("Image Texture", &m_UseImageTexture)) {
-                m_UseConstantTexture = false;
-                m_UseCheckerTexture = false;
-            }
-            ImGui::Separator();
-        }
-
-        if (((m_UseLambertian || m_UseMetal || m_UseDielectric || m_UseDiffuseLight) &&
-             (m_UseHittableSphere || m_UseHittableXYRect || m_UseHittableXZRect || m_UseHittableYZRect))) {
-            if (!m_UseDielectric) {
-                if (m_UseConstantTexture || m_UseCheckerTexture || m_UseImageTexture) {
-                    if (ImGui::Button("Add")) {
-                        AddHittable();
-                        ImGui::CloseCurrentPopup();
-                    }
-                }
-            }
-            else {
-                if (ImGui::Button("Add")) {
-                    AddHittable();
-                    ImGui::CloseCurrentPopup();
-                }
+        if ((m_UseHittableSphere || m_UseHittableXYRect || m_UseHittableXZRect || m_UseHittableYZRect)) {
+            if (ImGui::Button("Add")) {
+                AddHittable();
+                ImGui::CloseCurrentPopup();
             }
         }
 
@@ -682,6 +631,8 @@ void CudaLayer::OnImGuiRender()
     ImGui::Separator();
 
     if (ImGui::CollapsingHeader("Camera Settings", base_flags)) {
+        Application& app = Application::Get();
+        ImGui::BeginDisabled(app.GetWindow().m_PauseRender);
         if (ImGui::DragFloat3("Position", (float*)&m_Camera->m_Position, 0.01f, -FLT_MAX, FLT_MAX, "%.2f")) {
             m_Inputs.origin_x = m_Camera->m_Position.x;
             m_Inputs.origin_y = m_Camera->m_Position.y;
@@ -695,6 +646,7 @@ void CudaLayer::OnImGuiRender()
         if (ImGui::SliderFloat("Field of view", &m_Camera->m_Fov, 1.0f, 120.0f, "%.f")) {
             m_Inputs.fov = glm::radians(m_Camera->m_Fov);
         }
+        ImGui::EndDisabled();
     }
 
     ImGui::Separator();
@@ -1126,7 +1078,7 @@ void CudaLayer::AddHittable()
             // Set the type of the Material after constructing it, so the assignment won't be overwritten.
             m_List[m_ListSize - 1]->Object->sphere->mat_ptr->type = MaterialType::LAMBERTIAN;
             m_List[m_ListSize - 1]->Object->sphere = new (m_List[m_ListSize - 1]->Object->sphere)
-                Sphere(Vec3(0.0f, 0.0f, 0.0f), 1.0f, m_List[m_ListSize - 1]->Object->sphere->mat_ptr);
+                Sphere(Vec3(0.0f, 1.0f, 0.0f), 0.2f, m_List[m_ListSize - 1]->Object->sphere->mat_ptr);
 
             m_World->Object->bvh_node->Destroy();
             m_World->Object->bvh_node = new (m_World->Object->bvh_node) BVHNode(m_List, 0, m_ListSize);

@@ -120,18 +120,6 @@ private:
     unsigned int m_SamplesPerPixel = 1;
     unsigned int m_MaxDepth = 12;
 
-    // Material Properties
-    bool m_UseLambertian = true;
-    bool m_UseMetal = false;
-    bool m_UseDielectric = false;
-    bool m_UseDiffuseLight = false;
-    bool m_UseConstantTexture = true;
-    bool m_UseCheckerTexture = false;
-    bool m_UseImageTexture = false;
-    Vec3 m_newColor = Vec3(1.0f, 1.0f, 1.0f);
-    float m_Fuzz = 0.0f;
-    float m_IR = 0.0f;
-
     // Light properties
     int m_LightIntensity = 2;
 
