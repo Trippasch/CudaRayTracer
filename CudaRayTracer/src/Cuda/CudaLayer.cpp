@@ -620,7 +620,7 @@ void CudaLayer::OnImGuiRender()
         ImGui::InputInt("Hittable ID", &m_HittableID);
 
         for (int i = 0; i < m_ListSize; i++) {
-            if (m_HittableID == i) {
+            if (m_HittableID == i && m_List[i]->isActive) {
                 if (ImGui::Button("Delete")) {
                     DeleteHittable(m_List[i], i);
                     ImGui::CloseCurrentPopup();
@@ -923,7 +923,7 @@ void CudaLayer::AddHittable()
                     // Set the type of the Material after constructing it, so the assignment won't be overwritten.
                     hittable->Object->sphere->mat_ptr->type = MaterialType::LAMBERTIAN;
                     hittable->Object->sphere = new (hittable->Object->sphere)
-                        Sphere(Vec3(0.0f, 0.0f, 0.0f), 1.0f, hittable->Object->sphere->mat_ptr);
+                        Sphere(Vec3(0.0f, 1.0f, 0.0f), 0.2f, hittable->Object->sphere->mat_ptr);
 
                     m_List[i] = hittable;
 
@@ -950,7 +950,7 @@ void CudaLayer::AddHittable()
                     // Set the type of the Material after constructing it, so the assignment won't be overwritten.
                     hittable->Object->xy_rect->mat_ptr->type = MaterialType::LAMBERTIAN;
                     hittable->Object->xy_rect = new (hittable->Object->xy_rect)
-                        XYRect(Vec3(0.0f, 0.0f, 0.0f), 1.0f, 1.0f, hittable->Object->xy_rect->mat_ptr);
+                        XYRect(Vec3(0.0f, 1.0f, 0.0f), 0.2f, 0.2f, hittable->Object->xy_rect->mat_ptr);
 
                     m_List[i] = hittable;
 
@@ -977,7 +977,7 @@ void CudaLayer::AddHittable()
                     // Set the type of the Material after constructing it, so the assignment won't be overwritten.
                     hittable->Object->xz_rect->mat_ptr->type = MaterialType::LAMBERTIAN;
                     hittable->Object->xz_rect = new (hittable->Object->xz_rect)
-                        XZRect(Vec3(0.0f, 0.0f, 0.0f), 1.0f, 1.0f, hittable->Object->xz_rect->mat_ptr);
+                        XZRect(Vec3(0.0f, 1.0f, 0.0f), 0.2f, 0.2f, hittable->Object->xz_rect->mat_ptr);
 
                     m_List[i] = hittable;
 
@@ -1004,7 +1004,7 @@ void CudaLayer::AddHittable()
                     // Set the type of the Material after constructing it, so the assignment won't be overwritten.
                     hittable->Object->yz_rect->mat_ptr->type = MaterialType::LAMBERTIAN;
                     hittable->Object->yz_rect = new (hittable->Object->yz_rect)
-                        YZRect(Vec3(0.0f, 0.0f, 0.0f), 1.0f, 1.0f, hittable->Object->yz_rect->mat_ptr);
+                        YZRect(Vec3(0.0f, 1.0f, 0.0f), 0.2f, 0.2f, hittable->Object->yz_rect->mat_ptr);
 
                     m_List[i] = hittable;
 

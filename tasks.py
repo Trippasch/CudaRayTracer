@@ -64,6 +64,23 @@ def build(context, build_type="Release"):
 
 
 @task
+def run(context, build_type="Release"):
+    print("Running project...")
+
+    if os.name == "nt":
+        cmd = [
+            f".\\build\CudaRayTracer\{build_type}\CudaRayTracer.exe"
+        ]
+    else:
+        cmd = [
+            f"./build/{build_type}/CudaRayTracer/CudaRayTracer"
+        ]
+
+    print(" ".join(cmd))
+    context.run(" ".join(cmd))
+
+
+@task
 def clean(context):
     if os.path.exists("build"):
         if os.name == "nt":

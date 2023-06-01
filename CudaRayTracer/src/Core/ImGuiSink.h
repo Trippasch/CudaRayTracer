@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Console.h"
-#include "spdlog/sinks/base_sink.h"
+#include <spdlog/sinks/base_sink.h>
 
 template <typename Mutex> class ImGuiSink : public spdlog::sinks::base_sink<Mutex>
 {

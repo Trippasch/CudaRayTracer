@@ -60,8 +60,8 @@ private:
     void DeleteImageAllocation(Hittable* hittable);
 
     // Image
-    unsigned int m_ImageWidth = 880;
-    unsigned int m_ImageHeight = 465;
+    unsigned int m_ImageWidth = 800;
+    unsigned int m_ImageHeight = 600;
 
     // Cuda Image
     unsigned int m_NumTexels = m_ImageWidth * m_ImageHeight;
