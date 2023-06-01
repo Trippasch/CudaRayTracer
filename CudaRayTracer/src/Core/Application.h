@@ -4,6 +4,7 @@
 
 #include "Core/LayerStack.h"
 #include "Core/Window.h"
+#include "Core/Console.h"
 #include "Cuda/CudaLayer.h"
 #include "ImGui/ImGuiLayer.h"
 
@@ -31,6 +32,8 @@ public:
     {
         return *s_Instance;
     }
+
+    Console m_Console;
 
 private:
     std::unique_ptr<Window> m_Window;

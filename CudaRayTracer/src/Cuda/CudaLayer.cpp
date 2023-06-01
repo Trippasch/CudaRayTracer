@@ -102,7 +102,7 @@ void CudaLayer::RunCudaInit()
 
 void CudaLayer::GenerateWorld()
 {
-    m_ListSize = 17;
+    m_ListSize = 5;
     // Coalesced memory
     // Calculate total size of memory needed
     m_LambertianSize = sizeof(Material) + sizeof(Material::ObjectUnion) + sizeof(Lambertian);
@@ -116,8 +116,8 @@ void CudaLayer::GenerateWorld()
     m_XZrectSize = sizeof(Hittable) + sizeof(Hittable::ObjectUnion) + sizeof(XZRect);
     m_YZrectSize = sizeof(Hittable) + sizeof(Hittable::ObjectUnion) + sizeof(YZRect);
 
-    RT_INFO("Constant Size = {0}", m_ConstantSize);
-    RT_INFO("Checker Size = {0}", m_CheckerSize);
+    RT_TRACE("Constant Size = {0}", m_ConstantSize);
+    RT_TRACE("Checker Size = {0}", m_CheckerSize);
 
     m_GroundSize = m_XZrectSize + m_LambertianSize + m_CheckerSize;
     m_SpheresSize = m_SphereSize + m_MetalSize + m_CheckerSize;
@@ -171,8 +171,8 @@ void CudaLayer::GenerateWorld()
 
     // Spheres
     int i = 1;
-    for (int a = -2; a < 2; a++) {
-        for (int b = -2; b < 2; b++) {
+    for (int a = -1; a < 1; a++) {
+        for (int b = -1; b < 1; b++) {
             // Partitioning
             char* basePtr = m_ListMemory + m_ListSize * sizeof(Hittable*) + m_GroundSize + (i - 1) * m_SpheresSize;
             m_List[i] = (Hittable*)(basePtr);
@@ -381,6 +381,8 @@ void CudaLayer::RunCudaUpdate()
 
 void CudaLayer::OnImGuiRender()
 {
+    Application& app = Application::Get();
+
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
     ImGui::Begin("Generated Image");
 
@@ -402,8 +404,6 @@ void CudaLayer::OnImGuiRender()
     }
 
     if (ImGui::IsWindowFocused()) {
-
-        Application& app = Application::Get();
         if (!app.GetWindow().m_PauseRender) {
             m_Camera->Inputs((GLFWwindow*)ImGui::GetMainViewport()->PlatformHandle);
 
@@ -429,6 +429,17 @@ void CudaLayer::OnImGuiRender()
     }
 
     ImGui::End();
+
+    app.m_Console.Draw("Console");
+
+    if (app.GetWindow().m_PauseRender && !m_Paused) {
+        RT_INFO("PAUSED!");
+        m_Paused = true;
+    }
+    else if (!app.GetWindow().m_PauseRender && m_Paused) {
+        RT_INFO("RESUMED!");
+        m_Paused = false;
+    }
 
     ImGui::Begin("Metrics");
     ImGuiIO& io = ImGui::GetIO();
@@ -631,7 +642,6 @@ void CudaLayer::OnImGuiRender()
     ImGui::Separator();
 
     if (ImGui::CollapsingHeader("Camera Settings", base_flags)) {
-        Application& app = Application::Get();
         ImGui::BeginDisabled(app.GetWindow().m_PauseRender);
         if (ImGui::DragFloat3("Position", (float*)&m_Camera->m_Position, 0.01f, -FLT_MAX, FLT_MAX, "%.2f")) {
             m_Inputs.origin_x = m_Camera->m_Position.x;
@@ -1084,6 +1094,71 @@ void CudaLayer::AddHittable()
             m_World->Object->bvh_node = new (m_World->Object->bvh_node) BVHNode(m_List, 0, m_ListSize);
         }
         else if (m_UseHittableXYRect) {
+            size_t newXYRect = m_XYrectSize + m_LambertianSize + m_CheckerSize;
+
+            m_ListSize++;
+            m_TotalSize += newXYRect;
+
+            if (temp != nullptr) {
+                cudaFree(temp);
+            }
+            checkCudaErrors(cudaMallocManaged(&temp, m_TotalSize - newXYRect));
+            checkCudaErrors(cudaMemcpy(temp, m_ListMemory, m_TotalSize - newXYRect, cudaMemcpyDeviceToDevice));
+            checkCudaErrors(cudaFree(m_ListMemory));
+            checkCudaErrors(cudaMallocManaged(&m_ListMemory, m_TotalSize));
+            m_ListMemory = temp;
+
+            // Reallocate the list memory
+            // char* newListMemory;
+            // checkCudaErrors(cudaMallocManaged(&newListMemory, m_TotalSize - newSphere));
+            // checkCudaErrors(cudaMemcpy(newListMemory, m_ListMemory, m_TotalSize - newSphere,
+            // cudaMemcpyDeviceToDevice)); checkCudaErrors(cudaFree(m_ListMemory));
+            // checkCudaErrors(cudaMallocManaged(&m_ListMemory, m_TotalSize));
+            // checkCudaErrors(cudaMemcpy(m_ListMemory, newListMemory, m_TotalSize - newSphere,
+            // cudaMemcpyDeviceToDevice)); checkCudaErrors(cudaFree(newListMemory));
+
+            // Update the list pointer
+            m_List = (Hittable**)m_ListMemory;
+
+            // Partitioning
+            char* basePtr = m_ListMemory + (m_TotalSize - newXYRect);
+            m_List[m_ListSize - 1] = (Hittable*)(basePtr);
+            m_List[m_ListSize - 1]->Object = (Hittable::ObjectUnion*)(m_List[m_ListSize - 1] + 1);
+            m_List[m_ListSize - 1]->Object->xy_rect = (XYRect*)(m_List[m_ListSize - 1]->Object + 1);
+            m_List[m_ListSize - 1]->Object->xy_rect->mat_ptr = (Material*)(m_List[m_ListSize - 1]->Object->xy_rect + 1);
+            m_List[m_ListSize - 1]->Object->xy_rect->mat_ptr->Object =
+                (Material::ObjectUnion*)(m_List[m_ListSize - 1]->Object->xy_rect->mat_ptr + 1);
+            m_List[m_ListSize - 1]->Object->xy_rect->mat_ptr->Object->metal =
+                (Metal*)(m_List[m_ListSize - 1]->Object->xy_rect->mat_ptr->Object + 1);
+            m_List[m_ListSize - 1]->Object->xy_rect->mat_ptr->Object->metal->albedo =
+                (Texture*)(m_List[m_ListSize - 1]->Object->xy_rect->mat_ptr->Object->metal + 1);
+            m_List[m_ListSize - 1]->Object->xy_rect->mat_ptr->Object->metal->albedo->Object =
+                (Texture::ObjectUnion*)(m_List[m_ListSize - 1]->Object->xy_rect->mat_ptr->Object->metal->albedo + 1);
+            m_List[m_ListSize - 1]->Object->xy_rect->mat_ptr->Object->metal->albedo->Object->checker =
+                (Checker*)(m_List[m_ListSize - 1]->Object->xy_rect->mat_ptr->Object->metal->albedo->Object + 1);
+            m_List[m_ListSize - 1]->Object->xy_rect->mat_ptr->Object->metal->albedo->Object->checker->odd =
+                (Constant*)(m_List[m_ListSize - 1]->Object->xy_rect->mat_ptr->Object->metal->albedo->Object->checker +
+                            1);
+            m_List[m_ListSize - 1]->Object->xy_rect->mat_ptr->Object->metal->albedo->Object->checker->even =
+                (Constant*)(m_List[m_ListSize - 1]
+                                ->Object->xy_rect->mat_ptr->Object->metal->albedo->Object->checker->odd +
+                            1);
+
+            m_List[m_ListSize - 1]->type = HittableType::XYRECT;
+            m_List[m_ListSize - 1]->isActive = true;
+
+            new (m_List[m_ListSize - 1]->Object->xy_rect->mat_ptr->Object->lambertian->albedo->Object->constant)
+                Constant(Vec3(0.9f, 0.9f, 0.9f));
+            m_List[m_ListSize - 1]->Object->xy_rect->mat_ptr->Object->lambertian->albedo->type = TextureType::CONSTANT;
+            new (m_List[m_ListSize - 1]->Object->xy_rect->mat_ptr->Object->lambertian)
+                Lambertian(m_List[m_ListSize - 1]->Object->xy_rect->mat_ptr->Object->lambertian->albedo);
+            // Set the type of the Material after constructing it, so the assignment won't be overwritten.
+            m_List[m_ListSize - 1]->Object->xy_rect->mat_ptr->type = MaterialType::LAMBERTIAN;
+            m_List[m_ListSize - 1]->Object->xy_rect = new (m_List[m_ListSize - 1]->Object->xy_rect)
+                XYRect(Vec3(0.0f, 1.0f, 0.0f), 0.2f, 0.2f, m_List[m_ListSize - 1]->Object->xy_rect->mat_ptr);
+
+            m_World->Object->bvh_node->Destroy();
+            m_World->Object->bvh_node = new (m_World->Object->bvh_node) BVHNode(m_List, 0, m_ListSize);
         }
         else if (m_UseHittableXZRect) {
         }
