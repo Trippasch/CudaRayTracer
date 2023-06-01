@@ -9,7 +9,7 @@ protected:
     void sink_it_(const spdlog::details::log_msg& msg) override
     {
         spdlog::memory_buf_t formatted;
-        base_sink<Mutex>::formatter_->format(msg, formatted);
+        spdlog::sinks::base_sink<Mutex>::formatter_->format(msg, formatted);
         Console::AddLog(fmt::to_string(formatted).c_str());
     }
 
