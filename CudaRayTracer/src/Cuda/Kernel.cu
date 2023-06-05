@@ -32,7 +32,7 @@ __device__ inline Vec3 color(const Ray& r, Hittable* world, int max_depth, curan
 {
     Ray cur_ray = r;
     Vec3 cur_attenuation = Vec3(1.0f, 1.0f, 1.0f);
-    Vec3 background = Vec3(0.0f, 0.0f, 0.0f);
+    Vec3 black_color = Vec3(0.0f, 0.0f, 0.0f);
 
     HitRecord rec;
 
@@ -68,7 +68,7 @@ __device__ inline Vec3 color(const Ray& r, Hittable* world, int max_depth, curan
                 emitted = rec.mat_ptr->Object->diffuse_light->Emitted(rec.u, rec.v, rec.p);
                 return emitted * cur_attenuation;
             default:
-                return background;
+                return black_color;
             }
 
             cur_attenuation = attenuation * cur_attenuation;
@@ -76,7 +76,7 @@ __device__ inline Vec3 color(const Ray& r, Hittable* world, int max_depth, curan
         }
     }
 
-    return background; // exceeded recursion
+    return black_color; // exceeded recursion
 }
 
 __device__ inline void GetXYZCoords(int& x, int& y, int& z)

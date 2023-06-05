@@ -28,10 +28,10 @@ void CudaLayer::OnAttach()
 {
     findCudaDevice();
 
-    size_t pValue;
-    cudaDeviceSetLimit(cudaLimitStackSize, 4096);
-    cudaDeviceGetLimit(&pValue, cudaLimitStackSize);
-    RT_INFO("CUDA Stack Size Limit: {0} bytes", pValue);
+    // size_t pValue;
+    // cudaDeviceSetLimit(cudaLimitStackSize, 4096);
+    // cudaDeviceGetLimit(&pValue, cudaLimitStackSize);
+    // RT_INFO("CUDA Stack Size Limit: {0} bytes", pValue);
 
     InitCudaBuffers();
     InitGLBuffers();
