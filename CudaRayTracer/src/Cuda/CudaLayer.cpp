@@ -102,7 +102,7 @@ void CudaLayer::RunCudaInit()
 
 void CudaLayer::GenerateWorld()
 {
-    m_ListSize = 5;
+    m_ListSize = 16 + 1;
     // Coalesced memory
     // Calculate total size of memory needed
     m_LambertianSize = sizeof(Material) + sizeof(Material::ObjectUnion) + sizeof(Lambertian);
@@ -171,8 +171,8 @@ void CudaLayer::GenerateWorld()
 
     // Spheres
     int i = 1;
-    for (int a = -1; a < 1; a++) {
-        for (int b = -1; b < 1; b++) {
+    for (int a = -2; a < 2; a++) {
+        for (int b = -2; b < 2; b++) {
             // Partitioning
             char* basePtr = m_ListMemory + m_ListSize * sizeof(Hittable*) + m_GroundSize + (i - 1) * m_SpheresSize;
             m_List[i] = (Hittable*)(basePtr);

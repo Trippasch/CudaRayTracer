@@ -396,7 +396,7 @@ public:
             float t_min, t_max;
         };
 
-        StackNode stack[2]; // Reduced stack size cause of register spilling
+        StackNode stack[16]; // Reduced stack size cause of register spilling
         int top = -1;
 
         stack[++top] = {this, t_min, t_max};
