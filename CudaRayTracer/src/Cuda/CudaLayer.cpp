@@ -1032,6 +1032,7 @@ void CudaLayer::AddHittable()
             m_ListSize++;
             m_TotalSize += newSphere;
 
+            // Reallocate the list memory
             if (temp != nullptr) {
                 cudaFree(temp);
             }
@@ -1041,7 +1042,6 @@ void CudaLayer::AddHittable()
             checkCudaErrors(cudaMallocManaged(&m_ListMemory, m_TotalSize));
             m_ListMemory = temp;
 
-            // Reallocate the list memory
             // char* newListMemory;
             // checkCudaErrors(cudaMallocManaged(&newListMemory, m_TotalSize - newSphere));
             // checkCudaErrors(cudaMemcpy(newListMemory, m_ListMemory, m_TotalSize - newSphere,
@@ -1099,6 +1099,7 @@ void CudaLayer::AddHittable()
             m_ListSize++;
             m_TotalSize += newXYRect;
 
+            // Reallocate the list memory
             if (temp != nullptr) {
                 cudaFree(temp);
             }
@@ -1107,15 +1108,6 @@ void CudaLayer::AddHittable()
             checkCudaErrors(cudaFree(m_ListMemory));
             checkCudaErrors(cudaMallocManaged(&m_ListMemory, m_TotalSize));
             m_ListMemory = temp;
-
-            // Reallocate the list memory
-            // char* newListMemory;
-            // checkCudaErrors(cudaMallocManaged(&newListMemory, m_TotalSize - newSphere));
-            // checkCudaErrors(cudaMemcpy(newListMemory, m_ListMemory, m_TotalSize - newSphere,
-            // cudaMemcpyDeviceToDevice)); checkCudaErrors(cudaFree(m_ListMemory));
-            // checkCudaErrors(cudaMallocManaged(&m_ListMemory, m_TotalSize));
-            // checkCudaErrors(cudaMemcpy(m_ListMemory, newListMemory, m_TotalSize - newSphere,
-            // cudaMemcpyDeviceToDevice)); checkCudaErrors(cudaFree(newListMemory));
 
             // Update the list pointer
             m_List = (Hittable**)m_ListMemory;
@@ -1161,8 +1153,122 @@ void CudaLayer::AddHittable()
             m_World->Object->bvh_node = new (m_World->Object->bvh_node) BVHNode(m_List, 0, m_ListSize);
         }
         else if (m_UseHittableXZRect) {
+            size_t newXZRect = m_XZrectSize + m_LambertianSize + m_CheckerSize;
+
+            m_ListSize++;
+            m_TotalSize += newXZRect;
+
+            // Reallocate the list memory
+            if (temp != nullptr) {
+                cudaFree(temp);
+            }
+            checkCudaErrors(cudaMallocManaged(&temp, m_TotalSize - newXZRect));
+            checkCudaErrors(cudaMemcpy(temp, m_ListMemory, m_TotalSize - newXZRect, cudaMemcpyDeviceToDevice));
+            checkCudaErrors(cudaFree(m_ListMemory));
+            checkCudaErrors(cudaMallocManaged(&m_ListMemory, m_TotalSize));
+            m_ListMemory = temp;
+
+            // Update the list pointer
+            m_List = (Hittable**)m_ListMemory;
+
+            // Partitioning
+            char* basePtr = m_ListMemory + (m_TotalSize - newXZRect);
+            m_List[m_ListSize - 1] = (Hittable*)(basePtr);
+            m_List[m_ListSize - 1]->Object = (Hittable::ObjectUnion*)(m_List[m_ListSize - 1] + 1);
+            m_List[m_ListSize - 1]->Object->xz_rect = (XZRect*)(m_List[m_ListSize - 1]->Object + 1);
+            m_List[m_ListSize - 1]->Object->xz_rect->mat_ptr = (Material*)(m_List[m_ListSize - 1]->Object->xz_rect + 1);
+            m_List[m_ListSize - 1]->Object->xz_rect->mat_ptr->Object =
+                (Material::ObjectUnion*)(m_List[m_ListSize - 1]->Object->xz_rect->mat_ptr + 1);
+            m_List[m_ListSize - 1]->Object->xz_rect->mat_ptr->Object->metal =
+                (Metal*)(m_List[m_ListSize - 1]->Object->xz_rect->mat_ptr->Object + 1);
+            m_List[m_ListSize - 1]->Object->xz_rect->mat_ptr->Object->metal->albedo =
+                (Texture*)(m_List[m_ListSize - 1]->Object->xz_rect->mat_ptr->Object->metal + 1);
+            m_List[m_ListSize - 1]->Object->xz_rect->mat_ptr->Object->metal->albedo->Object =
+                (Texture::ObjectUnion*)(m_List[m_ListSize - 1]->Object->xz_rect->mat_ptr->Object->metal->albedo + 1);
+            m_List[m_ListSize - 1]->Object->xz_rect->mat_ptr->Object->metal->albedo->Object->checker =
+                (Checker*)(m_List[m_ListSize - 1]->Object->xz_rect->mat_ptr->Object->metal->albedo->Object + 1);
+            m_List[m_ListSize - 1]->Object->xz_rect->mat_ptr->Object->metal->albedo->Object->checker->odd =
+                (Constant*)(m_List[m_ListSize - 1]->Object->xz_rect->mat_ptr->Object->metal->albedo->Object->checker +
+                            1);
+            m_List[m_ListSize - 1]->Object->xz_rect->mat_ptr->Object->metal->albedo->Object->checker->even =
+                (Constant*)(m_List[m_ListSize - 1]
+                                ->Object->xz_rect->mat_ptr->Object->metal->albedo->Object->checker->odd +
+                            1);
+
+            m_List[m_ListSize - 1]->type = HittableType::XZRECT;
+            m_List[m_ListSize - 1]->isActive = true;
+
+            new (m_List[m_ListSize - 1]->Object->xz_rect->mat_ptr->Object->lambertian->albedo->Object->constant)
+                Constant(Vec3(0.9f, 0.9f, 0.9f));
+            m_List[m_ListSize - 1]->Object->xz_rect->mat_ptr->Object->lambertian->albedo->type = TextureType::CONSTANT;
+            new (m_List[m_ListSize - 1]->Object->xz_rect->mat_ptr->Object->lambertian)
+                Lambertian(m_List[m_ListSize - 1]->Object->xz_rect->mat_ptr->Object->lambertian->albedo);
+            // Set the type of the Material after constructing it, so the assignment won't be overwritten.
+            m_List[m_ListSize - 1]->Object->xz_rect->mat_ptr->type = MaterialType::LAMBERTIAN;
+            m_List[m_ListSize - 1]->Object->xz_rect = new (m_List[m_ListSize - 1]->Object->xz_rect)
+                XZRect(Vec3(0.0f, 1.0f, 0.0f), 0.2f, 0.2f, m_List[m_ListSize - 1]->Object->xz_rect->mat_ptr);
+
+            m_World->Object->bvh_node->Destroy();
+            m_World->Object->bvh_node = new (m_World->Object->bvh_node) BVHNode(m_List, 0, m_ListSize);
         }
         else if (m_UseHittableYZRect) {
+            size_t newYZRect = m_YZrectSize + m_LambertianSize + m_CheckerSize;
+
+            m_ListSize++;
+            m_TotalSize += newYZRect;
+
+            // Reallocate the list memory
+            if (temp != nullptr) {
+                cudaFree(temp);
+            }
+            checkCudaErrors(cudaMallocManaged(&temp, m_TotalSize - newYZRect));
+            checkCudaErrors(cudaMemcpy(temp, m_ListMemory, m_TotalSize - newYZRect, cudaMemcpyDeviceToDevice));
+            checkCudaErrors(cudaFree(m_ListMemory));
+            checkCudaErrors(cudaMallocManaged(&m_ListMemory, m_TotalSize));
+            m_ListMemory = temp;
+
+            // Update the list pointer
+            m_List = (Hittable**)m_ListMemory;
+
+            // Partitioning
+            char* basePtr = m_ListMemory + (m_TotalSize - newYZRect);
+            m_List[m_ListSize - 1] = (Hittable*)(basePtr);
+            m_List[m_ListSize - 1]->Object = (Hittable::ObjectUnion*)(m_List[m_ListSize - 1] + 1);
+            m_List[m_ListSize - 1]->Object->yz_rect = (YZRect*)(m_List[m_ListSize - 1]->Object + 1);
+            m_List[m_ListSize - 1]->Object->yz_rect->mat_ptr = (Material*)(m_List[m_ListSize - 1]->Object->yz_rect + 1);
+            m_List[m_ListSize - 1]->Object->yz_rect->mat_ptr->Object =
+                (Material::ObjectUnion*)(m_List[m_ListSize - 1]->Object->yz_rect->mat_ptr + 1);
+            m_List[m_ListSize - 1]->Object->yz_rect->mat_ptr->Object->metal =
+                (Metal*)(m_List[m_ListSize - 1]->Object->yz_rect->mat_ptr->Object + 1);
+            m_List[m_ListSize - 1]->Object->yz_rect->mat_ptr->Object->metal->albedo =
+                (Texture*)(m_List[m_ListSize - 1]->Object->yz_rect->mat_ptr->Object->metal + 1);
+            m_List[m_ListSize - 1]->Object->yz_rect->mat_ptr->Object->metal->albedo->Object =
+                (Texture::ObjectUnion*)(m_List[m_ListSize - 1]->Object->yz_rect->mat_ptr->Object->metal->albedo + 1);
+            m_List[m_ListSize - 1]->Object->yz_rect->mat_ptr->Object->metal->albedo->Object->checker =
+                (Checker*)(m_List[m_ListSize - 1]->Object->yz_rect->mat_ptr->Object->metal->albedo->Object + 1);
+            m_List[m_ListSize - 1]->Object->yz_rect->mat_ptr->Object->metal->albedo->Object->checker->odd =
+                (Constant*)(m_List[m_ListSize - 1]->Object->yz_rect->mat_ptr->Object->metal->albedo->Object->checker +
+                            1);
+            m_List[m_ListSize - 1]->Object->yz_rect->mat_ptr->Object->metal->albedo->Object->checker->even =
+                (Constant*)(m_List[m_ListSize - 1]
+                                ->Object->yz_rect->mat_ptr->Object->metal->albedo->Object->checker->odd +
+                            1);
+
+            m_List[m_ListSize - 1]->type = HittableType::YZRECT;
+            m_List[m_ListSize - 1]->isActive = true;
+
+            new (m_List[m_ListSize - 1]->Object->yz_rect->mat_ptr->Object->lambertian->albedo->Object->constant)
+                Constant(Vec3(0.9f, 0.9f, 0.9f));
+            m_List[m_ListSize - 1]->Object->yz_rect->mat_ptr->Object->lambertian->albedo->type = TextureType::CONSTANT;
+            new (m_List[m_ListSize - 1]->Object->yz_rect->mat_ptr->Object->lambertian)
+                Lambertian(m_List[m_ListSize - 1]->Object->yz_rect->mat_ptr->Object->lambertian->albedo);
+            // Set the type of the Material after constructing it, so the assignment won't be overwritten.
+            m_List[m_ListSize - 1]->Object->yz_rect->mat_ptr->type = MaterialType::LAMBERTIAN;
+            m_List[m_ListSize - 1]->Object->yz_rect = new (m_List[m_ListSize - 1]->Object->yz_rect)
+                YZRect(Vec3(0.0f, 1.0f, 0.0f), 0.2f, 0.2f, m_List[m_ListSize - 1]->Object->yz_rect->mat_ptr);
+
+            m_World->Object->bvh_node->Destroy();
+            m_World->Object->bvh_node = new (m_World->Object->bvh_node) BVHNode(m_List, 0, m_ListSize);
         }
     }
     else {
