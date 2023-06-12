@@ -32,6 +32,9 @@ For Linux run the command: ```cmake -DCMAKE_BUILD_TYPE=Release -S . -B build/rel
 
 **Remember to run the application from the project's root folder to load the correct paths.
 
+[tasks.py](https://github.com/Trippasch/CudaRayTracer/blob/master/tasks.py) python script can also be used to simplify the cmake process. First, you have to install the **invoke** python submodule with the command ```pip install invoke```. Then run ```invoke config``` to configure the project, next ```invoke build``` to build the project and finally ```invoke run``` to run the application.
+The default build type of this script is Release, but you can also specify it by using ```--build-type=Debug``` for every invoke task.
+
 <ins>**4. Clean Project files:**</ins>
 
 For Windows run the [CleanProjects.bat](https://github.com/Trippasch/CudaRayTracer/blob/master/scripts/windows/CleanProjects.bat) file.
