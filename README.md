@@ -30,8 +30,6 @@ Then, you can either run the Visual Studio solution to build the project or run 
 
 For Linux run the command: ```cmake -DCMAKE_BUILD_TYPE=Release -S . -B build/release/``` and ```cmake --build build/release -j``` to build the application on release mode.
 
-**Remember to run the application from the project's root folder to load the correct paths.
-
 [tasks.py](https://github.com/Trippasch/CudaRayTracer/blob/master/tasks.py) python script can also be used to simplify the cmake process. First, you have to install the **invoke** python submodule with the command ```pip install invoke```. Then run ```invoke config``` to configure the project, next ```invoke build``` to build the project and finally ```invoke run``` to run the application.
 The default build type of this script is Release, but you can also specify it by using ```--build-type=Debug``` for every invoke task.
 
@@ -44,6 +42,8 @@ The default build type of this script is Release, but you can also specify it by
 <ins>**4.2 Linux:**</ins>
 - **Premake**: Run ```./bin/Release-linux-x86_64/CudaRayTracer/CudaRayTracer``` from the project's root folder.
 - **Cmake**: Run ```./build/Release/CudaRayTracer/CudaRayTracer``` from the project's root folder.
+
+**Remember to run the application from the project's root folder to load the correct paths.
 
 <ins>**5. Clean Project files:**</ins>
 
