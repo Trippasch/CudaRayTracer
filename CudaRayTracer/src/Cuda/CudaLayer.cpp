@@ -40,7 +40,7 @@ void CudaLayer::OnAttach()
 
     GenerateWorld();
 
-    m_Camera = std::make_unique<Camera>(m_ImageWidth, m_ImageHeight, glm::vec3(0.0f, 2.0f, 10.0f));
+    m_Camera = std::make_unique<Camera>(m_ImageWidth, m_ImageHeight, glm::vec3(0.0f, 2.0f, 12.0f));
 
     glm::vec3 rightV = glm::normalize(glm::cross(m_Camera->m_Orientation, m_Camera->m_Up));
     glm::vec3 upV = glm::normalize(glm::cross(m_Camera->m_Orientation, rightV));

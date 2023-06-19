@@ -63,9 +63,7 @@ void Camera::Inputs(GLFWwindow* window)
     }
 
     if (glfwGetKey(window, GLFW_KEY_C) == GLFW_PRESS) {
-        m_Position = glm::vec3(0.0f, 2.0f, 10.0f);
-        m_Orientation = glm::vec3(0.0f, -0.2f, -1.0f);
-        m_Up = glm::vec3(0.0f, 1.0f, 0.0f);
+        m_Position = glm::vec3(0.0f, 2.0f, 12.0f);
     }
 
     // Handles mouse inputs
