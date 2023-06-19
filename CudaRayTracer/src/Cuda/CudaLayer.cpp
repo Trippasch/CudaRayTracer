@@ -102,7 +102,7 @@ void CudaLayer::RunCudaInit()
 
 void CudaLayer::GenerateWorld()
 {
-    m_ListSize = 16 + 1;
+    m_ListSize = 36 + 1;
     // Coalesced memory
     // Calculate total size of memory needed
     m_LambertianSize = sizeof(Material) + sizeof(Material::ObjectUnion) + sizeof(Lambertian);
@@ -171,8 +171,8 @@ void CudaLayer::GenerateWorld()
 
     // Spheres
     int i = 1;
-    for (int a = -2; a < 2; a++) {
-        for (int b = -2; b < 2; b++) {
+    for (int a = -3; a < 3; a++) {
+        for (int b = -3; b < 3; b++) {
             // Partitioning
             char* basePtr = m_ListMemory + m_ListSize * sizeof(Hittable*) + m_GroundSize + (i - 1) * m_SpheresSize;
             m_List[i] = (Hittable*)(basePtr);
@@ -198,7 +198,7 @@ void CudaLayer::GenerateWorld()
             m_List[i]->isActive = true;
 
             float choose_mat = RND;
-            Vec3 center = Vec3(a + RND, 0.0, b + RND);
+            Vec3 center = Vec3(a + RND, 0.2f, b + RND);
 
             if (choose_mat < 0.5f) {
                 new (m_List[i]->Object->sphere->mat_ptr->Object->lambertian->albedo->Object->constant)
@@ -211,7 +211,7 @@ void CudaLayer::GenerateWorld()
                 m_List[i]->Object->sphere =
                     new (m_List[i]->Object->sphere) Sphere(center, 0.2f, m_List[i]->Object->sphere->mat_ptr);
             }
-            else if (choose_mat < 0.95f) {
+            else if (choose_mat < 0.90f) {
                 new (m_List[i]->Object->sphere->mat_ptr->Object->metal->albedo->Object->constant)
                     Constant(Vec3(0.5f * (1.0f + RND), 0.5f * (1.0f + RND), 0.5f * (1.0f + RND)));
                 m_List[i]->Object->sphere->mat_ptr->Object->metal->albedo->type = TextureType::CONSTANT;
@@ -221,6 +221,14 @@ void CudaLayer::GenerateWorld()
                 m_List[i]->Object->sphere->mat_ptr->type = MaterialType::METAL;
                 m_List[i]->Object->sphere =
                     new (m_List[i]->Object->sphere) Sphere(center, 0.2f, m_List[i]->Object->sphere->mat_ptr);
+            }
+            else if (choose_mat < 0.95f) {
+                new (m_List[i]->Object->sphere->mat_ptr->Object->dielectric)
+                    Dielectric(1.5f);
+                // Set the type of the Material after constructing it, so the assignment won't be overwritten.
+                m_List[i]->Object->sphere->mat_ptr->type = MaterialType::DIELECTRIC;
+                m_List[i]->Object->sphere =
+                    new (m_List[i]->Object->sphere) Sphere(center, 0.3f, m_List[i]->Object->sphere->mat_ptr);
             }
             else {
                 new (m_List[i]->Object->sphere->mat_ptr->Object->diffuse_light->albedo->Object->constant)

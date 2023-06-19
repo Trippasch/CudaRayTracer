@@ -45,7 +45,6 @@ public:
     {
         Vec3 target = rec.p + rec.normal + RandomInUnitSphere(local_rand_state);
         scattered = Ray(rec.p, target - rec.p);
-        // attenuation = albedo->value(rec.u, rec.v, rec.p);
         switch (albedo->type) {
         case TextureType::CONSTANT:
             attenuation = albedo->Object->constant->value(rec.u, rec.v, rec.p);
@@ -78,7 +77,6 @@ public:
     {
         Vec3 reflected = Reflect(UnitVector(r.Direction()), rec.normal);
         scattered = Ray(rec.p, reflected + fuzz * RandomInUnitSphere(local_rand_state));
-        // attenuation = albedo->value(rec.u, rec.v, rec.p);
         switch (albedo->type) {
         case TextureType::CONSTANT:
             attenuation = albedo->Object->constant->value(rec.u, rec.v, rec.p);
@@ -165,7 +163,6 @@ public:
 
     __device__ inline Vec3 Emitted(float u, float v, const Vec3& p) const
     {
-        // return light_intensity * albedo->value(u, v, p);
         switch (albedo->type) {
         case TextureType::CONSTANT:
             return light_intensity * albedo->Object->constant->value(u, v, p);
