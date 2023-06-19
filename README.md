@@ -1,5 +1,9 @@
 # CudaRayTracer
-CudaRayTracer is a simple real-time brute-force path tracer based on the [Ray Tracing in One Weekend Series](https://raytracing.github.io/) accelerated with [CUDA](https://developer.nvidia.com/cuda-downloads).
+CudaRayTracer is a simple real-time path tracer based on the [Ray Tracing in One Weekend Series](https://raytracing.github.io/) accelerated with [CUDA](https://developer.nvidia.com/cuda-downloads).
+
+CudaRayTracer is a project developed for our university thesis titled "REAL-TIME ACCELERATED RAY TRACING IN 3D GRAPHICS USING CUDA".
+
+This project is developed by [Paschalis Choropanitis](https://github.com/Trippasch) and [ Panayiotis Yiannoukkos ](https://github.com/pgiannoukkos).
 ## Getting Started
 <ins>**1. Download the CUDA toolkit:**</ins>
 
@@ -28,9 +32,22 @@ Then, you can either run the Visual Studio solution to build the project or run 
 
 For Linux run the command: ```cmake -DCMAKE_BUILD_TYPE=Release -S . -B build/release/``` and ```cmake --build build/release -j``` to build the application on release mode.
 
+[tasks.py](https://github.com/Trippasch/CudaRayTracer/blob/master/tasks.py) python script can also be used to simplify the cmake process. First, you have to install the **invoke** python submodule with the command ```pip install invoke```. Then run ```invoke config``` to configure the project, next ```invoke build``` to build the project and finally ```invoke run``` to run the application.
+The default build type of this script is Release, but you can also specify it by using ```--build-type=Debug``` for every invoke task.
+
+<ins>**4. Run Project:**</ins>
+
+<ins>**4.1 Windows:**</ins>
+- **Premake**: Just run the application through the Visual Studio Solution.
+- **Cmake**: Run ```.\build\CudaRayTracer\Release\CudaRayTracer.exe``` from the project's root folder.
+
+<ins>**4.2 Linux:**</ins>
+- **Premake**: Run ```./bin/Release-linux-x86_64/CudaRayTracer/CudaRayTracer``` from the project's root folder.
+- **Cmake**: Run ```./build/Release/CudaRayTracer/CudaRayTracer``` from the project's root folder.
+
 **Remember to run the application from the project's root folder to load the correct paths.
 
-<ins>**4. Clean Project files:**</ins>
+<ins>**5. Clean Project files:**</ins>
 
 For Windows run the [CleanProjects.bat](https://github.com/Trippasch/CudaRayTracer/blob/master/scripts/windows/CleanProjects.bat) file.
 
