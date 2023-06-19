@@ -223,8 +223,7 @@ void CudaLayer::GenerateWorld()
                     new (m_List[i]->Object->sphere) Sphere(center, 0.2f, m_List[i]->Object->sphere->mat_ptr);
             }
             else if (choose_mat < 0.95f) {
-                new (m_List[i]->Object->sphere->mat_ptr->Object->dielectric)
-                    Dielectric(1.5f);
+                new (m_List[i]->Object->sphere->mat_ptr->Object->dielectric) Dielectric(1.5f);
                 // Set the type of the Material after constructing it, so the assignment won't be overwritten.
                 m_List[i]->Object->sphere->mat_ptr->type = MaterialType::DIELECTRIC;
                 m_List[i]->Object->sphere =
@@ -643,6 +642,10 @@ void CudaLayer::OnImGuiRender()
         ImGui::EndPopup();
     }
 
+    if (ImGui::Button("Clear Scene...")) {
+        ClearScene();
+    }
+
     ImGui::End();
 
     ImGui::Begin("Opions");
@@ -911,120 +914,201 @@ void CudaLayer::ImageAllocation(Image* image)
 void CudaLayer::AddHittable()
 {
     Hittable* hittable;
-    int i;
     bool allocateNew = false;
 
     if (!m_InactiveHittables.empty()) {
         for (auto& inactiveHittable : m_InactiveHittables) {
-            hittable = inactiveHittable.first;
-            i = inactiveHittable.second;
             if (m_UseHittableSphere) {
-                if (hittable->type == HittableType::SPHERE) {
-                    // Reuse an inactive Hittable
-                    hittable->isActive = true;
+                // Reuse an inactive Hittable
+                m_List[inactiveHittable]->Object = (Hittable::ObjectUnion*)(m_List[inactiveHittable] + 1);
+                m_List[inactiveHittable]->Object->sphere = (Sphere*)(m_List[inactiveHittable]->Object + 1);
+                m_List[inactiveHittable]->Object->sphere->mat_ptr =
+                    (Material*)(m_List[inactiveHittable]->Object->sphere + 1);
+                m_List[inactiveHittable]->Object->sphere->mat_ptr->Object =
+                    (Material::ObjectUnion*)(m_List[inactiveHittable]->Object->sphere->mat_ptr + 1);
+                m_List[inactiveHittable]->Object->sphere->mat_ptr->Object->lambertian =
+                    (Lambertian*)(m_List[inactiveHittable]->Object->sphere->mat_ptr->Object + 1);
+                m_List[inactiveHittable]->Object->sphere->mat_ptr->Object->lambertian->albedo =
+                    (Texture*)(m_List[inactiveHittable]->Object->sphere->mat_ptr->Object->lambertian + 1);
+                m_List[inactiveHittable]->Object->sphere->mat_ptr->Object->lambertian->albedo->Object =
+                    (Texture::ObjectUnion*)(m_List[inactiveHittable]
+                                                ->Object->sphere->mat_ptr->Object->lambertian->albedo +
+                                            1);
+                m_List[inactiveHittable]->Object->sphere->mat_ptr->Object->lambertian->albedo->Object->checker =
+                    (Checker*)(m_List[inactiveHittable]->Object->sphere->mat_ptr->Object->lambertian->albedo->Object +
+                               1);
+                m_List[inactiveHittable]->Object->sphere->mat_ptr->Object->lambertian->albedo->Object->checker->odd =
+                    (Constant*)(m_List[inactiveHittable]
+                                    ->Object->sphere->mat_ptr->Object->lambertian->albedo->Object->checker +
+                                1);
+                m_List[inactiveHittable]->Object->sphere->mat_ptr->Object->lambertian->albedo->Object->checker->even =
+                    (Constant*)(m_List[inactiveHittable]
+                                    ->Object->sphere->mat_ptr->Object->lambertian->albedo->Object->checker->odd +
+                                1);
 
-                    new (hittable->Object->sphere->mat_ptr->Object->lambertian->albedo->Object->constant)
-                        Constant(Vec3(0.9f, 0.9f, 0.9f));
-                    hittable->Object->sphere->mat_ptr->Object->lambertian->albedo->type = TextureType::CONSTANT;
-                    new (hittable->Object->sphere->mat_ptr->Object->lambertian)
-                        Lambertian(hittable->Object->sphere->mat_ptr->Object->lambertian->albedo);
-                    // Set the type of the Material after constructing it, so the assignment won't be overwritten.
-                    hittable->Object->sphere->mat_ptr->type = MaterialType::LAMBERTIAN;
-                    hittable->Object->sphere = new (hittable->Object->sphere)
-                        Sphere(Vec3(0.0f, 1.0f, 0.0f), 0.2f, hittable->Object->sphere->mat_ptr);
+                m_List[inactiveHittable]->isActive = true;
+                m_List[inactiveHittable]->type = HittableType::SPHERE;
 
-                    m_List[i] = hittable;
+                new (m_List[inactiveHittable]->Object->sphere->mat_ptr->Object->lambertian->albedo->Object->constant)
+                    Constant(Vec3(0.9f, 0.9f, 0.9f));
+                m_List[inactiveHittable]->Object->sphere->mat_ptr->Object->lambertian->albedo->type =
+                    TextureType::CONSTANT;
+                new (m_List[inactiveHittable]->Object->sphere->mat_ptr->Object->lambertian)
+                    Lambertian(m_List[inactiveHittable]->Object->sphere->mat_ptr->Object->lambertian->albedo);
+                // Set the type of the Material after constructing it, so the assignment won't be overwritten.
+                m_List[inactiveHittable]->Object->sphere->mat_ptr->type = MaterialType::LAMBERTIAN;
+                m_List[inactiveHittable]->Object->sphere = new (m_List[inactiveHittable]->Object->sphere)
+                    Sphere(Vec3(0.0f, 1.0f, 0.0f), 0.2f, m_List[inactiveHittable]->Object->sphere->mat_ptr);
 
-                    m_World->Object->bvh_node->Destroy();
-                    m_World->Object->bvh_node = new (m_World->Object->bvh_node) BVHNode(m_List, 0, m_ListSize);
+                m_World->Object->bvh_node->Destroy();
+                m_World->Object->bvh_node = new (m_World->Object->bvh_node) BVHNode(m_List, 0, m_ListSize);
 
-                    allocateNew = false;
-                    break;
-                }
-                else {
-                    allocateNew = true;
-                }
+                m_InactiveHittables.remove(inactiveHittable);
+                break;
             }
             else if (m_UseHittableXYRect) {
-                if (hittable->type == HittableType::XYRECT) {
-                    // Reuse an inactive Hittable
-                    hittable->isActive = true;
+                // Reuse an inactive Hittable
+                m_List[inactiveHittable]->Object = (Hittable::ObjectUnion*)(m_List[inactiveHittable] + 1);
+                m_List[inactiveHittable]->Object->xy_rect = (XYRect*)(m_List[inactiveHittable]->Object + 1);
+                m_List[inactiveHittable]->Object->xy_rect->mat_ptr =
+                    (Material*)(m_List[inactiveHittable]->Object->xy_rect + 1);
+                m_List[inactiveHittable]->Object->xy_rect->mat_ptr->Object =
+                    (Material::ObjectUnion*)(m_List[inactiveHittable]->Object->xy_rect->mat_ptr + 1);
+                m_List[inactiveHittable]->Object->xy_rect->mat_ptr->Object->lambertian =
+                    (Lambertian*)(m_List[inactiveHittable]->Object->xy_rect->mat_ptr->Object + 1);
+                m_List[inactiveHittable]->Object->xy_rect->mat_ptr->Object->lambertian->albedo =
+                    (Texture*)(m_List[inactiveHittable]->Object->xy_rect->mat_ptr->Object->lambertian + 1);
+                m_List[inactiveHittable]->Object->xy_rect->mat_ptr->Object->lambertian->albedo->Object =
+                    (Texture::ObjectUnion*)(m_List[inactiveHittable]
+                                                ->Object->xy_rect->mat_ptr->Object->lambertian->albedo +
+                                            1);
+                m_List[inactiveHittable]->Object->xy_rect->mat_ptr->Object->lambertian->albedo->Object->checker =
+                    (Checker*)(m_List[inactiveHittable]->Object->xy_rect->mat_ptr->Object->lambertian->albedo->Object +
+                               1);
+                m_List[inactiveHittable]->Object->xy_rect->mat_ptr->Object->lambertian->albedo->Object->checker->odd =
+                    (Constant*)(m_List[inactiveHittable]
+                                    ->Object->xy_rect->mat_ptr->Object->lambertian->albedo->Object->checker +
+                                1);
+                m_List[inactiveHittable]->Object->xy_rect->mat_ptr->Object->lambertian->albedo->Object->checker->even =
+                    (Constant*)(m_List[inactiveHittable]
+                                    ->Object->xy_rect->mat_ptr->Object->lambertian->albedo->Object->checker->odd +
+                                1);
 
-                    new (hittable->Object->xy_rect->mat_ptr->Object->lambertian->albedo->Object->constant)
-                        Constant(Vec3(0.9f, 0.9f, 0.9f));
-                    hittable->Object->xy_rect->mat_ptr->Object->lambertian->albedo->type = TextureType::CONSTANT;
-                    new (hittable->Object->xy_rect->mat_ptr->Object->lambertian)
-                        Lambertian(hittable->Object->xy_rect->mat_ptr->Object->lambertian->albedo);
-                    // Set the type of the Material after constructing it, so the assignment won't be overwritten.
-                    hittable->Object->xy_rect->mat_ptr->type = MaterialType::LAMBERTIAN;
-                    hittable->Object->xy_rect = new (hittable->Object->xy_rect)
-                        XYRect(Vec3(0.0f, 1.0f, 0.0f), 0.2f, 0.2f, hittable->Object->xy_rect->mat_ptr);
+                m_List[inactiveHittable]->isActive = true;
+                m_List[inactiveHittable]->type = HittableType::XYRECT;
 
-                    m_List[i] = hittable;
+                new (m_List[inactiveHittable]->Object->xy_rect->mat_ptr->Object->lambertian->albedo->Object->constant)
+                    Constant(Vec3(0.9f, 0.9f, 0.9f));
+                m_List[inactiveHittable]->Object->xy_rect->mat_ptr->Object->lambertian->albedo->type =
+                    TextureType::CONSTANT;
+                new (m_List[inactiveHittable]->Object->xy_rect->mat_ptr->Object->lambertian)
+                    Lambertian(m_List[inactiveHittable]->Object->xy_rect->mat_ptr->Object->lambertian->albedo);
+                // Set the type of the Material after constructing it, so the assignment won't be overwritten.
+                m_List[inactiveHittable]->Object->xy_rect->mat_ptr->type = MaterialType::LAMBERTIAN;
+                m_List[inactiveHittable]->Object->xy_rect = new (m_List[inactiveHittable]->Object->xy_rect)
+                    XYRect(Vec3(0.0f, 1.0f, 0.0f), 0.2f, 0.2f, m_List[inactiveHittable]->Object->xy_rect->mat_ptr);
 
-                    m_World->Object->bvh_node->Destroy();
-                    m_World->Object->bvh_node = new (m_World->Object->bvh_node) BVHNode(m_List, 0, m_ListSize);
+                m_World->Object->bvh_node->Destroy();
+                m_World->Object->bvh_node = new (m_World->Object->bvh_node) BVHNode(m_List, 0, m_ListSize);
 
-                    allocateNew = false;
-                    break;
-                }
-                else {
-                    allocateNew = true;
-                }
+                m_InactiveHittables.remove(inactiveHittable);
+                break;
             }
             else if (m_UseHittableXZRect) {
-                if (hittable->type == HittableType::XZRECT) {
-                    // Reuse an inactive Hittable
-                    hittable->isActive = true;
+                // Reuse an inactive Hittable
+                m_List[inactiveHittable]->Object = (Hittable::ObjectUnion*)(m_List[inactiveHittable] + 1);
+                m_List[inactiveHittable]->Object->xz_rect = (XZRect*)(m_List[inactiveHittable]->Object + 1);
+                m_List[inactiveHittable]->Object->xz_rect->mat_ptr =
+                    (Material*)(m_List[inactiveHittable]->Object->xz_rect + 1);
+                m_List[inactiveHittable]->Object->xz_rect->mat_ptr->Object =
+                    (Material::ObjectUnion*)(m_List[inactiveHittable]->Object->xz_rect->mat_ptr + 1);
+                m_List[inactiveHittable]->Object->xz_rect->mat_ptr->Object->lambertian =
+                    (Lambertian*)(m_List[inactiveHittable]->Object->xz_rect->mat_ptr->Object + 1);
+                m_List[inactiveHittable]->Object->xz_rect->mat_ptr->Object->lambertian->albedo =
+                    (Texture*)(m_List[inactiveHittable]->Object->xz_rect->mat_ptr->Object->lambertian + 1);
+                m_List[inactiveHittable]->Object->xz_rect->mat_ptr->Object->lambertian->albedo->Object =
+                    (Texture::ObjectUnion*)(m_List[inactiveHittable]
+                                                ->Object->xz_rect->mat_ptr->Object->lambertian->albedo +
+                                            1);
+                m_List[inactiveHittable]->Object->xz_rect->mat_ptr->Object->lambertian->albedo->Object->checker =
+                    (Checker*)(m_List[inactiveHittable]->Object->xz_rect->mat_ptr->Object->lambertian->albedo->Object +
+                               1);
+                m_List[inactiveHittable]->Object->xz_rect->mat_ptr->Object->lambertian->albedo->Object->checker->odd =
+                    (Constant*)(m_List[inactiveHittable]
+                                    ->Object->xz_rect->mat_ptr->Object->lambertian->albedo->Object->checker +
+                                1);
+                m_List[inactiveHittable]->Object->xz_rect->mat_ptr->Object->lambertian->albedo->Object->checker->even =
+                    (Constant*)(m_List[inactiveHittable]
+                                    ->Object->xz_rect->mat_ptr->Object->lambertian->albedo->Object->checker->odd +
+                                1);
 
-                    new (hittable->Object->xz_rect->mat_ptr->Object->lambertian->albedo->Object->constant)
-                        Constant(Vec3(0.9f, 0.9f, 0.9f));
-                    hittable->Object->xz_rect->mat_ptr->Object->lambertian->albedo->type = TextureType::CONSTANT;
-                    new (hittable->Object->xz_rect->mat_ptr->Object->lambertian)
-                        Lambertian(hittable->Object->xz_rect->mat_ptr->Object->lambertian->albedo);
-                    // Set the type of the Material after constructing it, so the assignment won't be overwritten.
-                    hittable->Object->xz_rect->mat_ptr->type = MaterialType::LAMBERTIAN;
-                    hittable->Object->xz_rect = new (hittable->Object->xz_rect)
-                        XZRect(Vec3(0.0f, 1.0f, 0.0f), 0.2f, 0.2f, hittable->Object->xz_rect->mat_ptr);
+                m_List[inactiveHittable]->isActive = true;
+                m_List[inactiveHittable]->type = HittableType::XZRECT;
 
-                    m_List[i] = hittable;
+                new (m_List[inactiveHittable]->Object->xz_rect->mat_ptr->Object->lambertian->albedo->Object->constant)
+                    Constant(Vec3(0.9f, 0.9f, 0.9f));
+                m_List[inactiveHittable]->Object->xz_rect->mat_ptr->Object->lambertian->albedo->type =
+                    TextureType::CONSTANT;
+                new (m_List[inactiveHittable]->Object->xz_rect->mat_ptr->Object->lambertian)
+                    Lambertian(m_List[inactiveHittable]->Object->xz_rect->mat_ptr->Object->lambertian->albedo);
+                // Set the type of the Material after constructing it, so the assignment won't be overwritten.
+                m_List[inactiveHittable]->Object->xz_rect->mat_ptr->type = MaterialType::LAMBERTIAN;
+                m_List[inactiveHittable]->Object->xz_rect = new (m_List[inactiveHittable]->Object->xz_rect)
+                    XZRect(Vec3(0.0f, 1.0f, 0.0f), 0.2f, 0.2f, m_List[inactiveHittable]->Object->xz_rect->mat_ptr);
 
-                    m_World->Object->bvh_node->Destroy();
-                    m_World->Object->bvh_node = new (m_World->Object->bvh_node) BVHNode(m_List, 0, m_ListSize);
+                m_World->Object->bvh_node->Destroy();
+                m_World->Object->bvh_node = new (m_World->Object->bvh_node) BVHNode(m_List, 0, m_ListSize);
 
-                    allocateNew = false;
-                    break;
-                }
-                else {
-                    allocateNew = true;
-                }
+                m_InactiveHittables.remove(inactiveHittable);
+                break;
             }
             else if (m_UseHittableYZRect) {
-                if (hittable->type == HittableType::YZRECT) {
-                    // Reuse an inactive Hittable
-                    hittable->isActive = true;
+                // Reuse an inactive Hittable
+                m_List[inactiveHittable]->Object = (Hittable::ObjectUnion*)(m_List[inactiveHittable] + 1);
+                m_List[inactiveHittable]->Object->yz_rect = (YZRect*)(m_List[inactiveHittable]->Object + 1);
+                m_List[inactiveHittable]->Object->yz_rect->mat_ptr =
+                    (Material*)(m_List[inactiveHittable]->Object->yz_rect + 1);
+                m_List[inactiveHittable]->Object->yz_rect->mat_ptr->Object =
+                    (Material::ObjectUnion*)(m_List[inactiveHittable]->Object->yz_rect->mat_ptr + 1);
+                m_List[inactiveHittable]->Object->yz_rect->mat_ptr->Object->lambertian =
+                    (Lambertian*)(m_List[inactiveHittable]->Object->yz_rect->mat_ptr->Object + 1);
+                m_List[inactiveHittable]->Object->yz_rect->mat_ptr->Object->lambertian->albedo =
+                    (Texture*)(m_List[inactiveHittable]->Object->yz_rect->mat_ptr->Object->lambertian + 1);
+                m_List[inactiveHittable]->Object->yz_rect->mat_ptr->Object->lambertian->albedo->Object =
+                    (Texture::ObjectUnion*)(m_List[inactiveHittable]
+                                                ->Object->yz_rect->mat_ptr->Object->lambertian->albedo +
+                                            1);
+                m_List[inactiveHittable]->Object->yz_rect->mat_ptr->Object->lambertian->albedo->Object->checker =
+                    (Checker*)(m_List[inactiveHittable]->Object->yz_rect->mat_ptr->Object->lambertian->albedo->Object +
+                               1);
+                m_List[inactiveHittable]->Object->yz_rect->mat_ptr->Object->lambertian->albedo->Object->checker->odd =
+                    (Constant*)(m_List[inactiveHittable]
+                                    ->Object->yz_rect->mat_ptr->Object->lambertian->albedo->Object->checker +
+                                1);
+                m_List[inactiveHittable]->Object->yz_rect->mat_ptr->Object->lambertian->albedo->Object->checker->even =
+                    (Constant*)(m_List[inactiveHittable]
+                                    ->Object->yz_rect->mat_ptr->Object->lambertian->albedo->Object->checker->odd +
+                                1);
 
-                    new (hittable->Object->yz_rect->mat_ptr->Object->lambertian->albedo->Object->constant)
-                        Constant(Vec3(0.9f, 0.9f, 0.9f));
-                    hittable->Object->yz_rect->mat_ptr->Object->lambertian->albedo->type = TextureType::CONSTANT;
-                    new (hittable->Object->yz_rect->mat_ptr->Object->lambertian)
-                        Lambertian(hittable->Object->yz_rect->mat_ptr->Object->lambertian->albedo);
-                    // Set the type of the Material after constructing it, so the assignment won't be overwritten.
-                    hittable->Object->yz_rect->mat_ptr->type = MaterialType::LAMBERTIAN;
-                    hittable->Object->yz_rect = new (hittable->Object->yz_rect)
-                        YZRect(Vec3(0.0f, 1.0f, 0.0f), 0.2f, 0.2f, hittable->Object->yz_rect->mat_ptr);
+                m_List[inactiveHittable]->isActive = true;
+                m_List[inactiveHittable]->type = HittableType::YZRECT;
 
-                    m_List[i] = hittable;
+                new (m_List[inactiveHittable]->Object->yz_rect->mat_ptr->Object->lambertian->albedo->Object->constant)
+                    Constant(Vec3(0.9f, 0.9f, 0.9f));
+                m_List[inactiveHittable]->Object->yz_rect->mat_ptr->Object->lambertian->albedo->type =
+                    TextureType::CONSTANT;
+                new (m_List[inactiveHittable]->Object->yz_rect->mat_ptr->Object->lambertian)
+                    Lambertian(m_List[inactiveHittable]->Object->yz_rect->mat_ptr->Object->lambertian->albedo);
+                // Set the type of the Material after constructing it, so the assignment won't be overwritten.
+                m_List[inactiveHittable]->Object->yz_rect->mat_ptr->type = MaterialType::LAMBERTIAN;
+                m_List[inactiveHittable]->Object->yz_rect = new (m_List[inactiveHittable]->Object->yz_rect)
+                    YZRect(Vec3(0.0f, 1.0f, 0.0f), 0.2f, 0.2f, m_List[inactiveHittable]->Object->yz_rect->mat_ptr);
 
-                    m_World->Object->bvh_node->Destroy();
-                    m_World->Object->bvh_node = new (m_World->Object->bvh_node) BVHNode(m_List, 0, m_ListSize);
+                m_World->Object->bvh_node->Destroy();
+                m_World->Object->bvh_node = new (m_World->Object->bvh_node) BVHNode(m_List, 0, m_ListSize);
 
-                    allocateNew = false;
-                    break;
-                }
-                else {
-                    allocateNew = true;
-                }
+                m_InactiveHittables.remove(inactiveHittable);
+                break;
             }
         }
     }
@@ -1033,7 +1117,7 @@ void CudaLayer::AddHittable()
     }
 
     if (allocateNew) {
-        std::cout << "Allocate NEW Hittable" << std::endl;
+        RT_TRACE("Allocate NEW Hittable");
         if (m_UseHittableSphere) {
             size_t newSphere = m_SphereSize + m_MetalSize + m_CheckerSize;
 
@@ -1279,9 +1363,6 @@ void CudaLayer::AddHittable()
             m_World->Object->bvh_node = new (m_World->Object->bvh_node) BVHNode(m_List, 0, m_ListSize);
         }
     }
-    else {
-        m_InactiveHittables.pop_back();
-    }
 }
 
 void CudaLayer::DeleteHittable(Hittable* hittable, int i)
@@ -1290,7 +1371,7 @@ void CudaLayer::DeleteHittable(Hittable* hittable, int i)
     m_World->Object->bvh_node->Destroy();
     DeleteImageAllocation(hittable);
     m_World->Object->bvh_node = new (m_World->Object->bvh_node) BVHNode(m_List, 0, m_ListSize);
-    m_InactiveHittables.push_back(std::make_pair(hittable, i));
+    m_InactiveHittables.push_back(i);
 
     for (size_t i = 0; i < m_ListSize; i++) {
         printf("i = %zu\n", i);
@@ -1474,6 +1555,15 @@ void CudaLayer::DeleteImageAllocation(Hittable* hittable)
         break;
     default:
         break;
+    }
+}
+
+void CudaLayer::ClearScene()
+{
+    for (size_t i = 1; i < m_ListSize; i++) {
+        if (m_List[i]->isActive) {
+            DeleteHittable(m_List[i], i);
+        }
     }
 }
 

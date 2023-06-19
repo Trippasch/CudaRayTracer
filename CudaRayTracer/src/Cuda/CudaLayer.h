@@ -58,6 +58,7 @@ private:
     void AddHittable();
     void DeleteHittable(Hittable* hittable, int i);
     void DeleteImageAllocation(Hittable* hittable);
+    void ClearScene();
 
     // Image
     unsigned int m_ImageWidth = 800;
@@ -104,13 +105,13 @@ private:
     size_t m_SpheresSize;
     size_t m_GroundSize;
 
-    std::vector<std::pair<Hittable*, int>> m_InactiveHittables;
+    std::list<int> m_InactiveHittables;
 
     bool m_UseHittableSphere = true;
     bool m_UseHittableXYRect = false;
     bool m_UseHittableXZRect = false;
     bool m_UseHittableYZRect = false;
-    int m_HittableID = 0;
+    int m_HittableID = 1;
     Vec3 m_HittablePosition = Vec3(0.0f, 1.0f, 0.0f);
     float m_SphereRadius = 0.5f;
     float m_RectWidth = 2.0f;
