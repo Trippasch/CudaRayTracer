@@ -37,42 +37,39 @@ void Camera::ProcessMouseScroll(float yoffset)
 void Camera::Inputs(GLFWwindow* window)
 {
     // Handles key inputs
-    if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
-    {
+    if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) {
         m_Position += m_Speed * m_Orientation;
     }
-    if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
-    {
+    if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) {
         m_Position += m_Speed * -glm::normalize(glm::cross(m_Orientation, m_Up));
     }
-    if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
-    {
+    if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) {
         m_Position += m_Speed * -m_Orientation;
     }
-    if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
-    {
+    if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) {
         m_Position += m_Speed * glm::normalize(glm::cross(m_Orientation, m_Up));
     }
-    if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS)
-    {
+    if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS) {
         m_Position += m_Speed * m_Up;
     }
-    if (glfwGetKey(window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS)
-    {
+    if (glfwGetKey(window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS) {
         m_Position += m_Speed * -m_Up;
     }
-    if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS)
-    {
+    if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS) {
         m_Speed = SPEED * 2.0f;
     }
-    else if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_RELEASE)
-    {
+    else if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_RELEASE) {
         m_Speed = SPEED;
     }
 
+    if (glfwGetKey(window, GLFW_KEY_C) == GLFW_PRESS) {
+        m_Position = glm::vec3(0.0f, 2.0f, 10.0f);
+        m_Orientation = glm::vec3(0.0f, -0.2f, -1.0f);
+        m_Up = glm::vec3(0.0f, 1.0f, 0.0f);
+    }
+
     // Handles mouse inputs
-    if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS)
-    {
+    if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS) {
         // Disables mouse cursor
         glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
@@ -86,8 +83,7 @@ void Camera::Inputs(GLFWwindow* window)
         float ypos = static_cast<float>(mouseY);
 
         // Prevents camera from jumping on the first click
-        if (m_FirstClick)
-        {
+        if (m_FirstClick) {
             m_LastX = xpos;
             m_LastY = ypos;
             m_FirstClick = false;
@@ -115,8 +111,7 @@ void Camera::Inputs(GLFWwindow* window)
         direction.z = sin(glm::radians(m_Yaw)) * cos(glm::radians(m_Pitch));
         m_Orientation = glm::normalize(direction);
     }
-    else if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_RELEASE)
-    {
+    else if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_RELEASE) {
         // Unhides cursor since camera is not looking around anymore
         glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
         // Makes sure the next time the camera looks around it doesn't jump
