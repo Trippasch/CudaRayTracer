@@ -1,4 +1,6 @@
 # CudaRayTracer
+![CudaRayTracer](https://i.imgur.com/3PbEtc9.png)
+
 CudaRayTracer is a simple real-time path tracer based on the [Ray Tracing in One Weekend Series](https://raytracing.github.io/) accelerated with [CUDA](https://developer.nvidia.com/cuda-downloads).
 
 CudaRayTracer is a project developed for our university thesis titled "REAL-TIME ACCELERATED RAY TRACING IN 3D GRAPHICS USING CUDA".
