@@ -673,7 +673,11 @@ void CudaLayer::OnImGuiRender()
     ImGui::Separator();
 
     if (ImGui::CollapsingHeader("Ray Tracing Settings", base_flags)) {
-        ImGui::InputInt("Samples Per Pixel", (int*)&m_SamplesPerPixel, 1, 100);
+        if (ImGui::InputInt("Samples Per Pixel", (int*)&m_SamplesPerPixel, 1, 10)) {
+            if (m_SamplesPerPixel <= 0) {
+                m_SamplesPerPixel = 1;
+            }
+        }
         ImGui::SliderInt("Max Depth", (int*)&m_MaxDepth, 1, 50);
     }
 

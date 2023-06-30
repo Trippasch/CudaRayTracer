@@ -118,7 +118,7 @@ private:
     float m_RectHeight = 2.0f;
 
     // RayTracing
-    unsigned int m_SamplesPerPixel = 1;
+    unsigned int m_SamplesPerPixel = 36;
     unsigned int m_MaxDepth = 12;
 
     // Light properties
