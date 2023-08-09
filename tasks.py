@@ -69,7 +69,7 @@ def run(context, build_type="Release"):
 
     if os.name == "nt":
         cmd = [
-            f".\\build\CudaRayTracer\{build_type}\CudaRayTracer.exe"
+            f".\\build\\CudaRayTracer\\{build_type}\\CudaRayTracer.exe"
         ]
     else:
         cmd = [

@@ -102,7 +102,7 @@ void CudaLayer::RunCudaInit()
 
 void CudaLayer::GenerateWorld()
 {
-    m_ListSize = 36 + 1;
+    m_ListSize = 16 + 1;
     // Coalesced memory
     // Calculate total size of memory needed
     m_LambertianSize = sizeof(Material) + sizeof(Material::ObjectUnion) + sizeof(Lambertian);
@@ -171,8 +171,8 @@ void CudaLayer::GenerateWorld()
 
     // Spheres
     int i = 1;
-    for (int a = -3; a < 3; a++) {
-        for (int b = -3; b < 3; b++) {
+    for (int a = -2; a < 2; a++) {
+        for (int b = -2; b < 2; b++) {
             // Partitioning
             char* basePtr = m_ListMemory + m_ListSize * sizeof(Hittable*) + m_GroundSize + (i - 1) * m_SpheresSize;
             m_List[i] = (Hittable*)(basePtr);
@@ -211,7 +211,7 @@ void CudaLayer::GenerateWorld()
                 m_List[i]->Object->sphere =
                     new (m_List[i]->Object->sphere) Sphere(center, 0.2f, m_List[i]->Object->sphere->mat_ptr);
             }
-            else if (choose_mat < 0.90f) {
+            else if (choose_mat < 0.80f) {
                 new (m_List[i]->Object->sphere->mat_ptr->Object->metal->albedo->Object->constant)
                     Constant(Vec3(0.5f * (1.0f + RND), 0.5f * (1.0f + RND), 0.5f * (1.0f + RND)));
                 m_List[i]->Object->sphere->mat_ptr->Object->metal->albedo->type = TextureType::CONSTANT;
@@ -222,7 +222,7 @@ void CudaLayer::GenerateWorld()
                 m_List[i]->Object->sphere =
                     new (m_List[i]->Object->sphere) Sphere(center, 0.2f, m_List[i]->Object->sphere->mat_ptr);
             }
-            else if (choose_mat < 0.95f) {
+            else if (choose_mat < 0.90f) {
                 new (m_List[i]->Object->sphere->mat_ptr->Object->dielectric) Dielectric(1.5f);
                 // Set the type of the Material after constructing it, so the assignment won't be overwritten.
                 m_List[i]->Object->sphere->mat_ptr->type = MaterialType::DIELECTRIC;
@@ -1130,7 +1130,7 @@ void CudaLayer::AddHittable()
 
             // Reallocate the list memory
             if (temp != nullptr) {
-                cudaFree(temp);
+                checkCudaErrors(cudaFree(temp));
             }
             checkCudaErrors(cudaMallocManaged(&temp, m_TotalSize - newSphere));
             checkCudaErrors(cudaMemcpy(temp, m_ListMemory, m_TotalSize - newSphere, cudaMemcpyDeviceToDevice));
@@ -1197,7 +1197,7 @@ void CudaLayer::AddHittable()
 
             // Reallocate the list memory
             if (temp != nullptr) {
-                cudaFree(temp);
+                checkCudaErrors(cudaFree(temp));
             }
             checkCudaErrors(cudaMallocManaged(&temp, m_TotalSize - newXYRect));
             checkCudaErrors(cudaMemcpy(temp, m_ListMemory, m_TotalSize - newXYRect, cudaMemcpyDeviceToDevice));
@@ -1256,7 +1256,7 @@ void CudaLayer::AddHittable()
 
             // Reallocate the list memory
             if (temp != nullptr) {
-                cudaFree(temp);
+                checkCudaErrors(cudaFree(temp));
             }
             checkCudaErrors(cudaMallocManaged(&temp, m_TotalSize - newXZRect));
             checkCudaErrors(cudaMemcpy(temp, m_ListMemory, m_TotalSize - newXZRect, cudaMemcpyDeviceToDevice));
@@ -1315,7 +1315,7 @@ void CudaLayer::AddHittable()
 
             // Reallocate the list memory
             if (temp != nullptr) {
-                cudaFree(temp);
+                checkCudaErrors(cudaFree(temp));
             }
             checkCudaErrors(cudaMallocManaged(&temp, m_TotalSize - newYZRect));
             checkCudaErrors(cudaMemcpy(temp, m_ListMemory, m_TotalSize - newYZRect, cudaMemcpyDeviceToDevice));
@@ -1377,13 +1377,13 @@ void CudaLayer::DeleteHittable(Hittable* hittable, int i)
     m_World->Object->bvh_node = new (m_World->Object->bvh_node) BVHNode(m_List, 0, m_ListSize);
     m_InactiveHittables.push_back(i);
 
-    for (size_t i = 0; i < m_ListSize; i++) {
-        printf("i = %zu\n", i);
-        std::cout << "Hexadecimal representation of pointer: " << std::hex
-                  << reinterpret_cast<unsigned long long>(m_List[i]) << std::endl;
-        std::cout << "Decimal representation of pointer: " << std::dec
-                  << reinterpret_cast<unsigned long long>(m_List[i]) << std::endl;
-    }
+    // for (size_t i = 0; i < m_ListSize; i++) {
+    //     printf("i = %zu\n", i);
+    //     std::cout << "Hexadecimal representation of pointer: " << std::hex
+    //               << reinterpret_cast<unsigned long long>(m_List[i]) << std::endl;
+    //     std::cout << "Decimal representation of pointer: " << std::dec
+    //               << reinterpret_cast<unsigned long long>(m_List[i]) << std::endl;
+    // }
 }
 
 void CudaLayer::DeleteImageAllocation(Hittable* hittable)
