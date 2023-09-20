@@ -17,6 +17,8 @@
 #include <cuda_runtime.h>
 #include <curand_kernel.h>
 
+#include <list>
+
 class CudaLayer : public Layer
 {
 public:
